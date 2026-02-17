@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── ORGANIZATIONS (one per farm operation) ───────────────────
+
+model Organization {
+  id                   String    @id @default(cuid())
+  name                 String
+  slug                 String    @unique
+  plan                 Plan      @default(TRIAL)
+  trialEndsAt          DateTime?
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  members       OrgMember[]
+  farms         Farm[]
+  assets        Asset[]
+  contracts     Contract[]
+  employees     Employee[]
+  layoutConfigs LayoutConfig[]
+  auditLogs     AuditLog[]
+}
+
+enum Plan {
+  TRIAL
+  PRO
+  PRO_PLUS
+  SUSPENDED
+}
+
+// ─── ORG MEMBERS + ROLES ──────────────────────────────────────
+
+model OrgMember {
+  id        String   @id @default(cuid())
+  userId    String
+  orgId     String
+  role      Role     @default(VIEWER)
+  createdAt DateTime @default(now())
+
+  org  Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([userId, orgId])
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MANAGER
+  STAFF
+  VIEWER
+}
+
+// ─── LAYOUT CONFIGURATOR ──────────────────────────────────────
+
+model LayoutConfig {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String
+  screen    String
+  config    Json
+  updatedAt DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([userId, screen])
+}
+
+// ─── FARMS + FIELDS ───────────────────────────────────────────
+
+model Farm {
+  id       String  @id @default(cuid())
+  orgId    String
+  name     String
+  location String?
+  lat      Float?
+  lng      Float?
+  areaHa   Float?
+
+  org    Organization @relation(fields: [orgId], references: [id])
+  fields Field[]
+}
+
+model Field {
+  id       String  @id @default(cuid())
+  farmId   String
+  name     String
+  areaHa   Float?
+  soilType String?
+  cropZone String?
+
+  farm      Farm       @relation(fields: [farmId], references: [id])
+  cropPlans CropPlan[]
+}
+
+// ─── MACHINERY / ASSETS ───────────────────────────────────────
+
+model Asset {
+  id            String      @id @default(cuid())
+  orgId         String
+  name          String
+  type          AssetType
+  make          String?
+  model         String?
+  year          Int?
+  serialNumber  String?
+  purchaseDate  DateTime?
+  purchasePrice Decimal?    @db.Decimal(12, 2)
+  currentValue  Decimal?    @db.Decimal(12, 2)
+  status        AssetStatus @default(ACTIVE)
+  hoursTotal    Float?
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  org              Organization     @relation(fields: [orgId], references: [id])
+  maintenanceLogs  MaintenanceLog[]
+}
+
+enum AssetType {
+  TRACTOR
+  COMBINE
+  TRUCK
+  HEADER
+  SEEDER
+  SPRAYER
+  AUGER
+  OTHER
+}
+
+enum AssetStatus {
+  ACTIVE
+  WATCH
+  DOWN
+  SOLD
+  RETIRED
+}
+
+model MaintenanceLog {
+  id             String   @id @default(cuid())
+  assetId        String
+  date           DateTime
+  type           String
+  notes          String?
+  cost           Decimal? @db.Decimal(10, 2)
+  hoursAtService Float?
+
+  asset Asset @relation(fields: [assetId], references: [id])
+}
+
+// ─── GRAIN CONTRACTS ──────────────────────────────────────────
+
+model Contract {
+  id           String         @id @default(cuid())
+  orgId        String
+  commodity    String
+  counterparty String
+  type         ContractType
+  status       ContractStatus @default(OPEN)
+  bushels      Decimal        @db.Decimal(12, 2)
+  pricePerUnit Decimal        @db.Decimal(10, 4)
+  currency     String         @default("CAD")
+  deliveryDate DateTime?
+  signedDate   DateTime?
+  notes        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id])
+}
+
+enum ContractType {
+  CASH
+  BASIS
+  HTA
+  FUTURES
+  DEFERRED
+}
+
+enum ContractStatus {
+  OPEN
+  DELIVERED
+  CANCELLED
+  EXPIRED
+}
+
+// ─── AGRONOMY ─────────────────────────────────────────────────
+
+model CropPlan {
+  id          String    @id @default(cuid())
+  fieldId     String
+  year        Int
+  crop        String
+  variety     String?
+  seedingDate DateTime?
+  targetYield Float?
+  notes       String?
+
+  field           Field            @relation(fields: [fieldId], references: [id])
+  scoutingReports ScoutingReport[]
+}
+
+model ScoutingReport {
+  id           String   @id @default(cuid())
+  cropPlanId   String
+  date         DateTime
+  scoutedBy    String
+  observations Json
+  photos       String[]
+
+  cropPlan CropPlan @relation(fields: [cropPlanId], references: [id])
+}
+
+// ─── EMPLOYEES / HR ───────────────────────────────────────────
+
+model Employee {
+  id             String    @id @default(cuid())
+  orgId          String
+  name           String
+  role           String
+  startDate      DateTime?
+  status         String    @default("ACTIVE")
+  workerType     String?
+  certifications Json?
+
+  org Organization @relation(fields: [orgId], references: [id])
+}
+
+// ─── AUDIT LOG ────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String
+  action    String
+  entityId  String?
+  before    Json?
+  after     Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id])
+}
