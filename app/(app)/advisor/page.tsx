@@ -211,9 +211,9 @@ export default function AdvisorPage() {
       <div className="mb-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#4A7C59] flex items-center justify-center">
-              <Bot size={20} className="text-white" />
-            </div>
+            <div className="w-10 h-10 rounded-full bg-[#DDE3D6] flex items-center justify-center text-2xl">
+  👩‍🌾
+</div>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold text-[#222527]">Lily</h1>
@@ -445,9 +445,9 @@ export default function AdvisorPage() {
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             {msg.role === "assistant" && (
-              <div className="w-8 h-8 rounded-full bg-[#4A7C59] flex items-center justify-center shrink-0 mt-1">
-                <Bot size={14} className="text-white" />
-              </div>
+              <div className="w-8 h-8 rounded-full bg-[#DDE3D6] flex items-center justify-center shrink-0 mt-1 text-lg">
+  👩‍🌾
+</div>
             )}
             <div className={`max-w-2xl rounded-[16px] px-5 py-4 ${
               msg.role === "user"
@@ -466,9 +466,9 @@ export default function AdvisorPage() {
 
         {streamingText && (
           <div className="flex gap-3 justify-start">
-            <div className="w-8 h-8 rounded-full bg-[#4A7C59] flex items-center justify-center shrink-0 mt-1">
-              <Bot size={14} className="text-white" />
-            </div>
+            <div className="w-8 h-8 rounded-full bg-[#DDE3D6] flex items-center justify-center shrink-0 mt-1 text-lg">
+  👩‍🌾
+</div>
             <div className="max-w-2xl bg-white border border-[#E4E7E0] rounded-[16px] px-5 py-4 text-[#222527]">
               <MessageContent content={streamingText} />
               <span className="inline-block w-1.5 h-3.5 bg-[#4A7C59] ml-0.5 animate-pulse rounded-sm" />
@@ -478,9 +478,9 @@ export default function AdvisorPage() {
 
         {loading && !streamingText && (
           <div className="flex gap-3 justify-start">
-            <div className="w-8 h-8 rounded-full bg-[#4A7C59] flex items-center justify-center shrink-0 mt-1">
-              <Bot size={14} className="text-white" />
-            </div>
+            <div className="w-8 h-8 rounded-full bg-[#DDE3D6] flex items-center justify-center shrink-0 mt-1 text-lg">
+  👩‍🌾
+</div>
             <div className="bg-white border border-[#E4E7E0] rounded-[16px] px-5 py-4">
               <div className="flex gap-1">
                 <div className="w-2 h-2 rounded-full bg-[#4A7C59] animate-bounce" style={{ animationDelay: "0ms" }} />
