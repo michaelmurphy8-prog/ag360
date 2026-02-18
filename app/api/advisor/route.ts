@@ -147,27 +147,27 @@ TONE:
 - If you don't know something, say so — then tell them how to find out`;
 
 export async function POST(req: NextRequest) {
-  const { messages } = await req.json();
+  const { messages, farmContext } = await req.json();
 
-  const encoder = new TextEncoder();
+  const systemWithContext = farmContext
+    ? `${LILY_SYSTEM_PROMPT}\n\n---\nFARMER CONTEXT — THIS IS THE FARM YOU ARE ADVISING RIGHT NOW:\n${farmContext}\n\nUse this data in every response. Reference the farm by name. Use their actual numbers.`
+    : LILY_SYSTEM_PROMPT;
 
   async function tryStream(attempt: number): Promise<Response> {
     try {
       const stream = await client.messages.stream({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 2048,
-        system: LILY_SYSTEM_PROMPT,
+        system: systemWithContext,
         messages,
       });
 
+      const encoder = new TextEncoder();
       const readable = new ReadableStream({
         async start(controller) {
           try {
             for await (const chunk of stream) {
-              if (
-                chunk.type === "content_block_delta" &&
-                chunk.delta.type === "text_delta"
-              ) {
+              if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
                 controller.enqueue(encoder.encode(chunk.delta.text));
               }
             }
