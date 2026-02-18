@@ -11,6 +11,7 @@ export default function LoginPage() {
           <p className="text-[#7A8A7C] text-sm">Sign in to your account</p>
         </div>
         <SignIn
+          forceRedirectUrl="/overview"
           appearance={{
             elements: {
               rootBox: "w-full",

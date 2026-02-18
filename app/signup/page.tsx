@@ -11,6 +11,7 @@ export default function SignupPage() {
           <p className="text-[#7A8A7C] text-sm">Create your free account</p>
         </div>
         <SignUp
+          forceRedirectUrl="/overview"
           appearance={{
             elements: {
               rootBox: "w-full",
