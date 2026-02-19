@@ -6,7 +6,7 @@ import { Plus, Trash2, Package, TrendingUp, ArrowRightLeft } from "lucide-react"
 
 const CROPS = ["Canola", "CWRS Wheat", "Durum", "Barley", "Oats", "Peas", "Lentils", "Flax", "Soybeans", "Corn"];
 const CONTRACT_TYPES = ["Cash Sale", "HTA (Basis Contract)", "Deferred Delivery", "Futures-First", "Target Order", "PRO/Pool"];
-const MOVEMENT_TYPES = ["Delivery Out", "Bin Transfer", "Purchase In", "Adjustment"];
+const MOVEMENT_TYPES = ["Delivery Out", "Bin Transfer", "Purchase In", "Inventory Adjustment", "Sale", "Return"];
 const GRADES = ["#1", "#2", "#3", "Feed", "Sample", "Tough", "Damp"];
 
 type Holding = {
@@ -119,7 +119,7 @@ export default function InventoryPage() {
     setHoldings([...holdings, data.holding]);
     setShowAddHolding(false);
     setNewHolding({ crop: "Canola", location: "", quantity_bu: 0, grade: "#1", moisture: 0, estimated_price: 0 });
-    await logMovement({ movement_type: "Purchase In", crop: newHolding.crop, quantity_bu: newHolding.quantity_bu, to_location: newHolding.location, movement_date: new Date().toISOString().split("T")[0] });
+    await logMovement({ movement_type: "Inventory Adjustment", crop: newHolding.crop, quantity_bu: newHolding.quantity_bu, to_location: newHolding.location, movement_date: new Date().toISOString().split("T")[0] });
   }
 
   async function deleteHolding(id: number) {
@@ -172,27 +172,59 @@ export default function InventoryPage() {
   const totalValue = holdings.reduce((sum, h) => sum + Number(h.quantity_bu) * Number(h.estimated_price || 0), 0);
   const totalContracted = contracts.reduce((sum, c) => sum + Number(c.quantity_bu), 0);
   const unpriced = totalBu - totalContracted;
+  function exportCSV() {
+  const tab = activeTab;
+  let rows: string[] = [];
+  if (tab === "holdings") {
+    rows = ["Crop,Location,Quantity (bu),Grade,Moisture,Est. Price,Value",
+      ...holdings.map(h => `${h.crop},${h.location},${h.quantity_bu},${h.grade || ""},${h.moisture || ""},$${h.estimated_price || 0},$${(Number(h.quantity_bu) * Number(h.estimated_price || 0)).toFixed(0)}`)
+    ];
+  } else if (tab === "contracts") {
+    rows = ["Crop,Type,Quantity (bu),Price/bu,Elevator,Delivery,Value",
+      ...contracts.map(c => `${c.crop},${c.contract_type},${c.quantity_bu},$${c.price_per_bu || ""},${c.elevator || ""},${c.delivery_date || ""},$${(Number(c.quantity_bu) * Number(c.price_per_bu || 0)).toFixed(0)}`)
+    ];
+  } else {
+    rows = ["Date,Type,Crop,Quantity (bu),From,To",
+      ...movements.map(m => `${m.movement_date},${m.movement_type},${m.crop},${m.quantity_bu},${m.from_location || ""},${m.to_location || ""}`)
+    ];
+  }
+  const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `ag360-${tab}-${new Date().toISOString().split("T")[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
   const inputClass = "w-full text-sm border border-[#E4E7E0] rounded-[10px] px-3 py-2 outline-none focus:border-[#4A7C59] bg-white";
 
   return (
     <div className="space-y-6 pb-16">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#222527]">Inventory</h1>
-          <p className="text-sm text-[#7A8A7C] mt-1">Current holdings, contracted sales, and movement log</p>
-        </div>
-        <button
-          onClick={() => {
-            if (activeTab === "holdings") setShowAddHolding(true);
-            if (activeTab === "contracts") setShowAddContract(true);
-            if (activeTab === "movements") setShowAddMovement(true);
-          }}
-          className="flex items-center gap-2 bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-[#3d6b4a] transition-colors"
-        >
-          <Plus size={14} /> Add {activeTab === "holdings" ? "Holding" : activeTab === "contracts" ? "Contract" : "Movement"}
-        </button>
-      </div>
+  <div>
+    <h1 className="text-2xl font-bold text-[#222527]">Inventory</h1>
+    <p className="text-sm text-[#7A8A7C] mt-1">Current holdings, contracted sales, and movement log</p>
+  </div>
+  <div className="flex items-center gap-2">
+    <button
+      onClick={exportCSV}
+      className="flex items-center gap-2 text-sm font-semibold text-[#4A7C59] bg-[#EEF5F0] border border-[#C8DDD0] px-4 py-2.5 rounded-full hover:bg-[#DDE3D6] transition-colors"
+    >
+      Export CSV
+    </button>
+    <button
+      onClick={() => {
+        if (activeTab === "holdings") setShowAddHolding(true);
+        if (activeTab === "contracts") setShowAddContract(true);
+        if (activeTab === "movements") setShowAddMovement(true);
+      }}
+      className="flex items-center gap-2 bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-[#3d6b4a] transition-colors"
+    >
+      <Plus size={14} /> Add {activeTab === "holdings" ? "Holding" : activeTab === "contracts" ? "Contract" : "Movement"}
+    </button>
+  </div>
+</div>
 
       {/* KPI Strip */}
       <div className="grid grid-cols-4 gap-4">
@@ -273,12 +305,12 @@ export default function InventoryPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide border-b border-[#E4E7E0]">
-                    <th className="text-left pb-3">Crop</th>
-                    <th className="text-left pb-3">Location</th>
-                    <th className="text-right pb-3">Quantity</th>
-                    <th className="text-left pb-3">Grade</th>
-                    <th className="text-right pb-3">Moisture</th>
-                    <th className="text-right pb-3">Est. Price</th>
+                    <th className="text-left pb-3 pr-8">Crop</th>
+                    <th className="text-left pb-3 pr-8">Location</th>
+                    <th className="text-right pb-3 pr-8">Quantity</th>
+                    <th className="text-left pb-3 pr-8">Grade</th>
+                    <th className="text-right pb-3 pr-8">Moisture</th>
+                    <th className="text-right pb-3 pr-8">Est. Price</th>
                     <th className="text-right pb-3">Value</th>
                     <th className="pb-3"></th>
                   </tr>
@@ -286,12 +318,12 @@ export default function InventoryPage() {
                 <tbody className="divide-y divide-[#F5F5F3]">
                   {holdings.map((h, i) => (
                     <tr key={h.id || i} className="py-3">
-                      <td className="py-3 font-semibold text-[#222527]">{h.crop}</td>
-                      <td className="py-3 text-[#7A8A7C]">{h.location}</td>
-                      <td className="py-3 text-right font-semibold">{Number(h.quantity_bu).toLocaleString()} bu</td>
-                      <td className="py-3 text-[#7A8A7C]">{h.grade || "—"}</td>
-                      <td className="py-3 text-right text-[#7A8A7C]">{h.moisture ? `${h.moisture}%` : "—"}</td>
-                      <td className="py-3 text-right text-[#7A8A7C]">{h.estimated_price ? `$${h.estimated_price}/bu` : "—"}</td>
+                      <td className="py-3 pr-8 font-semibold text-[#222527]">{h.crop}</td>
+                      <td className="py-3 pr-8 text-[#7A8A7C]">{h.location}</td>
+                      <td className="py-3 pr-8 text-right font-semibold">{Number(h.quantity_bu).toLocaleString()} bu</td>
+                      <td className="py-3 pr-8 text-[#7A8A7C]">{h.grade || "—"}</td>
+                      <td className="py-3 pr-8 text-right text-[#7A8A7C]">{h.moisture ? `${h.moisture}%` : "—"}</td>
+                      <td className="py-3 pr-8 text-right text-[#7A8A7C]">{h.estimated_price ? `$${h.estimated_price}/bu` : "—"}</td>
                       <td className="py-3 text-right font-semibold text-[#4A7C59]">{fmt(Number(h.quantity_bu) * Number(h.estimated_price || 0))}</td>
                       <td className="py-3 text-right">
                         {h.id && <button onClick={() => deleteHolding(h.id!)} className="text-[#D94F3D] hover:text-red-700"><Trash2 size={14} /></button>}
@@ -377,12 +409,12 @@ export default function InventoryPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide border-b border-[#E4E7E0]">
-                    <th className="text-left pb-3">Crop</th>
-                    <th className="text-left pb-3">Type</th>
-                    <th className="text-right pb-3">Quantity</th>
-                    <th className="text-right pb-3">Price</th>
-                    <th className="text-left pb-3">Elevator</th>
-                    <th className="text-left pb-3">Delivery</th>
+                    <th className="text-left pb-3 pr-8">Crop</th>
+                    <th className="text-left pb-3 pr-8">Type</th>
+                    <th className="text-right pb-3 pr-8">Quantity</th>
+                    <th className="text-right pb-3 pr-8">Price</th>
+                    <th className="text-left pb-3 pr-8">Elevator</th>
+                    <th className="text-left pb-3 pr-8">Delivery</th>
                     <th className="text-right pb-3">Value</th>
                     <th className="pb-3"></th>
                   </tr>
@@ -390,12 +422,12 @@ export default function InventoryPage() {
                 <tbody className="divide-y divide-[#F5F5F3]">
                   {contracts.map((c, i) => (
                     <tr key={c.id || i}>
-                      <td className="py-3 font-semibold text-[#222527]">{c.crop}</td>
-                      <td className="py-3"><span className="text-xs bg-[#EEF5F0] text-[#4A7C59] font-semibold px-2 py-1 rounded-full">{c.contract_type}</span></td>
-                      <td className="py-3 text-right">{Number(c.quantity_bu).toLocaleString()} bu</td>
-                      <td className="py-3 text-right">{c.price_per_bu ? `$${c.price_per_bu}/bu` : "—"}</td>
-                      <td className="py-3 text-[#7A8A7C]">{c.elevator || "—"}</td>
-                      <td className="py-3 text-[#7A8A7C]">{c.delivery_date || "—"}</td>
+                      <td className="py-3 pr-8 font-semibold text-[#222527]">{c.crop}</td>
+                      <td className="py-3 pr-8"><span className="text-xs bg-[#EEF5F0] text-[#4A7C59] font-semibold px-2 py-1 rounded-full">{c.contract_type}</span></td>
+                      <td className="py-3 pr-8 text-right">{Number(c.quantity_bu).toLocaleString()} bu</td>
+                      <td className="py-3 pr-8 text-right">{c.price_per_bu ? `$${c.price_per_bu}/bu` : "—"}</td>
+                      <td className="py-3 pr-8 text-[#7A8A7C]">{c.elevator || "—"}</td>
+                      <td className="py-3 pr-8 text-[#7A8A7C]">{c.delivery_date || "—"}</td>
                       <td className="py-3 text-right font-semibold text-[#4A7C59]">{c.price_per_bu ? fmt(Number(c.quantity_bu) * Number(c.price_per_bu)) : "—"}</td>
                       <td className="py-3 text-right">
                         {c.id && <button onClick={() => deleteContract(c.id!)} className="text-[#D94F3D] hover:text-red-700"><Trash2 size={14} /></button>}
@@ -433,7 +465,13 @@ export default function InventoryPage() {
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">From</label>
-                    <input type="text" placeholder="North Bin" value={newMovement.from_location || ""} onChange={e => setNewMovement({...newMovement, from_location: e.target.value})} className={inputClass} />
+                    <select value={newMovement.from_location || ""} onChange={e => setNewMovement({...newMovement, from_location: e.target.value})} className={inputClass}>
+  <option value="">Select bin...</option>
+  {[...new Set(holdings.map(h => h.location))].map(loc => (
+    <option key={loc} value={loc}>{loc}</option>
+  ))}
+  <option value="other">Other...</option>
+</select>
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">To</label>
@@ -459,8 +497,8 @@ export default function InventoryPage() {
                     <th className="text-left pb-3">Date</th>
                     <th className="text-left pb-3">Type</th>
                     <th className="text-left pb-3">Crop</th>
-                    <th className="text-right pb-3">Quantity</th>
-                    <th className="text-left pb-3">From</th>
+                    <th className="text-right pb-3 pr-8">Quantity</th>
+                    <th className="text-left pb-3 pr-8">From</th>
                     <th className="text-left pb-3">To</th>
                   </tr>
                 </thead>
@@ -470,8 +508,8 @@ export default function InventoryPage() {
                       <td className="py-3 text-[#7A8A7C]">{m.movement_date}</td>
                       <td className="py-3"><span className="text-xs bg-[#F5F5F3] text-[#222527] font-semibold px-2 py-1 rounded-full">{m.movement_type}</span></td>
                       <td className="py-3 font-semibold text-[#222527]">{m.crop}</td>
-                      <td className="py-3 text-right">{Number(m.quantity_bu).toLocaleString()} bu</td>
-                      <td className="py-3 text-[#7A8A7C]">{m.from_location || "—"}</td>
+                      <td className="py-3 text-right pr-8">{Number(m.quantity_bu).toLocaleString()} bu</td>
+                      <td className="py-3 pr-8 text-[#7A8A7C]">{m.from_location || "—"}</td>
                       <td className="py-3 text-[#7A8A7C]">{m.to_location || "—"}</td>
                     </tr>
                   ))}
