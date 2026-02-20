@@ -76,38 +76,37 @@ export default function InventoryPage() {
 
   const headers = { "x-user-id": user?.id || "" };
 
+const loadAll = useCallback(async () => {
+  const [h, c, m, p] = await Promise.all([
+    fetch("/api/inventory/holdings", { headers }).then(r => r.json()),
+    fetch("/api/inventory/contracts", { headers }).then(r => r.json()),
+    fetch("/api/inventory/movements", { headers }).then(r => r.json()),
+    fetch("/api/farm-profile", { headers }).then(r => r.json()),
+  ]);
+  setContracts(c.contracts || []);
+  setMovements(m.movements || []);
+  if (h.holdings && h.holdings.length > 0) {
+    setHoldings(h.holdings);
+  } else if (p.profile) {
+    const profile: FarmProfile = p.profile;
+    const seeded = profile.inventory
+      .filter((i) => i.mode === "on_hand" && i.bushels && i.bushels > 0)
+      .map((i) => ({
+        crop: i.crop,
+        location: "Main Bin",
+        quantity_bu: i.bushels || 0,
+        grade: "#1",
+        moisture: 0,
+        estimated_price: i.targetPrice || 0,
+      }));
+    setHoldings(seeded);
+  }
+}, [headers])
+
   useEffect(() => {
     if (!user?.id) return;
     loadAll();
   }, [user?.id]);
-
-  const loadAll = useCallback(async () => {
-    const [h, c, m, p] = await Promise.all([
-      fetch("/api/inventory/holdings", { headers }).then(r => r.json()),
-      fetch("/api/inventory/contracts", { headers }).then(r => r.json()),
-      fetch("/api/inventory/movements", { headers }).then(r => r.json()),
-      fetch("/api/farm-profile", { headers }).then(r => r.json()),
-    ]);
-    setContracts(c.contracts || []);
-    setMovements(m.movements || []);
-
-    if (h.holdings && h.holdings.length > 0) {
-      setHoldings(h.holdings);
-    } else if (p.profile) {
-      const profile: FarmProfile = p.profile;
-      const seeded = profile.inventory
-        .filter((i) => i.mode === "on_hand" && i.bushels && i.bushels > 0)
-        .map((i) => ({
-          crop: i.crop,
-          location: "Main Bin",
-          quantity_bu: i.bushels || 0,
-          grade: "#1",
-          moisture: 0,
-          estimated_price: i.targetPrice || 0,
-        }));
-      setHoldings(seeded);
-    }
-  }, [headers])
 
   async function addHolding() {
     const res = await fetch("/api/inventory/holdings", {
