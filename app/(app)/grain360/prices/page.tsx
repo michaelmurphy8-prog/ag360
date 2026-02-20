@@ -11,6 +11,7 @@ type FuturesQuote = {
   percentChange: number
   tradeTime: string
   unitCode: string
+  currency: 'CAD' | 'USD'
 }
 
 type CashBid = {
@@ -47,11 +48,26 @@ const COMMODITY_GROUPS = [
   { label: 'Diesel', symbols: ['HO*1'] },
 ]
 
-const UNIT_LABELS: Record<string, string> = {
-  MT: '$/MT',
-  BU: '¢/bu',
-  CWT: '$/cwt',
-  GAL: '$/gal',
+const CURRENCY_MAP: Record<string, 'CAD' | 'USD'> = {
+  'WC*1': 'CAD', 'WC*2': 'CAD', 'WC*3': 'CAD',
+  'ZW*1': 'USD', 'ZC*1': 'USD',
+  'LE*1': 'USD', 'GF*1': 'USD',
+  'HO*1': 'USD',
+}
+
+function getUnitLabel(unitCode: string, displayCurrency: 'CAD' | 'USD', symbolCurrency: 'CAD' | 'USD') {
+  const converted = symbolCurrency === 'USD' && displayCurrency === 'CAD'
+  const prefix = converted ? 'CAD' : symbolCurrency
+  const units: Record<string, string> = {
+    MT: `${prefix}/MT`, BU: `${prefix}/bu`,
+    CWT: `${prefix}/cwt`, GAL: `${prefix}/gal`,
+  }
+  return units[unitCode] ?? unitCode
+}
+
+function convertPrice(price: number, symbolCurrency: 'CAD' | 'USD', displayCurrency: 'CAD' | 'USD', fxRate: number) {
+  if (symbolCurrency === 'USD' && displayCurrency === 'CAD') return price * fxRate
+  return price
 }
 
 function formatPrice(price: number, unitCode: string) {
@@ -61,29 +77,24 @@ function formatPrice(price: number, unitCode: string) {
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('en-CA', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short',
+    hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
   })
 }
 
 function ChangeIndicator({ change, percent }: { change: number; percent: number }) {
   if (change > 0) return (
-    <span className="flex items-center gap-1 text-emerald-400 font-medium">
-      <TrendingUp size={14} />
-      +{change.toFixed(3)} ({percent.toFixed(2)}%)
+    <span className="flex items-center gap-1 text-emerald-600 font-medium">
+      <TrendingUp size={14} />+{change.toFixed(3)} ({percent.toFixed(2)}%)
     </span>
   )
   if (change < 0) return (
-    <span className="flex items-center gap-1 text-red-400 font-medium">
-      <TrendingDown size={14} />
-      {change.toFixed(3)} ({percent.toFixed(2)}%)
+    <span className="flex items-center gap-1 text-red-500 font-medium">
+      <TrendingDown size={14} />{change.toFixed(3)} ({percent.toFixed(2)}%)
     </span>
   )
   return (
-    <span className="flex items-center gap-1 text-gray-400 font-medium">
-      <Minus size={14} />
-      0.000 (0.00%)
+    <span className="flex items-center gap-1 text-[#7A8A7C] font-medium">
+      <Minus size={14} />0.000 (0.00%)
     </span>
   )
 }
@@ -95,15 +106,24 @@ export default function PricesPage() {
   const [error, setError] = useState<string | null>(null)
   const [favourites, setFavourites] = useState<Set<string>>(new Set())
   const [activeCommodity, setActiveCommodity] = useState('Canola')
+  const [displayCurrency, setDisplayCurrency] = useState<'CAD' | 'USD'>('CAD')
+  const [fxRate, setFxRate] = useState<number>(1.3650)
+  const [fxSource, setFxSource] = useState<string>('fallback')
 
-  // ── Fetch prices
   async function fetchPrices(isRefresh = false) {
     if (isRefresh) setRefreshing(true)
     try {
       const res = await fetch('/api/grain360/prices')
       const json = await res.json()
       if (json.success) {
-        setData(json)
+        const withCurrency = {
+          ...json,
+          futures: json.futures.map((f: FuturesQuote) => ({
+            ...f,
+            currency: CURRENCY_MAP[f.symbol] ?? 'USD',
+          })),
+        }
+        setData(withCurrency)
         setError(null)
       } else {
         setError('Failed to load prices')
@@ -116,14 +136,25 @@ export default function PricesPage() {
     }
   }
 
-  // ── Fetch watchlist from database
+  async function fetchFX() {
+    try {
+      const res = await fetch('/api/grain360/fx')
+      const json = await res.json()
+      if (json.success) {
+        setFxRate(json.rate)
+        setFxSource(json.source)
+      }
+    } catch {
+      console.error('FX fetch failed')
+    }
+  }
+
   const fetchWatchlist = useCallback(async () => {
     try {
       const res = await fetch('/api/grain360/watchlist')
       const json = await res.json()
       if (json.success) {
-        const symbols = new Set<string>(json.watchlist.map((i: WatchlistItem) => i.symbol))
-        setFavourites(symbols)
+        setFavourites(new Set<string>(json.watchlist.map((i: WatchlistItem) => i.symbol)))
       }
     } catch {
       console.error('Failed to load watchlist')
@@ -132,28 +163,22 @@ export default function PricesPage() {
 
   useEffect(() => {
     fetchPrices()
+    fetchFX()
     fetchWatchlist()
     const interval = setInterval(() => fetchPrices(), 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [fetchWatchlist])
 
-  // ── Toggle favourite — optimistic UI + persist to DB
   async function toggleFavourite(
-    symbol: string,
-    label: string,
-    type: 'futures' | 'cash',
-    commodity?: string,
-    location_id?: string
+    symbol: string, label: string,
+    type: 'futures' | 'cash', commodity?: string, location_id?: string
   ) {
     const isFav = favourites.has(symbol)
-
-    // Optimistic update
     setFavourites(prev => {
       const next = new Set(prev)
       isFav ? next.delete(symbol) : next.add(symbol)
       return next
     })
-
     try {
       if (isFav) {
         await fetch('/api/grain360/watchlist', {
@@ -169,7 +194,6 @@ export default function PricesPage() {
         })
       }
     } catch {
-      // Revert optimistic update on failure
       setFavourites(prev => {
         const next = new Set(prev)
         isFav ? next.add(symbol) : next.delete(symbol)
@@ -186,33 +210,64 @@ export default function PricesPage() {
   const hasFavourites = favouriteFutures.length > 0 || favouriteCashBids.length > 0
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0f1117] flex items-center justify-center">
-      <div className="text-[#7A8A6A] text-sm animate-pulse">Loading prices...</div>
+    <div className="min-h-screen bg-[#F9FAF8] flex items-center justify-center">
+      <div className="text-[#7A8A7C] text-sm animate-pulse">Loading prices...</div>
     </div>
   )
 
   if (error) return (
-    <div className="min-h-screen bg-[#0f1117] flex items-center justify-center">
-      <div className="text-red-400 text-sm">{error}</div>
+    <div className="min-h-screen bg-[#F9FAF8] flex items-center justify-center">
+      <div className="text-red-500 text-sm">{error}</div>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-[#0f1117] text-white p-6 space-y-6">
+    <div className="min-h-screen bg-[#F9FAF8] text-[#222527] p-6 space-y-6">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white">Market Prices</h1>
-          <p className="text-sm text-[#7A8A6A] mt-0.5">Futures & Saskatchewan cash bids</p>
+          <h1 className="text-2xl font-bold text-[#222527]">Market Prices</h1>
+          <p className="text-sm text-[#7A8A7C] mt-0.5">Futures & Saskatchewan cash bids</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+
+          {/* FX Toggle */}
+          <div className="flex items-center gap-1 bg-white border border-[#E4E7E0] rounded-lg p-1">
+            <button
+              onClick={() => setDisplayCurrency('CAD')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                displayCurrency === 'CAD'
+                  ? 'bg-[#4A7C59] text-white'
+                  : 'text-[#7A8A7C] hover:text-[#222527]'
+              }`}
+            >
+              CAD
+            </button>
+            <button
+              onClick={() => setDisplayCurrency('USD')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                displayCurrency === 'USD'
+                  ? 'bg-[#4A7C59] text-white'
+                  : 'text-[#7A8A7C] hover:text-[#222527]'
+              }`}
+            >
+              USD
+            </button>
+          </div>
+
+          {/* FX Rate Display */}
+          <div className="text-xs text-[#7A8A7C] bg-white border border-[#E4E7E0] px-3 py-1.5 rounded-lg">
+            1 USD = {fxRate.toFixed(4)} CAD
+            {fxSource === 'fallback' && <span className="ml-1 text-yellow-600">(est.)</span>}
+          </div>
+
           {data && (
-            <div className="flex items-center gap-1.5 text-xs text-[#7A8A6A]">
+            <div className="flex items-center gap-1.5 text-xs text-[#7A8A7C]">
               <Clock size={12} />
               Updated {formatTime(data.lastUpdated)}
               {data.source === 'mock' && (
-                <span className="ml-1 px-1.5 py-0.5 bg-yellow-500/10 text-yellow-400 rounded text-[10px] font-medium">
+                <span className="ml-1 px-1.5 py-0.5 bg-yellow-50 text-yellow-600 border border-yellow-200 rounded text-[10px] font-medium">
                   DEMO
                 </span>
               )}
@@ -221,7 +276,7 @@ export default function PricesPage() {
           <button
             onClick={() => fetchPrices(true)}
             disabled={refreshing}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1f2e] hover:bg-[#222840] border border-[#2a3040] rounded-lg text-xs text-[#7A8A6A] transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#F5F5F3] border border-[#E4E7E0] rounded-lg text-xs text-[#7A8A7C] transition-colors disabled:opacity-50"
           >
             <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
             Refresh
@@ -231,34 +286,39 @@ export default function PricesPage() {
 
       {/* Favourites Watchlist */}
       {hasFavourites && (
-        <div className="bg-[#1a1f2e] border border-[#F5C842]/30 rounded-xl p-4">
+        <div className="bg-white border border-[#E4E7E0] rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
-            <Star size={14} className="text-[#F5C842] fill-[#F5C842]" />
-            <span className="text-sm font-semibold text-[#F5C842]">Watchlist</span>
+            <Star size={14} className="text-yellow-400 fill-yellow-400" />
+            <span className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Watchlist</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {favouriteFutures.map(f => (
-              <div key={f.symbol} className="bg-[#0f1117] rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-[#7A8A6A]">{f.symbol}</span>
-                  <button onClick={() => toggleFavourite(f.symbol, f.name, 'futures')}>
-                    <Star size={12} className="text-[#F5C842] fill-[#F5C842]" />
-                  </button>
+            {favouriteFutures.map(f => {
+              const symCurrency = f.currency ?? CURRENCY_MAP[f.symbol] ?? 'USD'
+              const displayPrice = convertPrice(f.lastPrice, symCurrency, displayCurrency, fxRate)
+              const displayChange = convertPrice(f.priceChange, symCurrency, displayCurrency, fxRate)
+              return (
+                <div key={f.symbol} className="bg-[#F9FAF8] rounded-lg p-3 border border-[#E4E7E0]">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-[#7A8A7C]">{f.symbol}</span>
+                    <button onClick={() => toggleFavourite(f.symbol, f.name, 'futures')}>
+                      <Star size={12} className="text-yellow-400 fill-yellow-400" />
+                    </button>
+                  </div>
+                  <div className="text-base font-bold text-[#222527]">{formatPrice(displayPrice, f.unitCode)}</div>
+                  <ChangeIndicator change={displayChange} percent={f.percentChange} />
                 </div>
-                <div className="text-base font-bold">{formatPrice(f.lastPrice, f.unitCode)}</div>
-                <ChangeIndicator change={f.priceChange} percent={f.percentChange} />
-              </div>
-            ))}
+              )
+            })}
             {favouriteCashBids.map(b => (
-              <div key={b.id} className="bg-[#0f1117] rounded-lg p-3">
+              <div key={b.id} className="bg-[#F9FAF8] rounded-lg p-3 border border-[#E4E7E0]">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-[#7A8A6A] truncate">{b.location}</span>
+                  <span className="text-xs text-[#7A8A7C] truncate">{b.location}</span>
                   <button onClick={() => toggleFavourite(b.id, b.location, 'cash', b.commodity, b.id)}>
-                    <Star size={12} className="text-[#F5C842] fill-[#F5C842]" />
+                    <Star size={12} className="text-yellow-400 fill-yellow-400" />
                   </button>
                 </div>
-                <div className="text-base font-bold">${b.cashPrice.toFixed(2)}/bu</div>
-                <span className="text-xs text-[#7A8A6A]">Basis {b.basis.toFixed(2)}</span>
+                <div className="text-base font-bold text-[#222527]">${b.cashPrice.toFixed(2)}/bu</div>
+                <span className="text-xs text-[#7A8A7C]">Basis {b.basis.toFixed(2)}</span>
               </div>
             ))}
           </div>
@@ -274,7 +334,7 @@ export default function PricesPage() {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeCommodity === g.label
                 ? 'bg-[#4A7C59] text-white'
-                : 'bg-[#1a1f2e] text-[#7A8A6A] hover:bg-[#222840] border border-[#2a3040]'
+                : 'bg-white text-[#7A8A7C] hover:bg-[#F5F5F3] hover:text-[#222527] border border-[#E4E7E0]'
             }`}
           >
             {g.label}
@@ -283,14 +343,19 @@ export default function PricesPage() {
       </div>
 
       {/* Futures Table */}
-      <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#2a3040]">
-          <h2 className="text-sm font-semibold text-white">{activeCommodity} — Futures</h2>
+      <div className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden shadow-sm">
+        <div className="px-4 py-3 border-b border-[#E4E7E0] flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-[#222527]">{activeCommodity} — Futures</h2>
+          {activeFutures[0]?.currency === 'USD' && (
+            <span className="text-xs text-[#7A8A7C]">
+              Source: USD · {displayCurrency === 'CAD' ? `converted @ ${fxRate.toFixed(4)}` : 'showing USD'}
+            </span>
+          )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#2a3040] text-[#7A8A6A] text-xs">
+              <tr className="border-b border-[#E4E7E0] text-[#7A8A7C] text-xs">
                 <th className="text-left px-4 py-3 font-medium">Contract</th>
                 <th className="text-right px-4 py-3 font-medium">Last</th>
                 <th className="text-right px-4 py-3 font-medium">Change</th>
@@ -299,42 +364,47 @@ export default function PricesPage() {
               </tr>
             </thead>
             <tbody>
-              {activeFutures.map((f, i) => (
-                <tr
-                  key={f.symbol}
-                  className={`border-b border-[#2a3040]/50 hover:bg-[#222840] transition-colors ${
-                    i === activeFutures.length - 1 ? 'border-0' : ''
-                  }`}
-                >
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-white">{f.name}</div>
-                    <div className="text-xs text-[#7A8A6A]">{f.symbol}</div>
-                  </td>
-                  <td className="px-4 py-3 text-right font-bold text-white">
-                    {formatPrice(f.lastPrice, f.unitCode)}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <ChangeIndicator change={f.priceChange} percent={f.percentChange} />
-                  </td>
-                  <td className="px-4 py-3 text-right text-xs text-[#7A8A6A]">
-                    {UNIT_LABELS[f.unitCode] ?? f.unitCode}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button onClick={() => toggleFavourite(f.symbol, f.name, 'futures')}>
-                      <Star
-                        size={15}
-                        className={favourites.has(f.symbol)
-                          ? 'text-[#F5C842] fill-[#F5C842]'
-                          : 'text-[#7A8A6A] hover:text-[#F5C842]'
-                        }
-                      />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {activeFutures.map((f, i) => {
+                const symCurrency = f.currency ?? CURRENCY_MAP[f.symbol] ?? 'USD'
+                const displayPrice = convertPrice(f.lastPrice, symCurrency, displayCurrency, fxRate)
+                const displayChange = convertPrice(f.priceChange, symCurrency, displayCurrency, fxRate)
+                return (
+                  <tr
+                    key={f.symbol}
+                    className={`border-b border-[#E4E7E0]/50 hover:bg-[#F5F5F3] transition-colors ${
+                      i === activeFutures.length - 1 ? 'border-0' : ''
+                    }`}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-[#222527]">{f.name}</div>
+                      <div className="text-xs text-[#7A8A7C]">{f.symbol}</div>
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold text-[#222527]">
+                      {formatPrice(displayPrice, f.unitCode)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <ChangeIndicator change={displayChange} percent={f.percentChange} />
+                    </td>
+                    <td className="px-4 py-3 text-right text-xs text-[#7A8A7C]">
+                      {getUnitLabel(f.unitCode, displayCurrency, symCurrency)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => toggleFavourite(f.symbol, f.name, 'futures')}>
+                        <Star
+                          size={15}
+                          className={favourites.has(f.symbol)
+                            ? 'text-yellow-400 fill-yellow-400'
+                            : 'text-[#7A8A7C] hover:text-yellow-400'
+                          }
+                        />
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
               {activeFutures.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-[#7A8A6A] text-sm">
+                  <td colSpan={5} className="px-4 py-6 text-center text-[#7A8A7C] text-sm">
                     No futures data for {activeCommodity}
                   </td>
                 </tr>
@@ -346,14 +416,15 @@ export default function PricesPage() {
 
       {/* Cash Bids Table */}
       {activeCashBids.length > 0 && (
-        <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#2a3040]">
-            <h2 className="text-sm font-semibold text-white">{activeCommodity} — Saskatchewan Cash Bids</h2>
+        <div className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden shadow-sm">
+          <div className="px-4 py-3 border-b border-[#E4E7E0]">
+            <h2 className="text-sm font-semibold text-[#222527]">{activeCommodity} — Saskatchewan Cash Bids</h2>
+            <p className="text-xs text-[#7A8A7C] mt-0.5">Always quoted in CAD</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#2a3040] text-[#7A8A6A] text-xs">
+                <tr className="border-b border-[#E4E7E0] text-[#7A8A7C] text-xs">
                   <th className="text-left px-4 py-3 font-medium">Elevator</th>
                   <th className="text-right px-4 py-3 font-medium">Cash Price</th>
                   <th className="text-right px-4 py-3 font-medium">Basis</th>
@@ -365,20 +436,20 @@ export default function PricesPage() {
                 {activeCashBids.map((b, i) => (
                   <tr
                     key={b.id}
-                    className={`border-b border-[#2a3040]/50 hover:bg-[#222840] transition-colors ${
+                    className={`border-b border-[#E4E7E0]/50 hover:bg-[#F5F5F3] transition-colors ${
                       i === activeCashBids.length - 1 ? 'border-0' : ''
                     }`}
                   >
-                    <td className="px-4 py-3 font-medium text-white">{b.location}</td>
-                    <td className="px-4 py-3 text-right font-bold text-white">
+                    <td className="px-4 py-3 font-medium text-[#222527]">{b.location}</td>
+                    <td className="px-4 py-3 text-right font-bold text-[#222527]">
                       ${b.cashPrice.toFixed(2)}/bu
                     </td>
                     <td className={`px-4 py-3 text-right font-medium ${
-                      b.basis >= 0 ? 'text-emerald-400' : 'text-red-400'
+                      b.basis >= 0 ? 'text-emerald-600' : 'text-red-500'
                     }`}>
                       {b.basis >= 0 ? '+' : ''}{b.basis.toFixed(2)}
                     </td>
-                    <td className="px-4 py-3 text-right text-xs text-[#7A8A6A]">
+                    <td className="px-4 py-3 text-right text-xs text-[#7A8A7C]">
                       {new Date(b.deliveryStart).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}
                       {' – '}
                       {new Date(b.deliveryEnd).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}
@@ -388,8 +459,8 @@ export default function PricesPage() {
                         <Star
                           size={15}
                           className={favourites.has(b.id)
-                            ? 'text-[#F5C842] fill-[#F5C842]'
-                            : 'text-[#7A8A6A] hover:text-[#F5C842]'
+                            ? 'text-yellow-400 fill-yellow-400'
+                            : 'text-[#7A8A7C] hover:text-yellow-400'
                           }
                         />
                       </button>
@@ -403,7 +474,7 @@ export default function PricesPage() {
       )}
 
       {activeCashBids.length === 0 && (
-        <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-xl px-4 py-8 text-center text-[#7A8A6A] text-sm">
+        <div className="bg-white border border-[#E4E7E0] rounded-xl px-4 py-8 text-center text-[#7A8A7C] text-sm shadow-sm">
           No Saskatchewan cash bids available for {activeCommodity}
         </div>
       )}
