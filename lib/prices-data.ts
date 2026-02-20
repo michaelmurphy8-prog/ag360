@@ -26,6 +26,11 @@ export type PricesPayload = {
   cashBids: CashBid[]
 }
 
+export type PriceHistoryPoint = {
+  date: string
+  price: number
+}
+
 export function getPricesData(): PricesPayload {
   return {
     success: true,
@@ -49,4 +54,36 @@ export function getPricesData(): PricesPayload {
       { id: 'richardson-pioneer-swift-current-peas', commodity: 'Peas', location: 'Richardson Pioneer Swift Current', cashPrice: 8.20, basis: -0.45, deliveryStart: '2025-11-01T12:00:00Z', deliveryEnd: '2025-11-30T12:00:00Z' },
     ],
   }
+}
+
+export function getPriceHistory(symbol: string): PriceHistoryPoint[] {
+  const today = new Date()
+  const points: PriceHistoryPoint[] = []
+
+  const BASE_PRICES: Record<string, number> = {
+    'WC*1': 598, 'WC*2': 605, 'WC*3': 611,
+    'ZW*1': 548, 'ZC*1': 432,
+    'LE*1': 184, 'GF*1': 255,
+    'HO*1': 2.45,
+  }
+
+  const base = BASE_PRICES[symbol] ?? 500
+  let current = base
+
+  for (let i = 179; i >= 0; i--) {
+    const date = new Date(today)
+    date.setDate(date.getDate() - i)
+    const dayOfWeek = date.getDay()
+    if (dayOfWeek === 0 || dayOfWeek === 6) continue
+
+    const change = (Math.random() - 0.48) * (base * 0.012)
+    current = Math.max(base * 0.75, Math.min(base * 1.25, current + change))
+
+    points.push({
+      date: date.toISOString().split('T')[0],
+      price: parseFloat(current.toFixed(2)),
+    })
+  }
+
+  return points
 }

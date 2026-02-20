@@ -2,6 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { TrendingUp, TrendingDown, Minus, Star, RefreshCw, Clock } from 'lucide-react'
+import {
+  AreaChart, Area, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, CartesianGrid
+} from 'recharts'
 
 type FuturesQuote = {
   symbol: string
@@ -40,12 +44,17 @@ type WatchlistItem = {
   location_id?: string
 }
 
+type HistoryPoint = {
+  date: string
+  price: number
+}
+
 const COMMODITY_GROUPS = [
-  { label: 'Canola', symbols: ['WC*1', 'WC*2', 'WC*3'] },
-  { label: 'Wheat', symbols: ['ZW*1'] },
-  { label: 'Corn', symbols: ['ZC*1'] },
-  { label: 'Cattle', symbols: ['LE*1', 'GF*1'] },
-  { label: 'Diesel', symbols: ['HO*1'] },
+  { label: 'Canola', symbols: ['WC*1', 'WC*2', 'WC*3'], primarySymbol: 'WC*1' },
+  { label: 'Wheat', symbols: ['ZW*1'], primarySymbol: 'ZW*1' },
+  { label: 'Corn', symbols: ['ZC*1'], primarySymbol: 'ZC*1' },
+  { label: 'Cattle', symbols: ['LE*1', 'GF*1'], primarySymbol: 'LE*1' },
+  { label: 'Diesel', symbols: ['HO*1'], primarySymbol: 'HO*1' },
 ]
 
 const CURRENCY_MAP: Record<string, 'CAD' | 'USD'> = {
@@ -99,6 +108,19 @@ function ChangeIndicator({ change, percent }: { change: number; percent: number 
   )
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function CustomTooltip({ active, payload, label }: any) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white border border-[#E4E7E0] rounded-lg px-3 py-2 shadow-md text-xs">
+        <p className="text-[#7A8A7C] mb-0.5">{label}</p>
+        <p className="font-bold text-[#222527]">{payload[0].value.toFixed(2)}</p>
+      </div>
+    )
+  }
+  return null
+}
+
 export default function PricesPage() {
   const [data, setData] = useState<PricesData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -109,6 +131,8 @@ export default function PricesPage() {
   const [displayCurrency, setDisplayCurrency] = useState<'CAD' | 'USD'>('CAD')
   const [fxRate, setFxRate] = useState<number>(1.3650)
   const [fxSource, setFxSource] = useState<string>('fallback')
+  const [history, setHistory] = useState<HistoryPoint[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   async function fetchPrices(isRefresh = false) {
     if (isRefresh) setRefreshing(true)
@@ -116,14 +140,13 @@ export default function PricesPage() {
       const res = await fetch('/api/grain360/prices')
       const json = await res.json()
       if (json.success) {
-        const withCurrency = {
+        setData({
           ...json,
           futures: json.futures.map((f: FuturesQuote) => ({
             ...f,
             currency: CURRENCY_MAP[f.symbol] ?? 'USD',
           })),
-        }
-        setData(withCurrency)
+        })
         setError(null)
       } else {
         setError('Failed to load prices')
@@ -149,6 +172,19 @@ export default function PricesPage() {
     }
   }
 
+  async function fetchHistory(symbol: string) {
+    setHistoryLoading(true)
+    try {
+      const res = await fetch(`/api/grain360/prices/history?symbol=${encodeURIComponent(symbol)}`)
+      const json = await res.json()
+      if (json.success) setHistory(json.history)
+    } catch {
+      console.error('Failed to fetch history')
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
   const fetchWatchlist = useCallback(async () => {
     try {
       const res = await fetch('/api/grain360/watchlist')
@@ -168,6 +204,11 @@ export default function PricesPage() {
     const interval = setInterval(() => fetchPrices(), 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [fetchWatchlist])
+
+  useEffect(() => {
+    const group = COMMODITY_GROUPS.find(g => g.label === activeCommodity)
+    if (group) fetchHistory(group.primarySymbol)
+  }, [activeCommodity])
 
   async function toggleFavourite(
     symbol: string, label: string,
@@ -202,12 +243,23 @@ export default function PricesPage() {
     }
   }
 
-  const activeSymbols = COMMODITY_GROUPS.find(g => g.label === activeCommodity)?.symbols ?? []
+  const activeGroup = COMMODITY_GROUPS.find(g => g.label === activeCommodity)
+  const activeSymbols = activeGroup?.symbols ?? []
   const activeFutures = data?.futures.filter(f => activeSymbols.includes(f.symbol)) ?? []
   const activeCashBids = data?.cashBids.filter(b => b.commodity.toLowerCase() === activeCommodity.toLowerCase()) ?? []
   const favouriteFutures = data?.futures.filter(f => favourites.has(f.symbol)) ?? []
   const favouriteCashBids = data?.cashBids.filter(b => favourites.has(b.id)) ?? []
   const hasFavourites = favouriteFutures.length > 0 || favouriteCashBids.length > 0
+
+  const chartData = history.map(h => ({
+    date: new Date(h.date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }),
+    price: displayCurrency === 'CAD' && CURRENCY_MAP[activeGroup?.primarySymbol ?? ''] === 'USD'
+      ? parseFloat((h.price * fxRate).toFixed(2))
+      : h.price,
+  }))
+
+  const chartMin = chartData.length > 0 ? Math.min(...chartData.map(d => d.price)) * 0.98 : 0
+  const chartMax = chartData.length > 0 ? Math.max(...chartData.map(d => d.price)) * 1.02 : 0
 
   if (loading) return (
     <div className="min-h-screen bg-[#F9FAF8] flex items-center justify-center">
@@ -231,37 +283,24 @@ export default function PricesPage() {
           <p className="text-sm text-[#7A8A7C] mt-0.5">Futures & Saskatchewan cash bids</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-
-          {/* FX Toggle */}
           <div className="flex items-center gap-1 bg-white border border-[#E4E7E0] rounded-lg p-1">
             <button
               onClick={() => setDisplayCurrency('CAD')}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
-                displayCurrency === 'CAD'
-                  ? 'bg-[#4A7C59] text-white'
-                  : 'text-[#7A8A7C] hover:text-[#222527]'
+                displayCurrency === 'CAD' ? 'bg-[#4A7C59] text-white' : 'text-[#7A8A7C] hover:text-[#222527]'
               }`}
-            >
-              CAD
-            </button>
+            >CAD</button>
             <button
               onClick={() => setDisplayCurrency('USD')}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
-                displayCurrency === 'USD'
-                  ? 'bg-[#4A7C59] text-white'
-                  : 'text-[#7A8A7C] hover:text-[#222527]'
+                displayCurrency === 'USD' ? 'bg-[#4A7C59] text-white' : 'text-[#7A8A7C] hover:text-[#222527]'
               }`}
-            >
-              USD
-            </button>
+            >USD</button>
           </div>
-
-          {/* FX Rate Display */}
           <div className="text-xs text-[#7A8A7C] bg-white border border-[#E4E7E0] px-3 py-1.5 rounded-lg">
             1 USD = {fxRate.toFixed(4)} CAD
             {fxSource === 'fallback' && <span className="ml-1 text-yellow-600">(est.)</span>}
           </div>
-
           {data && (
             <div className="flex items-center gap-1.5 text-xs text-[#7A8A7C]">
               <Clock size={12} />
@@ -411,6 +450,62 @@ export default function PricesPage() {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Price History Chart */}
+      <div className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden shadow-sm">
+        <div className="px-4 py-3 border-b border-[#E4E7E0] flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-[#222527]">
+            {activeCommodity} — 6 Month Price History
+          </h2>
+          <span className="text-xs text-[#7A8A7C]">
+            {activeGroup?.primarySymbol} · {displayCurrency}
+          </span>
+        </div>
+        <div className="p-4">
+          {historyLoading ? (
+            <div className="h-48 flex items-center justify-center text-[#7A8A7C] text-sm animate-pulse">
+              Loading chart...
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                <defs>
+                  <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#4A7C59" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#4A7C59" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E4E7E0" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 11, fill: '#7A8A7C' }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval={19}
+                />
+                <YAxis
+                  domain={[chartMin, chartMax]}
+                  tick={{ fontSize: 11, fill: '#7A8A7C' }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => v.toFixed(0)}
+                  width={45}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="price"
+                  stroke="#4A7C59"
+                  strokeWidth={2}
+                  fill="url(#priceGradient)"
+                  dot={false}
+                  activeDot={{ r: 4, fill: '#4A7C59', strokeWidth: 0 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
