@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
+import { getPricesData } from '@/lib/prices-data'
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -149,9 +150,42 @@ TONE:
 export async function POST(req: NextRequest) {
   const { messages, farmContext } = await req.json();
 
-  const systemWithContext = farmContext
-    ? `${LILY_SYSTEM_PROMPT}\n\n---\nFARMER CONTEXT — THIS IS THE FARM YOU ARE ADVISING RIGHT NOW:\n${farmContext}\n\nUse this data in every response. Reference the farm by name. Use their actual numbers.`
-    : LILY_SYSTEM_PROMPT;
+  // ── Fetch live prices to inject into Lily's context
+let pricesContext = '';
+  try {
+    const pricesData = getPricesData();
+
+    const futuresLines = pricesData.futures.map(f =>
+      `  - ${f.name} (${f.symbol}): ${f.lastPrice} ${f.unitCode} | Change: ${f.priceChange > 0 ? '+' : ''}${f.priceChange} (${f.percentChange}%)`
+    ).join('\n');
+
+    const cashLines = pricesData.cashBids.map(b =>
+      `  - ${b.location} | ${b.commodity}: $${b.cashPrice.toFixed(2)}/bu | Basis: ${b.basis.toFixed(2)}`
+    ).join('\n');
+
+    pricesContext = `
+---
+LIVE MARKET DATA${pricesData.source === 'mock' ? ' (DEMO DATA)' : ''} — ${new Date().toLocaleString('en-CA', { timeZone: 'America/Regina' })} CST:
+
+FUTURES:
+${futuresLines}
+
+SASKATCHEWAN CASH BIDS:
+${cashLines}
+
+Use these prices in your advice. Reference specific numbers. Calculate basis implications.
+---`;
+  } catch (err) {
+    console.error('Failed to load prices for Lily context:', err);
+  }
+
+  const systemWithContext = [
+    LILY_SYSTEM_PROMPT,
+    pricesContext,
+    farmContext
+      ? `---\nFARMER CONTEXT — THIS IS THE FARM YOU ARE ADVISING RIGHT NOW:\n${farmContext}\n\nUse this data in every response. Reference the farm by name. Use their actual numbers.`
+      : ''
+  ].filter(Boolean).join('\n\n');
 
   async function tryStream(attempt: number): Promise<Response> {
     try {
