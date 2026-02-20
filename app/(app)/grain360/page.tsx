@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import { Plus, Trash2, Send, CheckCircle2, Circle, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
+import Link from 'next/link'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -319,6 +320,8 @@ export default function Grain360Page() {
         </div>
       )}
 
+{/* Market Prices Watchlist Widget */}
+<WatchlistWidget />
       {/* Marketing + Reminders Row */}
       <div className="grid grid-cols-3 gap-4">
         {/* Active Contracts */}
@@ -537,4 +540,81 @@ export default function Grain360Page() {
       </div>
     </div>
   );
+  function WatchlistWidget() {
+  const [items, setItems] = useState<{ symbol: string; label: string; type: string }[]>([])
+  const [prices, setPrices] = useState<Record<string, { lastPrice: number; priceChange: number; percentChange: number; unitCode: string }>>({})
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [wRes, pRes] = await Promise.all([
+          fetch('/api/grain360/watchlist'),
+          fetch('/api/grain360/prices'),
+        ])
+        const wData = await wRes.json()
+        const pData = await pRes.json()
+
+        if (wData.success) setItems(wData.watchlist)
+
+        if (pData.success) {
+          const map: Record<string, { lastPrice: number; priceChange: number; percentChange: number; unitCode: string }> = {}
+          pData.futures.forEach((f: { symbol: string; lastPrice: number; priceChange: number; percentChange: number; unitCode: string }) => {
+            map[f.symbol] = { lastPrice: f.lastPrice, priceChange: f.priceChange, percentChange: f.percentChange, unitCode: f.unitCode }
+          })
+          pData.cashBids.forEach((b: { id: string; cashPrice: number; basis: number }) => {
+            map[b.id] = { lastPrice: b.cashPrice, priceChange: b.basis, percentChange: 0, unitCode: 'CAD' }
+          })
+          setPrices(map)
+        }
+      } catch {
+        console.error('Watchlist widget load failed')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  if (loading || items.length === 0) return null
+
+  return (
+    <div className="bg-white rounded-[20px] border border-[#E4E7E0] shadow-sm p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-yellow-400 text-base">★</span>
+          <p className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Market Watchlist</p>
+        </div>
+        <Link href="/grain360/prices" className="text-xs text-[#4A7C59] font-medium hover:underline">
+          View All Prices →
+        </Link>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {items.slice(0, 5).map(item => {
+          const price = prices[item.symbol]
+          const isUp = price && price.priceChange > 0
+          const isDown = price && price.priceChange < 0
+          return (
+            <div key={item.symbol} className="bg-[#F9FAF8] rounded-[12px] p-3 border border-[#E4E7E0]">
+              <p className="text-xs text-[#7A8A7C] truncate mb-1">{item.label}</p>
+              {price ? (
+                <>
+                  <p className="text-base font-bold text-[#222527]">
+                    {item.type === 'cash' ? `$${price.lastPrice.toFixed(2)}` : price.lastPrice.toFixed(2)}
+                  </p>
+                  <p className={`text-xs font-medium mt-0.5 ${isUp ? 'text-emerald-600' : isDown ? 'text-red-500' : 'text-[#7A8A7C]'}`}>
+                    {isUp ? '+' : ''}{price.priceChange.toFixed(2)}
+                    {item.type === 'futures' && ` (${price.percentChange.toFixed(2)}%)`}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-[#7A8A7C]">—</p>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 }
