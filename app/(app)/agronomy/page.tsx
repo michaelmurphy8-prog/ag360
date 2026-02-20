@@ -18,7 +18,7 @@ import {
 const TABS = [
   { id: 'dashboard', label: 'Crop Dashboard', icon: Sprout },
   { id: 'playbook', label: 'Playbook', icon: BookOpen },
-  { id: 'costs', label: 'Input Costs', icon: DollarSign },
+  { id: 'costs', label: 'Crop Economics', icon: DollarSign },
   { id: 'scout', label: 'Scout', icon: Search },
   { id: 'protection', label: 'Protection', icon: Shield },
   { id: 'spray', label: 'Spray Calendar', icon: Calendar },
@@ -413,111 +413,182 @@ function Playbook({ crops, zone, province }: { crops: Crop[], zone: SoilZone, pr
 // ─── Input Costs ──────────────────────────────────────────────────────────────
 
 function InputCostsTab({ crops, zone }: { crops: Crop[], zone: SoilZone }) {
-  const [costs, setCosts] = useState<InputCosts>(DEFAULT_INPUT_COSTS)
-  const totalVar = getTotalVariableCosts(costs)
-  const totalFixed = getTotalFixedCosts(costs)
-  const total = getTotalCosts(costs)
+  const total = getTotalCosts(DEFAULT_INPUT_COSTS)
 
-  function update(key: keyof InputCosts, val: string) {
-    setCosts(prev => ({ ...prev, [key]: parseFloat(val) || 0 }))
-  }
+  // Build ranked crop data
+  const cropEconomics = crops
+    .map(crop => {
+      const zd = getZoneData(crop, zone)
+      if (!zd) return null
+      const yieldNum = parseNumber(zd.yield)
+      const revenueNum = parseNumber(zd.rev)
+      const bePrice = yieldNum > 0 ? total / yieldNum : 0
+      const guidePrice = parseNumber(zd.price)
+      const margin = revenueNum - total
+      const isPerLb = zd.price.includes('/lb')
+const profitable = isPerLb ? margin >= 0 : guidePrice > bePrice
+      return {
+        name: crop.name,
+        cat: crop.cat,
+        rev: revenueNum,
+        yield: zd.yield,
+        price: zd.price,
+        guidePrice,
+        bePrice,
+        margin,
+        profitable,
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => b!.rev - a!.rev) as {
+      name: string; cat: string; rev: number; yield: string;
+      price: string; guidePrice: number; bePrice: number; margin: number; profitable: boolean
+    }[]
+
+  const top3 = cropEconomics.slice(0, 3)
+  const profitableCount = cropEconomics.filter(c => c.profitable).length
+  const atRiskCount = cropEconomics.length - profitableCount
+  const bestMargin = cropEconomics[0]
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="space-y-6">
 
-      {/* Cost Inputs */}
-      <div className="lg:col-span-2 space-y-4">
-        <div className="bg-white border border-[#E4E7E0] rounded-xl p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-[#222527] mb-4">Variable Costs ($/ac)</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {VARIABLE_COST_KEYS.map(key => (
-              <div key={key}>
-                <label className="text-xs text-[#7A8A7C] font-medium block mb-1">{VARIABLE_COST_LABELS[key]}</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7A8A7C] text-sm">$</span>
-                  <input
-                    type="number"
-                    value={costs[key]}
-                    onChange={e => update(key, e.target.value)}
-                    className="w-full pl-7 pr-3 py-2 text-sm border border-[#E4E7E0] rounded-lg bg-white text-[#222527] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/30"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Top KPI Strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white border border-[#E4E7E0] rounded-xl p-4 shadow-sm">
+          <div className="text-xs text-[#7A8A7C] font-medium uppercase tracking-wide mb-1">Total Cost/Ac</div>
+          <div className="text-2xl font-bold text-[#222527]">${total.toFixed(0)}</div>
+          <div className="text-xs text-[#7A8A7C] mt-0.5">Default prairie average</div>
         </div>
-
-        <div className="bg-white border border-[#E4E7E0] rounded-xl p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-[#222527] mb-4">Fixed Costs ($/ac)</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {FIXED_COST_KEYS.map(key => (
-              <div key={key}>
-                <label className="text-xs text-[#7A8A7C] font-medium block mb-1">{VARIABLE_COST_LABELS[key]}</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7A8A7C] text-sm">$</span>
-                  <input
-                    type="number"
-                    value={costs[key]}
-                    onChange={e => update(key, e.target.value)}
-                    className="w-full pl-7 pr-3 py-2 text-sm border border-[#E4E7E0] rounded-lg bg-white text-[#222527] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/30"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="bg-white border border-[#E4E7E0] rounded-xl p-4 shadow-sm">
+          <div className="text-xs text-[#7A8A7C] font-medium uppercase tracking-wide mb-1">Profitable Crops</div>
+          <div className="text-2xl font-bold text-emerald-600">{profitableCount}</div>
+          <div className="text-xs text-[#7A8A7C] mt-0.5">Above breakeven at guide price</div>
+        </div>
+        <div className="bg-white border border-[#E4E7E0] rounded-xl p-4 shadow-sm">
+          <div className="text-xs text-[#7A8A7C] font-medium uppercase tracking-wide mb-1">At Risk Crops</div>
+          <div className="text-2xl font-bold text-red-500">{atRiskCount}</div>
+          <div className="text-xs text-[#7A8A7C] mt-0.5">Below breakeven at guide price</div>
+        </div>
+        <div className="bg-white border border-[#E4E7E0] rounded-xl p-4 shadow-sm">
+          <div className="text-xs text-[#7A8A7C] font-medium uppercase tracking-wide mb-1">Best Gross Revenue</div>
+          <div className="text-2xl font-bold text-[#4A7C59]">${bestMargin?.rev.toFixed(0)}/ac</div>
+          <div className="text-xs text-[#7A8A7C] mt-0.5">{bestMargin?.name}</div>
         </div>
       </div>
 
-      {/* Summary + Breakevens */}
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Top 3 Crops by Revenue */}
         <div className="bg-white border border-[#E4E7E0] rounded-xl p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-[#222527] mb-4">Cost Summary</h3>
+          <h3 className="text-sm font-semibold text-[#222527] mb-4">
+            🏆 Top Crops by Gross Revenue — {ZONE_LABELS[zone]} Zone
+          </h3>
           <div className="space-y-3">
-            <div className="flex justify-between items-center py-2 border-b border-[#E4E7E0]">
-              <span className="text-sm text-[#7A8A7C]">Variable Costs</span>
-              <span className="font-semibold text-[#222527]">${totalVar.toFixed(0)}/ac</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b border-[#E4E7E0]">
-              <span className="text-sm text-[#7A8A7C]">Fixed Costs</span>
-              <span className="font-semibold text-[#222527]">${totalFixed.toFixed(0)}/ac</span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-semibold text-[#222527]">Total Cost</span>
-              <span className="text-lg font-bold text-[#4A7C59]">${total.toFixed(0)}/ac</span>
-            </div>
+            {top3.map((crop, i) => (
+              <div key={crop.name} className="flex items-center gap-3">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 ${
+                  i === 0 ? 'bg-yellow-400' : i === 1 ? 'bg-slate-400' : 'bg-amber-600'
+                }`}>
+                  {i + 1}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-[#222527]">{crop.name}</span>
+                    <span className="text-sm font-bold text-[#4A7C59]">${crop.rev.toFixed(0)}/ac</span>
+                  </div>
+                  <div className="w-full bg-[#F9FAF8] rounded-full h-1.5">
+                    <div
+                      className="bg-[#4A7C59] h-1.5 rounded-full"
+                      style={{ width: `${(crop.rev / cropEconomics[0].rev) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
+        {/* Margin vs Cost */}
         <div className="bg-white border border-[#E4E7E0] rounded-xl p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-[#222527] mb-4">Breakeven by Crop</h3>
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {crops.map(crop => {
-              const zd = getZoneData(crop, zone)
-              if (!zd) return null
-              const yieldNum = parseNumber(zd.yield)
-              const bePrice = yieldNum > 0 ? (total / yieldNum).toFixed(2) : 'N/A'
-              const guidePrice = parseNumber(zd.price)
-              const calcBE = parseFloat(bePrice)
-              const profitable = !isNaN(calcBE) && guidePrice > calcBE
-              return (
-                <div key={crop.name} className="flex items-center justify-between py-2 border-b border-[#E4E7E0]/50 last:border-0">
-                  <div>
-                    <div className="text-sm font-medium text-[#222527]">{crop.name}</div>
-                    <div className="text-xs text-[#7A8A7C]">Guide: {zd.price}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className={`text-sm font-bold ${profitable ? 'text-emerald-600' : 'text-red-500'}`}>
-                      BE: ${bePrice}/bu
-                    </div>
-                    <div className={`text-xs ${profitable ? 'text-emerald-600' : 'text-red-500'}`}>
-                      {profitable ? '✓ Profitable' : '✗ At Risk'}
-                    </div>
-                  </div>
+          <h3 className="text-sm font-semibold text-[#222527] mb-4">
+            📊 Net Margin at Guide Price
+          </h3>
+          <div className="space-y-2">
+            {cropEconomics.slice(0, 6).map(crop => (
+              <div key={crop.name} className="flex items-center justify-between py-1.5 border-b border-[#E4E7E0]/50 last:border-0">
+                <span className="text-sm text-[#222527]">{crop.name}</span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm font-bold ${crop.margin >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {crop.margin >= 0 ? '+' : ''}${crop.margin.toFixed(0)}/ac
+                  </span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                    crop.margin >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                  }`}>
+                    {crop.margin >= 0 ? '✓' : '✗'}
+                  </span>
                 </div>
-              )
-            })}
+              </div>
+            ))}
           </div>
         </div>
+
+        {/* Breakeven by Crop — full list */}
+        <div className="bg-white border border-[#E4E7E0] rounded-xl p-5 shadow-sm lg:col-span-2">
+          <h3 className="text-sm font-semibold text-[#222527] mb-4">
+            🎯 Breakeven Price Analysis — All Crops
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#E4E7E0] text-xs text-[#7A8A7C]">
+                  <th className="text-left px-3 py-2 font-medium">Crop</th>
+                  <th className="text-left px-3 py-2 font-medium">Category</th>
+                  <th className="text-right px-3 py-2 font-medium">Target Yield</th>
+                  <th className="text-right px-3 py-2 font-medium">Guide Price</th>
+                  <th className="text-right px-3 py-2 font-medium">Breakeven Price</th>
+                  <th className="text-right px-3 py-2 font-medium">Gross Revenue</th>
+                  <th className="text-right px-3 py-2 font-medium">Net Margin</th>
+                  <th className="text-center px-3 py-2 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cropEconomics.map(crop => (
+                  <tr key={crop.name} className="border-b border-[#E4E7E0]/50 last:border-0 hover:bg-[#F9FAF8]">
+                    <td className="px-3 py-2.5 font-medium text-[#222527]">{crop.name}</td>
+                    <td className="px-3 py-2.5">
+                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${CAT_COLORS[crop.cat]}`}>
+                        {crop.cat}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-right text-[#222527]">{crop.yield}</td>
+                    <td className="px-3 py-2.5 text-right text-[#222527]">{crop.price}</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-[#222527]">
+                      ${crop.bePrice.toFixed(2)}
+                    </td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-[#4A7C59]">
+                      ${crop.rev.toFixed(0)}/ac
+                    </td>
+                    <td className={`px-3 py-2.5 text-right font-bold ${crop.margin >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {crop.margin >= 0 ? '+' : ''}${crop.margin.toFixed(0)}/ac
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        crop.profitable ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                      }`}>
+                        {crop.profitable ? 'Profitable' : 'At Risk'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-[#7A8A7C] mt-3">
+            Based on default input costs of ${total.toFixed(0)}/ac. Update your actual costs in Farm Profile for precise breakeven calculations.
+          </p>
+        </div>
+
       </div>
     </div>
   )
@@ -528,41 +599,72 @@ function InputCostsTab({ crops, zone }: { crops: Crop[], zone: SoilZone }) {
 function ScoutTab({ crops }: { crops: Crop[] }) {
   const [selectedCrop, setSelectedCrop] = useState<string>('')
   const [selectedType, setSelectedType] = useState<'insects' | 'diseases' | ''>('')
+  const [selectedSymptom, setSelectedSymptom] = useState<string>('')
   const [selectedPest, setSelectedPest] = useState<string>('')
 
+  const INSECT_SYMPTOMS = [
+    { label: 'Holes / Defoliation', pests: ['Flea Beetles', 'Bertha Armyworm', 'Grasshoppers', 'Diamondback Moth', 'Cutworms'] },
+    { label: 'Wilting / Lodging', pests: ['Cutworms', 'Wireworms'] },
+    { label: 'Stunted Growth', pests: ['Wireworms', 'Cutworms', 'Aphids', 'Pea aphid'] },
+    { label: 'Pod / Head Damage', pests: ['Cabbage Seedpod Weevil', 'Lygus bugs', 'Wheat Midge', 'Bertha Armyworm'] },
+    { label: 'Stem Damage', pests: ['Cutworms', 'Sawfly'] },
+    { label: 'Leaf Curling / Sticky Residue', pests: ['Aphids', 'Pea aphid'] },
+    { label: 'Root Damage', pests: ['Wireworms', 'Cutworms'] },
+    { label: 'General Feeding Damage', pests: ['Grasshoppers', 'Armyworms'] },
+  ]
+
+  const DISEASE_SYMPTOMS = [
+    { label: 'Yellowing / Chlorosis', pests: ['Leaf Diseases (Cereals)', 'Ascochyta / Mycosphaerella'] },
+    { label: 'Lesions / Spots on Leaves', pests: ['FHB (Fusarium Head Blight)', 'Leaf Diseases (Cereals)', 'Ascochyta / Mycosphaerella'] },
+    { label: 'White / Grey Mould on Stem', pests: ['Sclerotinia Stem Rot'] },
+    { label: 'Blackened / Rotted Stem Base', pests: ['Sclerotinia Stem Rot', 'Ascochyta / Mycosphaerella'] },
+    { label: 'Head / Spike Discolouration', pests: ['FHB (Fusarium Head Blight)'] },
+    { label: 'Root Rot / Damping Off', pests: ['Ascochyta / Mycosphaerella'] },
+    { label: 'Premature Ripening', pests: ['Sclerotinia Stem Rot', 'FHB (Fusarium Head Blight)'] },
+    { label: 'Powdery Coating on Leaves', pests: ['Leaf Diseases (Cereals)'] },
+  ]
+
+  const symptomList = selectedType === 'insects' ? INSECT_SYMPTOMS : selectedType === 'diseases' ? DISEASE_SYMPTOMS : []
+  const symptomObj = symptomList.find(s => s.label === selectedSymptom)
+
   const cropObj = crops.find(c => c.name === selectedCrop)
-  const pestList = selectedType === 'insects' ? cropObj?.insects : selectedType === 'diseases' ? cropObj?.diseases : []
+  const allPestsForCrop = selectedType === 'insects' ? cropObj?.insects ?? [] : cropObj?.diseases ?? []
+  const filteredPests = symptomObj
+    ? allPestsForCrop.filter(p => symptomObj.pests.some(sp => p.toLowerCase().includes(sp.toLowerCase()) || sp.toLowerCase().includes(p.toLowerCase())))
+    : allPestsForCrop
+
   const sprayData = SPRAY_RATES.filter(sr =>
     sr.pest === selectedPest ||
-    sr.pest.toLowerCase().includes(selectedPest.toLowerCase())
+    sr.pest.toLowerCase().includes(selectedPest.toLowerCase()) ||
+    selectedPest.toLowerCase().includes(sr.pest.toLowerCase())
   )
 
   function reset() {
     setSelectedCrop('')
     setSelectedType('')
+    setSelectedSymptom('')
     setSelectedPest('')
   }
 
   return (
     <div className="space-y-6">
       <div className="bg-white border border-[#E4E7E0] rounded-xl p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-[#222527] mb-4">
-          Pest & Disease Diagnosis
-        </h2>
-        <p className="text-xs text-[#7A8A7C] mb-4">
-          Select your crop and symptom type to get registered product recommendations with rates.
+        <h2 className="text-sm font-semibold text-[#222527] mb-1">Pest & Disease Diagnosis</h2>
+        <p className="text-xs text-[#7A8A7C] mb-5">
+          Work through the steps below to get registered product recommendations with rates.
         </p>
 
         {/* Step 1 — Crop */}
-        <div className="mb-4">
-          <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide block mb-2">
-            Step 1 — Select Crop
-          </label>
+        <div className="mb-5">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-5 h-5 rounded-full bg-[#4A7C59] text-white text-xs font-bold flex items-center justify-center">1</span>
+            <label className="text-xs font-semibold text-[#222527] uppercase tracking-wide">Select Crop</label>
+          </div>
           <div className="flex flex-wrap gap-2">
             {crops.map(c => (
               <button
                 key={c.name}
-                onClick={() => { setSelectedCrop(c.name); setSelectedType(''); setSelectedPest('') }}
+                onClick={() => { setSelectedCrop(c.name); setSelectedType(''); setSelectedSymptom(''); setSelectedPest('') }}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   selectedCrop === c.name
                     ? 'bg-[#4A7C59] text-white'
@@ -577,13 +679,14 @@ function ScoutTab({ crops }: { crops: Crop[] }) {
 
         {/* Step 2 — Type */}
         {selectedCrop && (
-          <div className="mb-4">
-            <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide block mb-2">
-              Step 2 — What Are You Seeing?
-            </label>
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-5 h-5 rounded-full bg-[#4A7C59] text-white text-xs font-bold flex items-center justify-center">2</span>
+              <label className="text-xs font-semibold text-[#222527] uppercase tracking-wide">What Are You Seeing?</label>
+            </div>
             <div className="flex gap-2">
               <button
-                onClick={() => { setSelectedType('insects'); setSelectedPest('') }}
+                onClick={() => { setSelectedType('insects'); setSelectedSymptom(''); setSelectedPest('') }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   selectedType === 'insects'
                     ? 'bg-red-500 text-white'
@@ -593,7 +696,7 @@ function ScoutTab({ crops }: { crops: Crop[] }) {
                 🐛 Insect Damage
               </button>
               <button
-                onClick={() => { setSelectedType('diseases'); setSelectedPest('') }}
+                onClick={() => { setSelectedType('diseases'); setSelectedSymptom(''); setSelectedPest('') }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   selectedType === 'diseases'
                     ? 'bg-purple-500 text-white'
@@ -606,14 +709,40 @@ function ScoutTab({ crops }: { crops: Crop[] }) {
           </div>
         )}
 
-        {/* Step 3 — Specific Pest */}
-        {selectedType && pestList && pestList.length > 0 && (
-          <div>
-            <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide block mb-2">
-              Step 3 — Identify the Problem
-            </label>
+        {/* Step 3 — Symptoms Observed */}
+        {selectedType && (
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-5 h-5 rounded-full bg-[#4A7C59] text-white text-xs font-bold flex items-center justify-center">3</span>
+              <label className="text-xs font-semibold text-[#222527] uppercase tracking-wide">Symptoms Observed</label>
+            </div>
             <div className="flex flex-wrap gap-2">
-              {pestList.map(pest => (
+              {symptomList.map(s => (
+                <button
+                  key={s.label}
+                  onClick={() => { setSelectedSymptom(s.label); setSelectedPest('') }}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    selectedSymptom === s.label
+                      ? selectedType === 'insects' ? 'bg-red-500 text-white' : 'bg-purple-500 text-white'
+                      : 'bg-[#F9FAF8] border border-[#E4E7E0] text-[#7A8A7C] hover:text-[#222527]'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Step 4 — Identify Pest */}
+        {selectedSymptom && filteredPests.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-5 h-5 rounded-full bg-[#4A7C59] text-white text-xs font-bold flex items-center justify-center">4</span>
+              <label className="text-xs font-semibold text-[#222527] uppercase tracking-wide">Identify the Problem</label>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {filteredPests.map(pest => (
                 <button
                   key={pest}
                   onClick={() => setSelectedPest(pest)}
@@ -627,6 +756,9 @@ function ScoutTab({ crops }: { crops: Crop[] }) {
                 </button>
               ))}
             </div>
+            {filteredPests.length === 0 && (
+              <p className="text-xs text-[#7A8A7C]">No matching pests found for this symptom on {selectedCrop}. Ask Lily for guidance.</p>
+            )}
           </div>
         )}
       </div>
@@ -635,21 +767,15 @@ function ScoutTab({ crops }: { crops: Crop[] }) {
       {selectedPest && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-[#222527]">
-              Recommended Products — {selectedPest}
-            </h3>
-            <button onClick={reset} className="text-xs text-[#7A8A7C] hover:text-[#222527] underline">
-              Start over
-            </button>
+            <h3 className="font-semibold text-[#222527]">Recommended Products — {selectedPest}</h3>
+            <button onClick={reset} className="text-xs text-[#7A8A7C] hover:text-[#222527] underline">Start over</button>
           </div>
 
           {sprayData.length > 0 ? sprayData.map(sr => (
             <div key={sr.pest} className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden shadow-sm">
-              <div className="px-4 py-3 border-b border-[#E4E7E0] flex items-center justify-between">
-                <div>
-                  <span className="font-medium text-[#222527]">{sr.pest}</span>
-                  <span className="text-xs text-[#7A8A7C] ml-2">· {sr.crop}</span>
-                </div>
+              <div className="px-4 py-3 border-b border-[#E4E7E0]">
+                <span className="font-medium text-[#222527]">{sr.pest}</span>
+                <span className="text-xs text-[#7A8A7C] ml-2">· {sr.crop}</span>
               </div>
               <table className="w-full text-sm">
                 <thead>
