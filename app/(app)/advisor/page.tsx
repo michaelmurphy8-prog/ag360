@@ -143,7 +143,10 @@ const apiMessages = [...messages, userMessage];
     try {
       const res = await fetch("/api/advisor", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+  "Content-Type": "application/json",
+  "x-user-id": user?.id || "",
+},
         body: JSON.stringify({ messages: apiMessages, farmContext }),
       });
 

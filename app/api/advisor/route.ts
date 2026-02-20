@@ -199,13 +199,49 @@ Use these prices in your advice. Reference specific numbers. When discussing USD
     console.error('Failed to load prices for Lily context:', err);
   }
 
-  const systemWithContext = [
-    LILY_SYSTEM_PROMPT,
-    pricesContext,
-    farmContext
-      ? `---\nFARMER CONTEXT — THIS IS THE FARM YOU ARE ADVISING RIGHT NOW:\n${farmContext}\n\nUse this data in every response. Reference the farm by name. Use their actual numbers.`
-      : ''
-  ].filter(Boolean).join('\n\n');
+  // ── Fetch active seeding log for Lily context
+let seedingContext = '';
+try {
+  const userId = req.headers.get('x-user-id') || '';
+  if (userId) {
+    const { neon } = await import('@neondatabase/serverless');
+    const sql = neon(process.env.DATABASE_URL!);
+    const records = await sql`
+      SELECT crop, seeding_date, acres, field_name
+      FROM agronomy_seeding_log
+      WHERE clerk_user_id = ${userId}
+      ORDER BY seeding_date DESC
+    `;
+    if (records.length > 0) {
+      const today = new Date();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+const lines = records.map((r: any) => {
+        const seeded = new Date(r.seeding_date);
+        const daysIn = Math.floor((today.getTime() - seeded.getTime()) / (1000 * 60 * 60 * 24));
+        let window = 'Planning stage';
+        if (daysIn >= 0 && daysIn <= 7) window = 'Pre-seed / just seeded';
+        else if (daysIn <= 21) window = 'Early scout window — check emergence, cutworms, flea beetles';
+        else if (daysIn <= 42) window = 'In-crop herbicide window open — scout weeds before spraying';
+        else if (daysIn <= 70) window = 'Fungicide timing window — critical do not miss';
+        else if (daysIn <= 100) window = 'Pre-harvest window — check maturity thresholds';
+        else if (daysIn <= 120) window = 'Harvest approaching — prepare equipment and logistics';
+        return `  - ${r.crop}${r.field_name ? ` (${r.field_name})` : ''}${r.acres ? ` · ${r.acres} ac` : ''} · Seeded ${seeded.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })} · Day ${daysIn} · STATUS: ${window}`;
+      }).join('\n');
+      seedingContext = `---\nACTIVE SEEDED CROPS — WHAT IS IN THE GROUND RIGHT NOW:\n${lines}\n\nReference these crops and their current spray/scout windows in your advice. Be proactive — if a window is open, tell the farmer what to do now.\n---`;
+    }
+  }
+} catch (err) {
+  console.error('Failed to load seeding log for Lily:', err);
+}
+
+const systemWithContext = [
+  LILY_SYSTEM_PROMPT,
+  pricesContext,
+  seedingContext,
+  farmContext
+    ? `---\nFARMER CONTEXT — THIS IS THE FARM YOU ARE ADVISING RIGHT NOW:\n${farmContext}\n\nUse this data in every response. Reference the farm by name. Use their actual numbers.`
+    : ''
+].filter(Boolean).join('\n\n');
 
   async function tryStream(attempt: number): Promise<Response> {
     try {
