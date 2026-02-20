@@ -873,24 +873,185 @@ function ProtectionTab() {
 // ─── Spray Calendar ───────────────────────────────────────────────────────────
 
 function SprayCalendarTab({ crops }: { crops: Crop[] }) {
+  const { user } = useUser()
   const months = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct']
+  const [seedingLog, setSeedingLog] = useState<{
+    id: string; crop: string; seeding_date: string; acres: number; field_name: string; notes: string
+  }[]>([])
+  const [form, setForm] = useState({ crop: crops[0]?.name ?? '', seeding_date: '', acres: '', field_name: '', notes: '' })
+  const [saving, setSaving] = useState(false)
 
-  const TIMING_WINDOWS: Record<string, { start: number; end: number; color: string }[]> = {
-    'Pre-seed': [{ start: 0, end: 1, color: 'bg-amber-400' }],
-    'Soil': [{ start: 1, end: 2, color: 'bg-blue-400' }],
-    'In-crop': [{ start: 2, end: 4, color: 'bg-[#4A7C59]' }],
-    'In-crop ×2': [{ start: 2, end: 4, color: 'bg-[#4A7C59]' }],
-    'Fungicide': [{ start: 3, end: 5, color: 'bg-purple-400' }],
-    'Pre-harv': [{ start: 5, end: 6, color: 'bg-orange-400' }],
-    'Desiccation': [{ start: 5, end: 6, color: 'bg-orange-400' }],
+  useEffect(() => {
+    fetchLog()
+  }, [user?.id])
+
+  async function fetchLog() {
+    try {
+      const res = await fetch('/api/agronomy/seeding', { headers: { 'x-user-id': user?.id || '' } })
+      const json = await res.json()
+      if (json.success) setSeedingLog(json.records)
+    } catch { console.error('Failed to fetch seeding log') }
+  }
+
+  async function addEntry() {
+    if (!form.crop || !form.seeding_date) return
+    setSaving(true)
+    try {
+      await fetch('/api/agronomy/seeding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id || '' },
+        body: JSON.stringify({ ...form, acres: parseFloat(form.acres) || null }),
+      })
+      setForm({ crop: crops[0]?.name ?? '', seeding_date: '', acres: '', field_name: '', notes: '' })
+      fetchLog()
+    } catch { console.error('Failed to save') }
+    finally { setSaving(false) }
+  }
+
+  async function deleteEntry(id: string) {
+    try {
+      await fetch('/api/agronomy/seeding', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id || '' },
+        body: JSON.stringify({ id }),
+      })
+      fetchLog()
+    } catch { console.error('Failed to delete') }
+  }
+
+  function getWindowStatus(seedingDate: string) {
+    const seeded = new Date(seedingDate)
+    const today = new Date()
+    const daysIn = Math.floor((today.getTime() - seeded.getTime()) / (1000 * 60 * 60 * 24))
+    if (daysIn < 0) return { label: 'Not Yet Seeded', color: 'text-[#7A8A7C]', bg: 'bg-[#F9FAF8]', urgent: false }
+    if (daysIn <= 7) return { label: 'Pre-Seed / Just Seeded', color: 'text-amber-700', bg: 'bg-amber-50', urgent: false }
+    if (daysIn <= 21) return { label: 'Early Scout Window', color: 'text-blue-700', bg: 'bg-blue-50', urgent: true }
+    if (daysIn <= 42) return { label: '⚠️ In-Crop Spray Window', color: 'text-[#4A7C59]', bg: 'bg-green-50', urgent: true }
+    if (daysIn <= 70) return { label: '⚠️ Fungicide Window', color: 'text-purple-700', bg: 'bg-purple-50', urgent: true }
+    if (daysIn <= 100) return { label: 'Pre-Harvest Window', color: 'text-orange-700', bg: 'bg-orange-50', urgent: true }
+    if (daysIn <= 120) return { label: 'Harvest Approaching', color: 'text-red-700', bg: 'bg-red-50', urgent: true }
+    return { label: 'Season Complete', color: 'text-[#7A8A7C]', bg: 'bg-[#F9FAF8]', urgent: false }
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+
+      {/* Seeding Log Entry */}
+      <div className="bg-white border border-[#E4E7E0] rounded-xl p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-[#222527] mb-4">Log Seeded Crop</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div>
+            <label className="text-xs text-[#7A8A7C] font-medium block mb-1">Crop</label>
+            <select
+              value={form.crop}
+              onChange={e => setForm(p => ({ ...p, crop: e.target.value }))}
+              className="w-full text-sm border border-[#E4E7E0] rounded-lg px-2 py-2 bg-white text-[#222527] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/30"
+            >
+              {crops.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-[#7A8A7C] font-medium block mb-1">Seeding Date</label>
+            <input
+              type="date"
+              value={form.seeding_date}
+              onChange={e => setForm(p => ({ ...p, seeding_date: e.target.value }))}
+              className="w-full text-sm border border-[#E4E7E0] rounded-lg px-2 py-2 bg-white text-[#222527] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/30"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-[#7A8A7C] font-medium block mb-1">Acres</label>
+            <input
+              type="number"
+              placeholder="e.g. 320"
+              value={form.acres}
+              onChange={e => setForm(p => ({ ...p, acres: e.target.value }))}
+              className="w-full text-sm border border-[#E4E7E0] rounded-lg px-2 py-2 bg-white text-[#222527] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/30"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-[#7A8A7C] font-medium block mb-1">Field Name</label>
+            <input
+              type="text"
+              placeholder="e.g. North Quarter"
+              value={form.field_name}
+              onChange={e => setForm(p => ({ ...p, field_name: e.target.value }))}
+              className="w-full text-sm border border-[#E4E7E0] rounded-lg px-2 py-2 bg-white text-[#222527] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/30"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-[#7A8A7C] font-medium block mb-1">Notes</label>
+            <input
+              type="text"
+              placeholder="Optional"
+              value={form.notes}
+              onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+              className="w-full text-sm border border-[#E4E7E0] rounded-lg px-2 py-2 bg-white text-[#222527] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/30"
+            />
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={addEntry}
+              disabled={saving || !form.seeding_date}
+              className="w-full px-4 py-2 bg-[#4A7C59] text-white text-sm font-medium rounded-lg hover:bg-[#3d6b4a] disabled:opacity-50 transition-colors"
+            >
+              {saving ? 'Saving...' : 'Log Crop'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Active Seeding Log with Window Status */}
+      {seedingLog.length > 0 && (
+        <div className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden shadow-sm">
+          <div className="px-5 py-4 border-b border-[#E4E7E0]">
+            <h3 className="text-sm font-semibold text-[#222527]">Active Crop Windows</h3>
+            <p className="text-xs text-[#7A8A7C] mt-0.5">Based on days since seeding — reminders appear on your Overview dashboard</p>
+          </div>
+          <div className="divide-y divide-[#E4E7E0]">
+            {seedingLog.map(entry => {
+              const status = getWindowStatus(entry.seeding_date)
+              const seeded = new Date(entry.seeding_date)
+              const daysIn = Math.floor((new Date().getTime() - seeded.getTime()) / (1000 * 60 * 60 * 24))
+              return (
+                <div key={entry.id} className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <div className="font-medium text-[#222527]">{entry.crop}</div>
+                      <div className="text-xs text-[#7A8A7C] mt-0.5">
+                        Seeded {new Date(entry.seeding_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {entry.field_name && ` · ${entry.field_name}`}
+                        {entry.acres && ` · ${entry.acres} ac`}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className={`text-xs font-medium px-3 py-1.5 rounded-lg ${status.bg} ${status.color}`}>
+                      Day {daysIn} — {status.label}
+                    </div>
+                    <button
+                      onClick={() => deleteEntry(entry.id)}
+                      className="text-xs text-red-400 hover:text-red-600 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Visual Spray Calendar */}
       <div className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden shadow-sm">
         <div className="px-5 py-4 border-b border-[#E4E7E0]">
           <h2 className="font-semibold text-[#222527]">Seasonal Spray Calendar</h2>
-          <p className="text-xs text-[#7A8A7C] mt-0.5">Approximate spray timing windows by crop</p>
+          <p className="text-xs text-[#7A8A7C] mt-0.5">
+            {seedingLog.length > 0
+              ? 'Showing actual spray windows based on your logged seeding dates'
+              : 'Log a seeded crop above to see personalized windows — showing guide defaults below'}
+          </p>
         </div>
 
         {/* Legend */}
@@ -909,46 +1070,107 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
           ))}
         </div>
 
-        {/* Calendar Grid */}
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#E4E7E0]">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8A7C] w-40">Crop</th>
-                {months.map(m => (
-                  <th key={m} className="text-center px-2 py-3 text-xs font-semibold text-[#7A8A7C]">{m}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {crops.map(crop => {
-                const timingStr = crop.timings
-                return (
-                  <tr key={crop.name} className="border-b border-[#E4E7E0]/50 hover:bg-[#F9FAF8]">
-                    <td className="px-5 py-3 font-medium text-[#222527]">{crop.name}</td>
-                    {months.map((m, mi) => {
-                      const bars: string[] = []
-                      if (mi === 0 && (timingStr.includes('Pre-seed') || timingStr.includes('Pre-harv'))) bars.push('bg-amber-400')
-                      if (mi === 1 && timingStr.includes('Soil')) bars.push('bg-blue-400')
-                      if ((mi === 2 || mi === 3) && timingStr.includes('In-crop')) bars.push('bg-[#4A7C59]')
-                      if ((mi === 3 || mi === 4)) bars.push('bg-purple-400')
-                      if ((mi === 5 || mi === 6) && (timingStr.includes('Pre-harv') || timingStr.includes('Desiccation'))) bars.push('bg-orange-400')
+          {seedingLog.length > 0 ? (
+            // ── Personalized view based on actual seeding dates ──
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#E4E7E0]">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8A7C] w-44">Crop / Field</th>
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-[#7A8A7C]">Seeded</th>
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-[#7A8A7C]">Pre-Seed Burnoff</th>
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-[#7A8A7C]">Pre-Emergence</th>
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-[#7A8A7C]">In-Crop Herbicide</th>
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-[#7A8A7C]">Fungicide</th>
+                  <th className="text-left px-3 py-3 text-xs font-semibold text-[#7A8A7C]">Pre-Harvest</th>
+                </tr>
+              </thead>
+              <tbody>
+                {seedingLog.map(entry => {
+                  const seeded = new Date(entry.seeding_date)
+                  const today = new Date()
 
-                      return (
-                        <td key={m} className="px-2 py-3 text-center">
-                          <div className="flex flex-col gap-0.5 items-center">
-                            {bars.map((color, bi) => (
-                              <div key={bi} className={`h-2 w-6 rounded-full ${color} opacity-80`}></div>
-                            ))}
-                          </div>
+                  function addDays(d: Date, n: number) {
+                    const r = new Date(d)
+                    r.setDate(r.getDate() + n)
+                    return r.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
+                  }
+
+                  function isActive(startDay: number, endDay: number) {
+                    const daysIn = Math.floor((today.getTime() - seeded.getTime()) / (1000 * 60 * 60 * 24))
+                    return daysIn >= startDay && daysIn <= endDay
+                  }
+
+                  const windows = [
+                    { label: `${addDays(seeded, -3)} – ${addDays(seeded, 0)}`, color: 'bg-amber-100 text-amber-700 border-amber-200', active: isActive(-3, 0) },
+                    { label: `${addDays(seeded, 1)} – ${addDays(seeded, 7)}`, color: 'bg-blue-100 text-blue-700 border-blue-200', active: isActive(1, 7) },
+                    { label: `${addDays(seeded, 21)} – ${addDays(seeded, 42)}`, color: 'bg-green-100 text-green-700 border-green-200', active: isActive(21, 42) },
+                    { label: `${addDays(seeded, 42)} – ${addDays(seeded, 70)}`, color: 'bg-purple-100 text-purple-700 border-purple-200', active: isActive(42, 70) },
+                    { label: `${addDays(seeded, 90)} – ${addDays(seeded, 110)}`, color: 'bg-orange-100 text-orange-700 border-orange-200', active: isActive(90, 110) },
+                  ]
+
+                  return (
+                    <tr key={entry.id} className="border-b border-[#E4E7E0]/50 hover:bg-[#F9FAF8]">
+                      <td className="px-5 py-3">
+                        <div className="font-medium text-[#222527]">{entry.crop}</div>
+                        {entry.field_name && <div className="text-xs text-[#7A8A7C]">{entry.field_name}</div>}
+                      </td>
+                      <td className="px-3 py-3 text-xs text-[#7A8A7C]">
+                        {seeded.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}
+                      </td>
+                      {windows.map((w, i) => (
+                        <td key={i} className="px-3 py-3">
+                          <span className={`text-xs px-2 py-1 rounded-lg border font-medium inline-block ${w.color} ${w.active ? 'ring-2 ring-offset-1 ring-current' : ''}`}>
+                            {w.label}
+                            {w.active && <span className="ml-1">●</span>}
+                          </span>
                         </td>
-                      )
-                    })}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                      ))}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          ) : (
+            // ── Generic month view when no seeding data logged ──
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#E4E7E0]">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8A7C] w-40">Crop</th>
+                  {['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'].map(m => (
+                    <th key={m} className="text-center px-2 py-3 text-xs font-semibold text-[#7A8A7C]">{m}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {crops.map(crop => {
+                  const timingStr = crop.timings
+                  return (
+                    <tr key={crop.name} className="border-b border-[#E4E7E0]/50 hover:bg-[#F9FAF8]">
+                      <td className="px-5 py-3 font-medium text-[#222527]">{crop.name}</td>
+                      {[0,1,2,3,4,5,6].map(mi => {
+                        const bars: string[] = []
+                        if (mi === 0 && timingStr.includes('Pre-seed')) bars.push('bg-amber-400')
+                        if (mi === 1 && timingStr.includes('Soil')) bars.push('bg-blue-400')
+                        if ((mi === 2 || mi === 3) && timingStr.includes('In-crop')) bars.push('bg-[#4A7C59]')
+                        if ((mi === 3 || mi === 4)) bars.push('bg-purple-400')
+                        if ((mi === 5 || mi === 6) && (timingStr.includes('Pre-harv') || timingStr.includes('Desiccation'))) bars.push('bg-orange-400')
+                        return (
+                          <td key={mi} className="px-2 py-3 text-center">
+                            <div className="flex flex-col gap-0.5 items-center">
+                              {bars.map((color, bi) => (
+                                <div key={bi} className={`h-2 w-6 rounded-full ${color} opacity-80`}></div>
+                              ))}
+                            </div>
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

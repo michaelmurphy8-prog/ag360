@@ -20,6 +20,19 @@ async function migrate() {
     )
   `;
   console.log('✅ user_watchlist table created');
+await sql`
+  CREATE TABLE IF NOT EXISTS agronomy_seeding_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    clerk_user_id TEXT NOT NULL,
+    crop TEXT NOT NULL,
+    seeding_date DATE NOT NULL,
+    acres NUMERIC(10,1),
+    field_name TEXT,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )
+`
+console.log('Created agronomy_seeding_log table')
 }
 
 migrate().catch(console.error);
