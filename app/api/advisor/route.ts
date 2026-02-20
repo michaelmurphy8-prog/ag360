@@ -1,7 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 import { getPricesData } from '@/lib/prices-data'
-import { neon } from '@neondatabase/serverless'
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,

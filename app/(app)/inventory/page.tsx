@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from 'react';
 import { useUser } from "@clerk/nextjs";
 import { Plus, Trash2, Package, TrendingUp, ArrowRightLeft } from "lucide-react";
 
@@ -81,7 +81,7 @@ export default function InventoryPage() {
     loadAll();
   }, [user?.id]);
 
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
     const [h, c, m, p] = await Promise.all([
       fetch("/api/inventory/holdings", { headers }).then(r => r.json()),
       fetch("/api/inventory/contracts", { headers }).then(r => r.json()),
@@ -107,7 +107,7 @@ export default function InventoryPage() {
         }));
       setHoldings(seeded);
     }
-  }
+  }, [headers])
 
   async function addHolding() {
     const res = await fetch("/api/inventory/holdings", {

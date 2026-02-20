@@ -108,7 +108,8 @@ export default function WeatherPage() {
   const daily = weather.daily;
   const activeCrop = GDD_CROPS.find(c => c.name === activeGDD)!;
 
-  const daysSinceStart = Math.max(0, Math.floor((Date.now() - gddStart.getTime()) / (1000 * 60 * 60 * 24)));
+  const now = new Date();
+const daysSinceStart = Math.max(0, Math.floor((now.getTime() - gddStart.getTime()) / (1000 * 60 * 60 * 24)));
   const estimatedGDD = daily.time.reduce((sum, _, i) => {
     return sum + calcGDD(daily.temperature_2m_max[i], daily.temperature_2m_min[i], activeCrop.base);
   }, 0);
