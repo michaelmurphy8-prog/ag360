@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 import { getPricesData } from '@/lib/prices-data'
+import { neon } from '@neondatabase/serverless'
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -155,25 +156,45 @@ let pricesContext = '';
   try {
     const pricesData = getPricesData();
 
+    // Fetch live FX rate
+    let fxRate = 1.3650;
+    let fxSource = 'fallback';
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002';
+      const fxRes = await fetch(`${baseUrl}/api/grain360/fx`, {
+        signal: AbortSignal.timeout(3000),
+      });
+      const fxData = await fxRes.json();
+      if (fxData.success) {
+        fxRate = fxData.rate;
+        fxSource = fxData.source;
+      }
+    } catch {
+      console.error('FX fetch failed in Lily context, using fallback');
+    }
+
     const futuresLines = pricesData.futures.map(f =>
       `  - ${f.name} (${f.symbol}): ${f.lastPrice} ${f.unitCode} | Change: ${f.priceChange > 0 ? '+' : ''}${f.priceChange} (${f.percentChange}%)`
     ).join('\n');
 
     const cashLines = pricesData.cashBids.map(b =>
-      `  - ${b.location} | ${b.commodity}: $${b.cashPrice.toFixed(2)}/bu | Basis: ${b.basis.toFixed(2)}`
+      `  - ${b.location} | ${b.commodity}: $${b.cashPrice.toFixed(2)}/bu CAD | Basis: ${b.basis.toFixed(2)}`
     ).join('\n');
 
     pricesContext = `
 ---
 LIVE MARKET DATA${pricesData.source === 'mock' ? ' (DEMO DATA)' : ''} — ${new Date().toLocaleString('en-CA', { timeZone: 'America/Regina' })} CST:
 
+USD/CAD EXCHANGE RATE: ${fxRate.toFixed(4)} (source: ${fxSource})
+Note: Canola and SK cash bids are in CAD. Wheat, Corn, Cattle, and Diesel futures are in USD — multiply by ${fxRate.toFixed(4)} to convert to CAD.
+
 FUTURES:
 ${futuresLines}
 
-SASKATCHEWAN CASH BIDS:
+SASKATCHEWAN CASH BIDS (always CAD):
 ${cashLines}
 
-Use these prices in your advice. Reference specific numbers. Calculate basis implications.
+Use these prices in your advice. Reference specific numbers. When discussing USD-denominated contracts with Canadian farmers, always convert to CAD using the rate above.
 ---`;
   } catch (err) {
     console.error('Failed to load prices for Lily context:', err);
