@@ -63,10 +63,11 @@ export default function AddCostModal({
           total_amount: form.total_amount ? parseFloat(form.total_amount) : null,
         }),
       });
-      if (res.ok) {
-        onCostAdded();
-        onClose();
-      }
+      const result = await res.json();
+if (result.cost) {
+  onCostAdded();
+  onClose();
+}
     } catch (error) {
       console.error("Error adding cost:", error);
     } finally {
