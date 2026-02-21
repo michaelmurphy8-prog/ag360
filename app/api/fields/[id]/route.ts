@@ -1,17 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { auth } from "@clerk/nextjs/server";
 
 const sql = neon(process.env.DATABASE_URL!);
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  _req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await context.params;
 
   try {
     const result = await sql`
       SELECT * FROM fields
-      WHERE id = ${params.id} AND farm_id = ${userId}
+      WHERE id = ${id} AND farm_id = ${userId}
     `;
     return NextResponse.json({ field: result[0] });
   } catch (error) {
@@ -20,9 +25,14 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await context.params;
 
   try {
     const body = await req.json();
@@ -43,10 +53,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         lld_province = ${lld_province},
         notes = ${notes},
         updated_at = NOW()
-      WHERE id = ${params.id} AND farm_id = ${userId}
+      WHERE id = ${id} AND farm_id = ${userId}
       RETURNING *
     `;
-
     return NextResponse.json({ field: result[0] });
   } catch (error) {
     console.error("Error updating field:", error);
@@ -54,14 +63,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  _req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await context.params;
 
   try {
     await sql`
       DELETE FROM fields
-      WHERE id = ${params.id} AND farm_id = ${userId}
+      WHERE id = ${id} AND farm_id = ${userId}
     `;
     return NextResponse.json({ success: true });
   } catch (error) {
