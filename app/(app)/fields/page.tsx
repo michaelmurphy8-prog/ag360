@@ -5,6 +5,7 @@ import { Plus, Pencil, Sprout, DollarSign } from "lucide-react";
 import AddFieldModal from "@/components/fields/AddFieldModal";
 import EditFieldModal from "@/components/fields/EditFieldModal";
 import AddCropModal from "@/components/fields/AddCropModal";
+import { useRouter } from "next/navigation";
 import AddCostModal from "@/components/fields/AddCostModal";
 
 interface Cost {
@@ -71,6 +72,7 @@ export default function FieldsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingField, setEditingField] = useState<Field | null>(null);
   const [addingCropToField, setAddingCropToField] = useState<Field | null>(null);
+  const router = useRouter();
   const [addingCostToCrop, setAddingCostToCrop] = useState<{
     fieldCropId: string;
     fieldName: string;
@@ -154,7 +156,8 @@ export default function FieldsPage() {
             return (
               <div
                 key={field.id}
-                className="bg-white border border-[#E4E7E0] rounded-xl shadow-sm overflow-hidden"
+                onClick={() => router.push(`/fields/${field.id}`)}
+className="bg-white border border-[#E4E7E0] rounded-xl shadow-sm overflow-hidden cursor-pointer hover:border-[#4A7C59] transition-colors"
               >
                 {/* Crop colour bar */}
                 <div className={`h-1.5 w-full ${cropColor || "bg-gray-200"}`} />

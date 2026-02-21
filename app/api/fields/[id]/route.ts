@@ -4,6 +4,22 @@ import { auth } from "@clerk/nextjs/server";
 
 const sql = neon(process.env.DATABASE_URL!);
 
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  try {
+    const result = await sql`
+      SELECT * FROM fields
+      WHERE id = ${params.id} AND farm_id = ${userId}
+    `;
+    return NextResponse.json({ field: result[0] });
+  } catch (error) {
+    console.error("Error fetching field:", error);
+    return NextResponse.json({ error: "Failed to fetch field" }, { status: 500 });
+  }
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
