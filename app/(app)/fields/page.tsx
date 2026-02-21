@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Sprout } from "lucide-react";
+import { Plus, Pencil, Sprout, DollarSign } from "lucide-react";
 import AddFieldModal from "@/components/fields/AddFieldModal";
 import EditFieldModal from "@/components/fields/EditFieldModal";
 import AddCropModal from "@/components/fields/AddCropModal";
+import AddCostModal from "@/components/fields/AddCostModal";
 
 interface Crop {
   id: string;
@@ -39,19 +40,19 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const CROP_COLORS: Record<string, string> = {
-  "Canola":        "bg-yellow-400",
-  "Wheat":         "bg-blue-500",
-  "Barley":        "bg-violet-500",
-  "Oats":          "bg-amber-600",
-  "Peas":          "bg-lime-500",
-  "Lentils - Red": "bg-red-500",
+  "Canola":         "bg-yellow-400",
+  "Wheat":          "bg-blue-500",
+  "Barley":         "bg-violet-500",
+  "Oats":           "bg-amber-600",
+  "Peas":           "bg-lime-500",
+  "Lentils - Red":  "bg-red-500",
   "Lentils - Green":"bg-green-500",
-  "Chickpeas":     "bg-orange-500",
-  "Flax":          "bg-indigo-500",
-  "Corn":          "bg-amber-400",
-  "Soybeans":      "bg-green-600",
-  "Durum":         "bg-blue-400",
-  "Other":         "bg-gray-400",
+  "Chickpeas":      "bg-orange-500",
+  "Flax":           "bg-indigo-500",
+  "Corn":           "bg-amber-400",
+  "Soybeans":       "bg-green-600",
+  "Durum":          "bg-blue-400",
+  "Other":          "bg-gray-400",
 };
 
 export default function FieldsPage() {
@@ -60,6 +61,11 @@ export default function FieldsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingField, setEditingField] = useState<Field | null>(null);
   const [addingCropToField, setAddingCropToField] = useState<Field | null>(null);
+  const [addingCostToCrop, setAddingCostToCrop] = useState<{
+    fieldCropId: string;
+    fieldName: string;
+    cropType: string;
+  } | null>(null);
 
   async function fetchFields() {
     try {
@@ -67,7 +73,6 @@ export default function FieldsPage() {
       const data = await res.json();
       const fieldsData: Field[] = data.fields || [];
 
-      // Fetch crops for each field
       const fieldsWithCrops = await Promise.all(
         fieldsData.map(async (field) => {
           const cropRes = await fetch(`/api/fields/${field.id}/crops`);
@@ -121,7 +126,9 @@ export default function FieldsPage() {
             const currentCrop = field.crops?.find(
               (c) => c.crop_year === new Date().getFullYear()
             );
-            const cropColor = currentCrop ? CROP_COLORS[currentCrop.crop_type] || "bg-gray-400" : null;
+            const cropColor = currentCrop
+              ? CROP_COLORS[currentCrop.crop_type] || "bg-gray-400"
+              : null;
 
             return (
               <div
@@ -154,23 +161,40 @@ export default function FieldsPage() {
                     </button>
                   </div>
 
-                  {/* Current crop badge */}
+                  {/* Current crop */}
                   {currentCrop ? (
-                    <div className="mt-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2.5 h-2.5 rounded-full ${cropColor}`} />
-                        <span className="text-sm text-[#222527] font-medium">
-                          {currentCrop.crop_type}
-                        </span>
-                        {currentCrop.variety && (
-                          <span className="text-xs text-gray-400">
-                            {currentCrop.variety}
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2.5 h-2.5 rounded-full ${cropColor}`} />
+                          <span className="text-sm text-[#222527] font-medium">
+                            {currentCrop.crop_type}
                           </span>
-                        )}
+                          {currentCrop.variety && (
+                            <span className="text-xs text-gray-400">
+                              {currentCrop.variety}
+                            </span>
+                          )}
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[currentCrop.status]}`}>
+                          {currentCrop.status.charAt(0).toUpperCase() + currentCrop.status.slice(1)}
+                        </span>
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[currentCrop.status]}`}>
-                        {currentCrop.status.charAt(0).toUpperCase() + currentCrop.status.slice(1)}
-                      </span>
+
+                      {/* Add Cost button */}
+                      <button
+                        onClick={() =>
+                          setAddingCostToCrop({
+                            fieldCropId: currentCrop.id,
+                            fieldName: field.field_name,
+                            cropType: currentCrop.crop_type,
+                          })
+                        }
+                        className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs text-[#4A7C59] hover:text-[#3d6b4a] font-medium border border-[#4A7C59] rounded-lg py-1.5 transition-colors"
+                      >
+                        <DollarSign size={12} />
+                        Add Cost
+                      </button>
                     </div>
                   ) : (
                     <button
@@ -208,6 +232,15 @@ export default function FieldsPage() {
           fieldName={addingCropToField.field_name}
           onClose={() => setAddingCropToField(null)}
           onCropAdded={fetchFields}
+        />
+      )}
+      {addingCostToCrop && (
+        <AddCostModal
+          fieldCropId={addingCostToCrop.fieldCropId}
+          fieldName={addingCostToCrop.fieldName}
+          cropType={addingCostToCrop.cropType}
+          onClose={() => setAddingCostToCrop(null)}
+          onCostAdded={fetchFields}
         />
       )}
     </div>
