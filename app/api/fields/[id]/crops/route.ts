@@ -1,18 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { auth } from "@clerk/nextjs/server";
 
 const sql = neon(process.env.DATABASE_URL!);
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  _req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await context.params;
 
   try {
     const crops = await sql`
       SELECT fc.* FROM field_crops fc
       JOIN fields f ON f.id = fc.field_id
-      WHERE fc.field_id = ${params.id}
+      WHERE fc.field_id = ${id}
       AND f.farm_id = ${userId}
       ORDER BY fc.crop_year DESC
     `;
@@ -23,20 +28,20 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await context.params;
 
   try {
     const body = await req.json();
     const {
-      crop_year,
-      crop_type,
-      variety,
-      seeded_acres,
-      expected_yield_bu_ac,
-      seeding_date,
-      status,
+      crop_year, crop_type, variety,
+      seeded_acres, expected_yield_bu_ac, seeding_date, status,
     } = body;
 
     const result = await sql`
@@ -44,7 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         field_id, crop_year, crop_type, variety,
         seeded_acres, expected_yield_bu_ac, seeding_date, status
       ) VALUES (
-        ${params.id}, ${crop_year}, ${crop_type}, ${variety || null},
+        ${id}, ${crop_year}, ${crop_type}, ${variety || null},
         ${seeded_acres || null}, ${expected_yield_bu_ac || null},
         ${seeding_date || null}, ${status || "planned"}
       )
