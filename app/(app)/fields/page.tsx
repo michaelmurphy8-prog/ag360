@@ -207,10 +207,10 @@ export default function FieldsPage() {
   const costs = currentCrop.costs || [];
   const budgetTotal = costs
     .filter((c) => c.cost_type === "budget")
-    .reduce((sum, c) => sum + (c.total_amount || 0), 0);
+    .reduce((sum, c) => sum + (parseFloat(String(c.total_amount)) || 0), 0);
   const actualTotal = costs
     .filter((c) => c.cost_type === "actual")
-    .reduce((sum, c) => sum + (c.total_amount || 0), 0);
+    .reduce((sum, c) => sum + (parseFloat(String(c.total_amount)) || 0), 0);
   return (
     <div className="mt-3 space-y-2">
       {costs.length > 0 && (

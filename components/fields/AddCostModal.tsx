@@ -45,8 +45,7 @@ export default function AddCostModal({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) {
     const { name, value } = e.target;
-
-    // Auto-calculate total from per acre or vice versa
+    if (name === "cost_type") return;
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
