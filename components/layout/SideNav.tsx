@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Wheat, Leaf, Beef, Tractor, TrendingUp,
   Sprout, Package, Users, Cloud, Bot, Settings, ClipboardList,
-  BarChart2, ChevronRight
+  BarChart2, ChevronRight, Map
 } from "lucide-react";
 
 type SubItem = {
@@ -32,6 +32,7 @@ const navItems: NavItem[] = [
   { label: "Machinery", icon: Tractor, href: "/machinery" },
   { label: "Marketing", icon: TrendingUp, href: "/marketing" },
   { label: "Agronomy", icon: Sprout, href: "/agronomy" },
+  { label: "Fields", icon: Map, href: "/fields" },
   { label: "Inventory", icon: Package, href: "/inventory" },
   { label: "Labour & HR", icon: Users, href: "/labour" },
   { label: "Weather", icon: Cloud, href: "/weather" },
