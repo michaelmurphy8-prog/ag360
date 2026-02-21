@@ -7,6 +7,15 @@ import EditFieldModal from "@/components/fields/EditFieldModal";
 import AddCropModal from "@/components/fields/AddCropModal";
 import AddCostModal from "@/components/fields/AddCostModal";
 
+interface Cost {
+  id: string;
+  cost_type: string;
+  category: string;
+  description: string;
+  amount_per_acre: number;
+  total_amount: number;
+}
+
 interface Crop {
   id: string;
   crop_year: number;
@@ -16,6 +25,7 @@ interface Crop {
   expected_yield_bu_ac: number;
   seeding_date: string;
   status: string;
+  costs?: Cost[];
 }
 
 interface Field {
@@ -68,26 +78,37 @@ export default function FieldsPage() {
   } | null>(null);
 
   async function fetchFields() {
-    try {
-      const res = await fetch("/api/fields");
-      const data = await res.json();
-      const fieldsData: Field[] = data.fields || [];
+  try {
+    const res = await fetch("/api/fields");
+    const data = await res.json();
+    const fieldsData: Field[] = data.fields || [];
 
-      const fieldsWithCrops = await Promise.all(
-        fieldsData.map(async (field) => {
-          const cropRes = await fetch(`/api/fields/${field.id}/crops`);
-          const cropData = await cropRes.json();
-          return { ...field, crops: cropData.crops || [] };
-        })
-      );
+    const fieldsWithCrops = await Promise.all(
+      fieldsData.map(async (field) => {
+        const cropRes = await fetch(`/api/fields/${field.id}/crops`);
+        const cropData = await cropRes.json();
+        const crops = cropData.crops || [];
 
-      setFields(fieldsWithCrops);
-    } catch (error) {
-      console.error("Error fetching fields:", error);
-    } finally {
-      setLoading(false);
-    }
+        // Fetch costs for current crop
+        const cropsWithCosts = await Promise.all(
+          crops.map(async (crop: Crop) => {
+            const costRes = await fetch(`/api/field-crops/${crop.id}/costs`);
+            const costData = await costRes.json();
+            return { ...crop, costs: costData.costs || [] };
+          })
+        );
+
+        return { ...field, crops: cropsWithCosts };
+      })
+    );
+
+    setFields(fieldsWithCrops);
+  } catch (error) {
+    console.error("Error fetching fields:", error);
+  } finally {
+    setLoading(false);
   }
+}
 
   useEffect(() => {
     fetchFields();
@@ -181,21 +202,63 @@ export default function FieldsPage() {
                         </span>
                       </div>
 
-                      {/* Add Cost button */}
-                      <button
-                        onClick={() =>
-                          setAddingCostToCrop({
-                            fieldCropId: currentCrop.id,
-                            fieldName: field.field_name,
-                            cropType: currentCrop.crop_type,
-                          })
-                        }
-                        className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs text-[#4A7C59] hover:text-[#3d6b4a] font-medium border border-[#4A7C59] rounded-lg py-1.5 transition-colors"
-                      >
-                        <DollarSign size={12} />
-                        Add Cost
-                      </button>
-                    </div>
+                      {/* Cost Summary */}
+{(() => {
+  const costs = currentCrop.costs || [];
+  const budgetTotal = costs
+    .filter((c) => c.cost_type === "budget")
+    .reduce((sum, c) => sum + (c.total_amount || 0), 0);
+  const actualTotal = costs
+    .filter((c) => c.cost_type === "actual")
+    .reduce((sum, c) => sum + (c.total_amount || 0), 0);
+  return (
+    <div className="mt-3 space-y-2">
+      {costs.length > 0 && (
+        <div className="bg-gray-50 rounded-lg px-3 py-2 space-y-1">
+          {budgetTotal > 0 && (
+            <div className="flex justify-between text-xs">
+              <span className="text-gray-500">Budget</span>
+              <span className="font-medium text-gray-700">
+                ${budgetTotal.toLocaleString("en-CA", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          )}
+          {actualTotal > 0 && (
+            <div className="flex justify-between text-xs">
+              <span className="text-gray-500">Actual</span>
+              <span className="font-medium text-gray-700">
+                ${actualTotal.toLocaleString("en-CA", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          )}
+          {budgetTotal > 0 && actualTotal > 0 && (
+            <div className="flex justify-between text-xs border-t border-gray-200 pt-1 mt-1">
+              <span className="text-gray-500">Variance</span>
+              <span className={`font-medium ${actualTotal > budgetTotal ? "text-red-500" : "text-green-600"}`}>
+                {actualTotal > budgetTotal ? "+" : ""}
+                ${(actualTotal - budgetTotal).toLocaleString("en-CA", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+      <button
+        onClick={() =>
+          setAddingCostToCrop({
+            fieldCropId: currentCrop.id,
+            fieldName: field.field_name,
+            cropType: currentCrop.crop_type,
+          })
+        }
+        className="w-full flex items-center justify-center gap-1.5 text-xs text-[#4A7C59] hover:text-[#3d6b4a] font-medium border border-[#4A7C59] rounded-lg py-1.5 transition-colors"
+      >
+        <DollarSign size={12} />
+        Add Cost
+      </button>
+    </div>
+  );
+})()}
+</div>
                   ) : (
                     <button
                       onClick={() => setAddingCropToField(field)}
