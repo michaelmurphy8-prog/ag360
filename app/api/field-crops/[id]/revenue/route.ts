@@ -1,19 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { auth } from "@clerk/nextjs/server";
 
 const sql = neon(process.env.DATABASE_URL!);
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  _req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await context.params;
 
   try {
     const revenue = await sql`
       SELECT fr.* FROM field_revenue fr
       JOIN field_crops fc ON fc.id = fr.field_crop_id
       JOIN fields f ON f.id = fc.field_id
-      WHERE fr.field_crop_id = ${params.id}
+      WHERE fr.field_crop_id = ${id}
       AND f.farm_id = ${userId}
       ORDER BY fr.created_at DESC
     `;
@@ -24,20 +29,20 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await context.params;
 
   try {
     const body = await req.json();
     const {
-      revenue_type,
-      source,
-      description,
-      bushels,
-      price_per_bu,
-      total_revenue,
-      date,
+      revenue_type, source, description,
+      bushels, price_per_bu, total_revenue, date,
     } = body;
 
     const result = await sql`
@@ -45,7 +50,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         field_crop_id, revenue_type, source, description,
         bushels, price_per_bu, total_revenue, date
       ) VALUES (
-        ${params.id}, ${revenue_type}, ${source}, ${description || null},
+        ${id}, ${revenue_type}, ${source}, ${description || null},
         ${bushels || null}, ${price_per_bu || null},
         ${total_revenue || null}, ${date || null}
       )
