@@ -45,12 +45,24 @@ export default function SideNav() {
 
   return (
     <aside className="w-64 h-screen bg-white border-r border-[#E4E7E0] flex flex-col fixed left-0 top-0">
-      <div className="px-6 py-6 border-b border-[#E4E7E0]">
-        <h1 className="text-xl font-bold text-[#222527]">
-          AG<span className="text-[#4A7C59]">360</span>
-        </h1>
-        <p className="text-xs text-[#7A8A7C] mt-0.5">Agricultural OS</p>
-      </div>
+      <div className="px-6 py-6 border-b border-[#E4E7E0] flex flex-col items-center text-center">
+  <div className="flex items-center gap-2 mb-1">
+    <div className="w-7 h-7 rounded-lg bg-[#4A7C59] flex items-center justify-center flex-shrink-0">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+  <circle cx="7" cy="7" r="5.5" stroke="white" strokeWidth="1.5"/>
+  <circle cx="7" cy="7" r="2" fill="white"/>
+  <line x1="7" y1="1" x2="7" y2="4" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+  <line x1="7" y1="10" x2="7" y2="13" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+  <line x1="1" y1="7" x2="4" y2="7" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+  <line x1="10" y1="7" x2="13" y2="7" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+</svg>
+    </div>
+    <h1 className="text-xl font-bold tracking-tight text-[#222527]">
+      AG<span className="text-[#4A7C59]">360</span>
+    </h1>
+  </div>
+  <p className="text-[11px] font-medium text-[#7A8A7C] tracking-widest uppercase">For the Farmer</p>
+</div>
 
       <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-0.5">
         {navItems.map((item) => {
