@@ -66,15 +66,20 @@ export async function POST(req: Request) {
 
     // Auto-deduct from holdings if a bin was selected
     if (from && net_weight_kg) {
-      const KG_PER_BU = 36.744; // canola default — close enough for deduction
+      const KG_PER_BU = 36.744;
       const bushels_to_deduct = net_weight_kg / KG_PER_BU;
 
       await sql`
-        UPDATE inventory_holdings
+        UPDATE holdings
         SET quantity_bu = GREATEST(0, quantity_bu - ${bushels_to_deduct})
-        WHERE user_id = ${userId}
+        WHERE farm_id = ${userId}
         AND location = ${from}
-        LIMIT 1
+        AND id = (
+          SELECT id FROM holdings
+          WHERE farm_id = ${userId}
+          AND location = ${from}
+          LIMIT 1
+        )
       `;
     }
 
