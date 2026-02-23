@@ -1030,7 +1030,7 @@ export default function InventoryPage() {
                   <tbody className="divide-y divide-[#F5F5F3]">
                     {grainLoads.map(load => (
                       <tr key={load.id}>
-                        <td className="py-3 pr-4 text-[#7A8A7C]">{load.date}</td>
+                        <td className="py-3 pr-4 text-[#7A8A7C]">{load.date?.split("T")[0]}</td>
                         <td className="py-3 pr-4 font-medium text-[#222527]">{load.driver_name || "—"}</td>
                         <td className="py-3 pr-4 text-[#7A8A7C]">{load.truck_name || "—"}</td>
                         <td className="py-3 pr-4 text-[#7A8A7C]">{load.customer_name || "—"}</td>
