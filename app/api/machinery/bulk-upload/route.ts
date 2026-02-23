@@ -7,8 +7,8 @@ const VALID_ASSET_TYPES = ['fixed','variable'];
 const VALID_STATUSES = ['ACTIVE','WATCH','DOWN','SOLD','RETIRED'];
 
 export async function POST(req: NextRequest) {
-  const { userId, orgId } = await auth();
-  if (!userId || !orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { userId } = await auth();
+if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const sql = neon(process.env.DATABASE_URL!);
   const { rows } = await req.json();
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
         "createdAt", "updatedAt"
       ) VALUES (
         gen_random_uuid()::text,
-        ${orgId},
+        ${userId},
         ${`${row.make.trim()} ${row.model.trim()}`},
         ${row.make.trim()},
         ${row.model.trim()},
