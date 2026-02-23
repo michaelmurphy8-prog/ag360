@@ -77,7 +77,7 @@ export default function MachineryPage() {
   const down       = assets.filter(a => a.status === 'DOWN').length;
 
   const kpis = [
-    { label: "Total Fleet Value", value: `$${(totalValue / 1000).toFixed(0)}K`, unit: "CAD" },
+    { label: "Total Fleet Value", value: totalValue >= 1000000 ? `$${(totalValue / 1000000).toFixed(2)}M` : `$${(totalValue / 1000).toFixed(0)}K`, unit: "CAD" },
     { label: "Total Assets",      value: String(assets.length),                  unit: "units" },
     { label: "Active",            value: String(active),                          unit: "units" },
     { label: "Needs Attention",   value: String(watch),                           unit: "watch" },
