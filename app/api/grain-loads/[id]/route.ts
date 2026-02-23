@@ -18,7 +18,7 @@ export async function PATCH(
     const {
       date, driver_id, truck_id, customer_id,
       contract_reference, gross_weight_kg, dockage_percent,
-      settlement_id, notes,
+      settlement_id, notes, from,
     } = body;
 
     const dockage_kg = gross_weight_kg && dockage_percent
@@ -42,6 +42,7 @@ export async function PATCH(
         net_weight_kg = ${net_weight_kg},
         settlement_id = ${settlement_id || null},
         notes = ${notes || null},
+        "from" = ${from || null},
         updated_at = NOW()
       WHERE id = ${id} AND farm_id = ${userId}
       RETURNING *

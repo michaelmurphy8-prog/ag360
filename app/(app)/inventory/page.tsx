@@ -75,6 +75,7 @@ type GrainLoad = {
   customer_id?: string;
   customer_name?: string;
   contract_reference?: string;
+  from?: string;
   gross_weight_kg: number;
   dockage_percent?: number;
   dockage_kg?: number;
@@ -125,13 +126,17 @@ export default function InventoryPage() {
   const [showManageDrivers, setShowManageDrivers] = useState(false);
   const [showManageTrucks, setShowManageTrucks] = useState(false);
   const [showManageCustomers, setShowManageCustomers] = useState(false);
-  const [bulkUploadError, setBulkUploadError] = useState("");
+const [bulkUploadError, setBulkUploadError] = useState("");
+const [weightUnit, setWeightUnit] = useState<"kg" | "lb">("kg");
+const [filterFrom, setFilterFrom] = useState("");
+const [filterTo, setFilterTo] = useState("");
 
   const [newLoad, setNewLoad] = useState({
     date: new Date().toISOString().split("T")[0],
     driver_id: "",
     truck_id: "",
     customer_id: "",
+    from: "",
     contract_reference: "",
     gross_weight_kg: "",
     dockage_percent: "",
@@ -260,13 +265,14 @@ export default function InventoryPage() {
         ...newLoad,
         gross_weight_kg: parseFloat(newLoad.gross_weight_kg) || null,
         dockage_percent: parseFloat(newLoad.dockage_percent) || null,
+        from: newLoad.from || null,
       }),
     });
     const data = await res.json();
     if (data.load) {
       await loadGrainData();
       setShowAddLoad(false);
-      setNewLoad({ date: new Date().toISOString().split("T")[0], driver_id: "", truck_id: "", customer_id: "", contract_reference: "", gross_weight_kg: "", dockage_percent: "", settlement_id: "", notes: "" });
+      setNewLoad({ date: new Date().toISOString().split("T")[0], driver_id: "", truck_id: "", customer_id: "", from: "", contract_reference: "", gross_weight_kg: "", dockage_percent: "", settlement_id: "", notes: "" });
     }
   }
 
@@ -401,12 +407,26 @@ export default function InventoryPage() {
     URL.revokeObjectURL(url);
   }
 
+  // Weight conversion
+  const toDisplay = (kg: number) => weightUnit === "lb" ? kg * 2.20462 : kg;
+  const unitLabel = weightUnit === "kg" ? "kg" : "lb";
+
+  // Date filtered loads
+  const filteredLoads = grainLoads.filter(l => {
+    const d = l.date?.split("T")[0];
+    if (filterFrom && d < filterFrom) return false;
+    if (filterTo && d > filterTo) return false;
+    return true;
+  });
+
   // Summary stats for grain loads
   const totalLoads = grainLoads.length;
   const totalGrossKg = grainLoads.reduce((sum, l) => sum + (parseFloat(String(l.gross_weight_kg)) || 0), 0);
   const totalNetKg = grainLoads.reduce((sum, l) => sum + (parseFloat(String(l.net_weight_kg || l.gross_weight_kg)) || 0), 0);
   const totalGrossMT = totalGrossKg / 1000;
   const totalNetMT = totalNetKg / 1000;
+  const filteredGrossKg = filteredLoads.reduce((sum, l) => sum + (parseFloat(String(l.gross_weight_kg)) || 0), 0);
+  const filteredNetKg = filteredLoads.reduce((sum, l) => sum + (parseFloat(String(l.net_weight_kg || l.gross_weight_kg)) || 0), 0);
 
   const totalBu = holdings.reduce((sum, h) => sum + Number(h.quantity_bu), 0);
   const totalValue = holdings.reduce((sum, h) => sum + Number(h.quantity_bu) * Number(h.estimated_price || 0), 0);
@@ -789,6 +809,27 @@ export default function InventoryPage() {
         {/* GRAIN LOADS TAB */}
         {activeTab === "grain_loads" && (
           <div className="p-6 space-y-4">
+{/* Controls bar — unit toggle + date filter */}
+            <div className="flex items-center gap-4 mb-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Unit:</span>
+                <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+                  <button onClick={() => setWeightUnit("kg")} className={`px-3 py-1 text-xs font-semibold transition-colors ${weightUnit === "kg" ? "bg-[#4A7C59] text-white" : "bg-white text-gray-600"}`}>KG</button>
+                  <button onClick={() => setWeightUnit("lb")} className={`px-3 py-1 text-xs font-semibold transition-colors ${weightUnit === "lb" ? "bg-[#4A7C59] text-white" : "bg-white text-gray-600"}`}>LB</button>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">From:</span>
+                <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} className="text-sm border border-[#E4E7E0] rounded-lg px-3 py-1 focus:outline-none focus:border-[#4A7C59]" />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">To:</span>
+                <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} className="text-sm border border-[#E4E7E0] rounded-lg px-3 py-1 focus:outline-none focus:border-[#4A7C59]" />
+              </div>
+              {(filterFrom || filterTo) && (
+                <button onClick={() => { setFilterFrom(""); setFilterTo(""); }} className="text-xs text-red-500 font-semibold hover:underline">Clear Filter</button>
+              )}
+            </div>
 
             {/* Manage dropdowns bar */}
             <div className="flex items-center gap-3 pb-2 border-b border-[#E4E7E0]">
@@ -907,9 +948,18 @@ export default function InventoryPage() {
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Contract Reference</label>
-                    <input type="text" placeholder="e.g. C-2026-001" value={newLoad.contract_reference} onChange={e => setNewLoad({...newLoad, contract_reference: e.target.value})} className={inputClass} />
-                  </div>
+                  <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">From (Bin / Storage)</label>
+                  <select value={newLoad.from} onChange={e => setNewLoad({...newLoad, from: e.target.value})} className={inputClass}>
+                    <option value="">Select bin...</option>
+                    {[...new Set(holdings.map(h => h.location))].map(loc => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Contract Reference</label>
+                  <input type="text" placeholder="e.g. C-2026-001" value={newLoad.contract_reference} onChange={e => setNewLoad({...newLoad, contract_reference: e.target.value})} className={inputClass} />
+                </div>
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Settlement ID</label>
                     <input type="text" placeholder="e.g. S-001" value={newLoad.settlement_id} onChange={e => setNewLoad({...newLoad, settlement_id: e.target.value})} className={inputClass} />
@@ -1020,24 +1070,26 @@ export default function InventoryPage() {
                       <th className="text-left pb-3 pr-4">Truck</th>
                       <th className="text-left pb-3 pr-4">Customer</th>
                       <th className="text-left pb-3 pr-4">Contract</th>
-                      <th className="text-right pb-3 pr-4">Gross (kg)</th>
+                      <th className="text-left pb-3 pr-4">From</th>
+                      <th className="text-right pb-3 pr-4">Gross ({unitLabel})</th>
                       <th className="text-right pb-3 pr-4">Dockage</th>
-                      <th className="text-right pb-3 pr-4">Net (kg)</th>
+                      <th className="text-right pb-3 pr-4">Net ({unitLabel})</th>
                       <th className="text-left pb-3 pr-4">Settlement</th>
                       <th className="pb-3"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F5F5F3]">
-                    {grainLoads.map(load => (
+                    {filteredLoads.map(load => (
                       <tr key={load.id}>
                         <td className="py-3 pr-4 text-[#7A8A7C]">{load.date?.split("T")[0]}</td>
                         <td className="py-3 pr-4 font-medium text-[#222527]">{load.driver_name || "—"}</td>
                         <td className="py-3 pr-4 text-[#7A8A7C]">{load.truck_name || "—"}</td>
                         <td className="py-3 pr-4 text-[#7A8A7C]">{load.customer_name || "—"}</td>
                         <td className="py-3 pr-4 text-[#7A8A7C]">{load.contract_reference || "—"}</td>
-                        <td className="py-3 pr-4 text-right font-medium">{load.gross_weight_kg ? Number(load.gross_weight_kg).toLocaleString() : "—"}</td>
+                        <td className="py-3 pr-4 text-[#7A8A7C]">{load.from || "—"}</td>
+                        <td className="py-3 pr-4 text-right font-medium">{load.gross_weight_kg ? toDisplay(Number(load.gross_weight_kg)).toLocaleString("en-CA", { maximumFractionDigits: 0 }) : "—"}</td>
                         <td className="py-3 pr-4 text-right text-[#7A8A7C]">{load.dockage_percent ? `${load.dockage_percent}%` : "—"}</td>
-                        <td className="py-3 pr-4 text-right font-semibold text-[#4A7C59]">{load.net_weight_kg ? Number(load.net_weight_kg).toLocaleString() : "—"}</td>
+                        <td className="py-3 pr-4 text-right font-semibold text-[#4A7C59]">{load.net_weight_kg ? toDisplay(Number(load.net_weight_kg)).toLocaleString("en-CA", { maximumFractionDigits: 0 }) : "—"}</td>
                         <td className="py-3 pr-4 text-[#7A8A7C]">{load.settlement_id || "—"}</td>
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -1049,6 +1101,26 @@ export default function InventoryPage() {
                     ))}
                   </tbody>
                 </table>
+                {/* Summary ribbon */}
+                <div className="mt-3 flex items-center justify-end gap-8 bg-[#F5F5F3] rounded-xl px-4 py-3 text-sm">
+                  {(filterFrom || filterTo) && (
+                    <span className="text-xs text-[#7A8A7C] mr-auto">
+                      Showing {filteredLoads.length} of {grainLoads.length} loads
+                    </span>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#7A8A7C] font-medium">Total Gross:</span>
+                    <span className="font-bold text-[#222527]">
+                      {toDisplay(filteredGrossKg).toLocaleString("en-CA", { maximumFractionDigits: 0 })} {unitLabel}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#7A8A7C] font-medium">Total Net:</span>
+                    <span className="font-bold text-[#4A7C59]">
+                      {toDisplay(filteredNetKg).toLocaleString("en-CA", { maximumFractionDigits: 0 })} {unitLabel}
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
           </div>

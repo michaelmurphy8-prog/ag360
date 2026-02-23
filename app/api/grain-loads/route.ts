@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     const {
       date, driver_id, truck_id, customer_id,
       contract_reference, gross_weight_kg, dockage_percent,
-      settlement_id, notes,
+      settlement_id, notes, from,
     } = body;
 
     const dockage_kg = gross_weight_kg && dockage_percent
@@ -53,16 +53,31 @@ export async function POST(req: Request) {
       INSERT INTO grain_loads (
         farm_id, date, driver_id, truck_id, customer_id,
         contract_reference, gross_weight_kg, dockage_percent,
-        dockage_kg, net_weight_kg, settlement_id, notes
+        dockage_kg, net_weight_kg, settlement_id, notes, "from"
       ) VALUES (
         ${userId}, ${date}, ${driver_id || null}, ${truck_id || null},
         ${customer_id || null}, ${contract_reference || null},
         ${gross_weight_kg || null}, ${dockage_percent || null},
         ${dockage_kg}, ${net_weight_kg},
-        ${settlement_id || null}, ${notes || null}
+        ${settlement_id || null}, ${notes || null}, ${from || null}
       )
       RETURNING *
     `;
+
+    // Auto-deduct from holdings if a bin was selected
+    if (from && net_weight_kg) {
+      const KG_PER_BU = 36.744; // canola default — close enough for deduction
+      const bushels_to_deduct = net_weight_kg / KG_PER_BU;
+
+      await sql`
+        UPDATE inventory_holdings
+        SET quantity_bu = GREATEST(0, quantity_bu - ${bushels_to_deduct})
+        WHERE user_id = ${userId}
+        AND location = ${from}
+        LIMIT 1
+      `;
+    }
+
     return NextResponse.json({ load: result[0] });
   } catch (error) {
     console.error("Error adding load:", error);
