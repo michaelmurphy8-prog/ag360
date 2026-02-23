@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Tractor } from "lucide-react";
 import BulkUploadModal from "@/components/machinery/BulkUploadModal";
+import AddAssetModal from "@/components/machinery/AddAssetModal";
 import FleetFilters from "@/components/machinery/FleetFilters";
 
 interface Asset {
@@ -35,6 +36,7 @@ export default function MachineryPage() {
   const [assets, setAssets]             = useState<Asset[]>([]);
   const [loading, setLoading]           = useState(true);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showAddAsset, setShowAddAsset] = useState(false);
   const [search, setSearch]             = useState('');
   const [filterMake, setFilterMake]     = useState('');
   const [filterClass, setFilterClass]   = useState('');
@@ -111,9 +113,9 @@ export default function MachineryPage() {
             >
               ↑ Bulk Upload
             </button>
-            <button className="text-xs font-semibold text-white bg-[#4A7C59] px-4 py-2 rounded-full hover:bg-[#3d6b4a] transition-colors">
-              + Add Asset
-            </button>
+            <button onClick={() => setShowAddAsset(true)} className="text-xs font-semibold text-white bg-[#4A7C59] px-4 py-2 rounded-full hover:bg-[#3d6b4a] transition-colors">
+  + Add Asset
+</button>
           </div>
         </div>
 
@@ -183,6 +185,12 @@ export default function MachineryPage() {
         </div>
       </div>
 
+{showAddAsset && (
+  <AddAssetModal
+    onClose={() => setShowAddAsset(false)}
+    onSuccess={() => { fetchAssets(); setShowAddAsset(false); }}
+  />
+)}
       {showBulkUpload && (
         <BulkUploadModal
           onClose={() => setShowBulkUpload(false)}
