@@ -101,7 +101,7 @@ function fmt(n: number) {
 }
 
 export default function InventoryPage() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const [activeTab, setActiveTab] = useState<"holdings" | "contracts" | "movements" | "grain_loads">("holdings");
 
   // Existing state
@@ -150,18 +150,19 @@ const [filterTo, setFilterTo] = useState("");
 
   const headers = { "x-user-id": user?.id || "" };
 
-  const loadAll = useCallback(async () => {
+  const loadAll = useCallback(async (uid?: string) => {
+    const h2 = { "x-user-id": uid || user?.id || "" };
     const [h, c, m, p] = await Promise.all([
-      fetch("/api/inventory/holdings", { headers }).then(r => r.json()),
-      fetch("/api/inventory/contracts", { headers }).then(r => r.json()),
-      fetch("/api/inventory/movements", { headers }).then(r => r.json()),
-      fetch("/api/farm-profile", { headers }).then(r => r.json()),
+      fetch("/api/inventory/holdings", { headers: h2 }).then(r => r.json()),
+      fetch("/api/inventory/contracts", { headers: h2 }).then(r => r.json()),
+      fetch("/api/inventory/movements", { headers: h2 }).then(r => r.json()),
+      fetch("/api/farm-profile", { headers: h2 }).then(r => r.json()),
     ]);
     setContracts(c.contracts || []);
     setMovements(m.movements || []);
     if (h.holdings && h.holdings.length > 0) {
       setHoldings(h.holdings);
-    } else if (p.profile) {
+    } else if (p.profile && (!h.holdings || h.holdings.length === 0)) {
       const profile: FarmProfile = p.profile;
       const seeded = profile.inventory
         .filter((i) => i.mode === "on_hand" && i.bushels && i.bushels > 0)
@@ -173,7 +174,7 @@ const [filterTo, setFilterTo] = useState("");
           moisture: 0,
           estimated_price: i.targetPrice || 0,
         }));
-      setHoldings(seeded);
+      if (seeded.length > 0) setHoldings(seeded);
     }
   }, []);
 
@@ -191,10 +192,11 @@ const [filterTo, setFilterTo] = useState("");
   }, []);
 
   useEffect(() => {
+    if (!isLoaded) return;
     if (!user?.id) return;
-    loadAll();
+    loadAll(user.id);
     loadGrainData();
-  }, [user?.id]);
+  }, [isLoaded, user?.id]);
 
   // Existing functions
   async function addHolding() {
@@ -610,7 +612,7 @@ const [filterTo, setFilterTo] = useState("");
                     <tr key={h.id || i} className="py-3">
                       <td className="py-3 pr-8 font-semibold text-[#222527]">{h.crop}</td>
                       <td className="py-3 pr-8 text-[#7A8A7C]">{h.location}</td>
-                      <td className="py-3 pr-8 text-right font-semibold">{Math.round(Number(h.quantity_bu)).toLocaleString()} bu</td>
+                      <td className="py-3 pr-8 text-right font-semibold">{Number(h.quantity_bu).toLocaleString()} bu</td>
                       <td className="py-3 pr-8 text-[#7A8A7C]">{h.grade || "—"}</td>
                       <td className="py-3 pr-8 text-right text-[#7A8A7C]">{h.moisture ? `${h.moisture}%` : "—"}</td>
                       <td className="py-3 pr-8 text-right text-[#7A8A7C]">{h.estimated_price ? `$${h.estimated_price}/bu` : "—"}</td>
