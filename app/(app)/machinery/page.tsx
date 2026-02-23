@@ -71,7 +71,7 @@ export default function MachineryPage() {
     return matchSearch && matchMake && matchClass && matchStatus;
   });
 
-  const totalValue = assets.reduce((sum, a) => sum + (a.currentValue || 0), 0);
+  const totalValue = assets.reduce((sum, a) => sum + (Number(a.currentValue) || 0), 0);
   const active     = assets.filter(a => a.status === 'ACTIVE').length;
   const watch      = assets.filter(a => a.status === 'WATCH').length;
   const down       = assets.filter(a => a.status === 'DOWN').length;
@@ -164,13 +164,13 @@ export default function MachineryPage() {
                   <div className="text-right">
                     <p className="text-xs text-[#7A8A7C]">Est. Value</p>
                     <p className="text-sm font-semibold text-[#222527]">
-                      {asset.currentValue ? `$${asset.currentValue.toLocaleString()}` : '—'}
+                      {asset.currentValue ? `$${Math.round(Number(asset.currentValue)).toLocaleString()}` : '—'}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-[#7A8A7C]">Next Service</p>
                     <p className="text-sm font-semibold text-[#222527]">
-                      {asset.nextService || '—'}
+                      {asset.nextService ? (isNaN(Number(asset.nextService)) ? asset.nextService : `${Number(asset.nextService).toLocaleString()} hrs`) : '—'}
                     </p>
                   </div>
                   <span className={`text-xs font-semibold px-3 py-1 rounded-full ${statusStyle(asset.status)}`}>
