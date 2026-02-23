@@ -43,7 +43,7 @@ if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }
       INSERT INTO "Asset" (
         id, "orgId", name, make, model, year,
         "serialNumber", "purchasePrice", "currentValue",
-        "assetType", "assetClass", status,
+        "assetType", "assetClass", type, status,
         "hoursTotal", "nextService", notes,
         "createdAt", "updatedAt"
       ) VALUES (
@@ -57,8 +57,9 @@ if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }
         ${row.purchase_value ? Number(row.purchase_value) : null},
         ${row.current_value ? Number(row.current_value) : null},
         ${(row.asset_type || 'fixed').toLowerCase()},
-        ${(row.asset_class || 'other').toLowerCase()},
-        ${validStatus}::"AssetStatus",
+${(row.asset_class || 'other').toLowerCase()},
+${(row.asset_class || 'OTHER').toUpperCase()}::"AssetType",
+${validStatus}::"AssetStatus",
         ${row.hours_km ? Number(row.hours_km) : null},
         ${row.next_service_hours_km?.trim() || null},
         ${row.notes?.trim() || null},
