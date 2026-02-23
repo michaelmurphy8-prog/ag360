@@ -70,13 +70,13 @@ export async function POST(req: Request) {
       const bushels_to_deduct = net_weight_kg / KG_PER_BU;
 
       await sql`
-        UPDATE holdings
+        UPDATE inventory_holdings
         SET quantity_bu = GREATEST(0, quantity_bu - ${bushels_to_deduct})
-        WHERE farm_id = ${userId}
+        WHERE user_id = ${userId}
         AND location = ${from}
         AND id = (
-          SELECT id FROM holdings
-          WHERE farm_id = ${userId}
+          SELECT id FROM inventory_holdings
+          WHERE user_id = ${userId}
           AND location = ${from}
           LIMIT 1
         )
