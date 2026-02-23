@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 
 interface ParsedRow {
   make: string;
@@ -16,7 +16,6 @@ interface ParsedRow {
   hours_km: string;
   next_service_hours_km: string;
   notes: string;
-  _error?: string;
 }
 
 interface BulkUploadModalProps {
@@ -34,16 +33,50 @@ export default function BulkUploadModal({ onClose, onSuccess }: BulkUploadModalP
 
   function handleFile(file: File) {
     setFileName(file.name);
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (result) => {
-        const parsed = result.data as ParsedRow[];
-        const filtered = parsed.filter(r => !r.notes?.toLowerCase().includes('example row'));
-        setRows(filtered);
-        setStep('preview');
-      },
-    });
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = e.target?.result;
+      const workbook = XLSX.read(data, { type: 'binary' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' }) as Record<string, unknown>[];
+
+      const labelToKey: Record<string, string> = {
+        'Make *': 'make', 'Model *': 'model', 'Year *': 'year',
+        'Serial Number': 'serial_number',
+        'Purchase Value ($CAD)': 'purchase_value',
+        'Current Value ($CAD)': 'current_value',
+        'Asset Type (fixed/variable)': 'asset_type',
+        'Asset Class': 'asset_class', 'Status': 'status',
+        'Hours / KM': 'hours_km',
+        'Next Service (hrs/km)': 'next_service_hours_km',
+        'Notes': 'notes',
+        'make': 'make', 'model': 'model', 'year': 'year',
+        'serial_number': 'serial_number', 'purchase_value': 'purchase_value',
+        'current_value': 'current_value', 'asset_type': 'asset_type',
+        'asset_class': 'asset_class', 'status': 'status',
+        'hours_km': 'hours_km', 'next_service_hours_km': 'next_service_hours_km',
+        'notes': 'notes',
+      };
+
+      const normalized: ParsedRow[] = rawRows.map(row => {
+        const mapped: Record<string, string> = {};
+        for (const [k, v] of Object.entries(row)) {
+          const key = labelToKey[k.trim()];
+          if (key) mapped[key] = String(v);
+        }
+        return mapped as unknown as ParsedRow;
+      });
+
+      const filtered = normalized.filter(r =>
+        r.make &&
+        !r.notes?.toLowerCase().includes('example row') &&
+        !r.notes?.toLowerCase().includes('delete this')
+      );
+
+      setRows(filtered);
+      setStep('preview');
+    };
+    reader.readAsBinaryString(file);
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -76,39 +109,44 @@ export default function BulkUploadModal({ onClose, onSuccess }: BulkUploadModalP
   }
 
   const statusColor = (s: string) => {
-    if (s === 'active') return 'text-green-600 bg-green-50';
-    if (s === 'watch') return 'text-yellow-600 bg-yellow-50';
-    if (s === 'down') return 'text-red-600 bg-red-50';
+    const val = s?.toUpperCase();
+    if (val === 'ACTIVE') return 'text-green-600 bg-green-50';
+    if (val === 'WATCH')  return 'text-yellow-600 bg-yellow-50';
+    if (val === 'DOWN')   return 'text-red-600 bg-red-50';
     return 'text-gray-500 bg-gray-50';
   };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl mx-4 max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Bulk Upload Assets</h2>
-            <p className="text-sm text-gray-500 mt-0.5">Upload a CSV to add multiple assets at once</p>
+            <p className="text-sm text-gray-500 mt-0.5">Upload your fleet using the Excel template</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
         </div>
-        <div className="flex-1 overflow-y-auto p-6"></div>
-        {step === 'upload' && (
+        <div className="flex-1 overflow-y-auto p-6">
+          {step === 'upload' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between p-4 bg-green-50 rounded-xl border border-green-100">
                 <div>
-                  <p className="text-sm font-medium text-green-800">First time? Download the template</p>
+                  <p className="text-sm font-medium text-green-800">Step 1 — Download the template</p>
                   <p className="text-xs text-green-600 mt-0.5">Fill it out in Excel, then upload below</p>
                 </div>
-                <a href="/machinery_bulk_upload_template.csv" download className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors">
-                  ↓ Download Template
+                <a href="/machinery_bulk_upload_template.xlsx" download className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors">
+                  ↓ Download Excel Template
                 </a>
               </div>
-              <div onDrop={handleDrop} onDragOver={(e) => e.preventDefault()} onClick={() => fileRef.current?.click()} className="border-2 border-dashed border-gray-200 rounded-xl p-12 text-center cursor-pointer hover:border-green-400 hover:bg-green-50/30 transition-all">
-                <div className="text-4xl mb-3">📋</div>
-                <p className="text-gray-700 font-medium">Drop your CSV here or click to browse</p>
-                <p className="text-gray-400 text-sm mt-1">Supports .csv and .xlsx</p>
-                <input ref={fileRef} type="file" accept=".csv,.xlsx" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+              <div
+                onDrop={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+                onClick={() => fileRef.current?.click()}
+                className="border-2 border-dashed border-gray-200 rounded-xl p-12 text-center cursor-pointer hover:border-green-400 hover:bg-green-50/30 transition-all"
+              >
+                <div className="text-4xl mb-3">📊</div>
+                <p className="text-gray-700 font-medium">Step 2 — Drop your filled template here or click to browse</p>
+                <p className="text-gray-400 text-sm mt-1">Accepts .xlsx or .csv</p>
+                <input ref={fileRef} type="file" accept=".xlsx,.csv" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
               </div>
             </div>
           )}
@@ -150,7 +188,7 @@ export default function BulkUploadModal({ onClose, onSuccess }: BulkUploadModalP
                         <td className="px-3 py-2.5 text-gray-600">{row.hours_km ? Number(row.hours_km).toLocaleString() : '—'}</td>
                         <td className="px-3 py-2.5">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColor(row.status || 'active')}`}>
-                            {row.status || 'active'}
+                            {row.status || 'ACTIVE'}
                           </span>
                         </td>
                       </tr>
@@ -177,5 +215,6 @@ export default function BulkUploadModal({ onClose, onSuccess }: BulkUploadModalP
           </div>
         )}
       </div>
+    </div>
   );
 }
