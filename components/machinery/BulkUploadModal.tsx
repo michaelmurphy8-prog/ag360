@@ -38,7 +38,7 @@ export default function BulkUploadModal({ onClose, onSuccess }: BulkUploadModalP
       const data = e.target?.result;
       const workbook = XLSX.read(data, { type: 'binary' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' }) as Record<string, unknown>[];
+      const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '', range: 1 }) as Record<string, unknown>[];
 
       const labelToKey: Record<string, string> = {
         'Make *': 'make', 'Model *': 'model', 'Year *': 'year',
