@@ -610,7 +610,7 @@ const [filterTo, setFilterTo] = useState("");
                     <tr key={h.id || i} className="py-3">
                       <td className="py-3 pr-8 font-semibold text-[#222527]">{h.crop}</td>
                       <td className="py-3 pr-8 text-[#7A8A7C]">{h.location}</td>
-                      <td className="py-3 pr-8 text-right font-semibold">{Number(h.quantity_bu).toLocaleString()} bu</td>
+                      <td className="py-3 pr-8 text-right font-semibold">{Math.round(Number(h.quantity_bu)).toLocaleString()} bu</td>
                       <td className="py-3 pr-8 text-[#7A8A7C]">{h.grade || "—"}</td>
                       <td className="py-3 pr-8 text-right text-[#7A8A7C]">{h.moisture ? `${h.moisture}%` : "—"}</td>
                       <td className="py-3 pr-8 text-right text-[#7A8A7C]">{h.estimated_price ? `$${h.estimated_price}/bu` : "—"}</td>
