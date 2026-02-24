@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Upload, Database, DollarSign, Lock } from "lucide-react";
+import { Upload, Database, DollarSign, Lock, BookOpen, Receipt } from "lucide-react";
 import {
   LayoutDashboard, Wheat, Leaf, Beef, Tractor, TrendingUp,
   Sprout, Package, Users, Cloud, Bot, Settings, ClipboardList,
@@ -32,6 +32,8 @@ const navItems: NavItem[] = [
     subItems: [
       { label: "Market Prices", href: "/grain360/prices", icon: BarChart2 },
       { label: "Marketing", href: "/marketing", icon: TrendingUp },
+      { label: "P&L", href: "/finance/pnl", icon: BookOpen },
+      { label: "Ledger", href: "/finance/ledger", icon: Receipt },
     ],
   },
   {
