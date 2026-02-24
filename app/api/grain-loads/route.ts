@@ -38,7 +38,8 @@ export async function POST(req: Request) {
     const {
       date, driver_id, truck_id, customer_id,
       contract_reference, gross_weight_kg, dockage_percent,
-      settlement_id, notes, from,
+      settlement_id, notes, from, crop, price_per_bushel,
+      ticket_number, crop_year,
     } = body;
 
     const dockage_kg = gross_weight_kg && dockage_percent
@@ -53,13 +54,16 @@ export async function POST(req: Request) {
       INSERT INTO grain_loads (
         farm_id, date, driver_id, truck_id, customer_id,
         contract_reference, gross_weight_kg, dockage_percent,
-        dockage_kg, net_weight_kg, settlement_id, notes, "from"
+        dockage_kg, net_weight_kg, settlement_id, notes, "from",
+        crop, price_per_bushel, ticket_number, crop_year
       ) VALUES (
         ${userId}, ${date}, ${driver_id || null}, ${truck_id || null},
         ${customer_id || null}, ${contract_reference || null},
         ${gross_weight_kg || null}, ${dockage_percent || null},
         ${dockage_kg}, ${net_weight_kg},
-        ${settlement_id || null}, ${notes || null}, ${from || null}
+        ${settlement_id || null}, ${notes || null}, ${from || null},
+        ${crop || null}, ${price_per_bushel || null},
+        ${ticket_number || null}, ${crop_year || 2025}
       )
       RETURNING *
     `;

@@ -1,14 +1,26 @@
-// lib/auto-post.ts
-// Automatic journal entry creation from business events
-// Grain sale → Revenue entry | Input purchase → Expense entry | etc.
-// Each auto-post is idempotent — checks for existing entry before creating
-
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { neon } from "@neondatabase/serverless";
 
 const sql = neon(process.env.DATABASE_URL!);
 
 // ============================================================
-// ACCOUNT LOOKUP — finds account by code for the user
+// KG → BUSHEL CONVERSION FACTORS (per crop)
+// ============================================================
+const KG_PER_BUSHEL: Record<string, number> = {
+  "HRW Wheat": 27.22, "HRS Wheat": 27.22, "Wheat": 27.22, "Durum": 27.22,
+  "Canola": 22.68, "Barley": 21.77, "Oats": 15.42,
+  "Peas": 27.22, "Lentils": 27.22, "Flax": 25.40,
+  "Soybeans": 27.22, "Corn": 25.40,
+};
+
+function kgToBushels(kg: number, crop: string): number {
+  const factor = KG_PER_BUSHEL[crop] || 27.22; // default to wheat if unknown
+  return Math.round(kg / factor);
+}
+
+// ============================================================
+// ACCOUNT LOOKUP
 // ============================================================
 async function getAccountId(userId: string, code: string): Promise<string | null> {
   const result = await sql`
@@ -18,7 +30,7 @@ async function getAccountId(userId: string, code: string): Promise<string | null
 }
 
 // ============================================================
-// NEXT ENTRY NUMBER — sequential for user + crop_year
+// NEXT ENTRY NUMBER
 // ============================================================
 async function getNextEntryNumber(userId: string, cropYear: number): Promise<number> {
   const result = await sql`
@@ -30,7 +42,7 @@ async function getNextEntryNumber(userId: string, cropYear: number): Promise<num
 }
 
 // ============================================================
-// CHECK DUPLICATE — prevent double-posting from same source
+// DUPLICATE CHECK
 // ============================================================
 async function entryExists(userId: string, source: string, sourceId: string): Promise<boolean> {
   const result = await sql`
@@ -42,10 +54,9 @@ async function entryExists(userId: string, source: string, sourceId: string): Pr
 }
 
 // ============================================================
-// AUTO-POST: GRAIN SALE (from grain_loads table)
+// AUTO-POST: SINGLE GRAIN SALE
 // ============================================================
-// Creates: Debit Cash/AR → Credit Grain Sales — [Crop]
-export async function autoPostGrainSale(params: {
+async function autoPostGrainSale(params: {
   userId: string;
   grainLoadId: string;
   crop: string;
@@ -60,17 +71,15 @@ export async function autoPostGrainSale(params: {
   try {
     const { userId, grainLoadId, crop, bushels, pricePerBushel, buyer, deliveryDate, fieldName, cropYear, ticketNumber } = params;
 
-    // Idempotency check
     if (await entryExists(userId, "grain_sale", grainLoadId)) {
       return { success: true, error: "Entry already exists for this grain load" };
     }
 
     const totalAmount = Math.round(bushels * pricePerBushel * 100) / 100;
     if (totalAmount <= 0) {
-      return { success: false, error: "Invalid amount" };
+      return { success: false, error: "Invalid amount — need bushels and price" };
     }
 
-    // Map crop to revenue account code
     const cropAccountMap: Record<string, string> = {
       "HRW Wheat": "4000", "HRS Wheat": "4000", "Wheat": "4000", "Durum": "4000",
       "Canola": "4010", "Barley": "4020", "Oats": "4030",
@@ -78,22 +87,19 @@ export async function autoPostGrainSale(params: {
       "Soybeans": "4070",
     };
 
-    const revenueCode = cropAccountMap[crop] || "4080"; // 4080 = Other Grain Revenue
-    const cashCode = "1000"; // Cash — Operating
+    const revenueCode = cropAccountMap[crop] || "4080";
+    const cashCode = "1000";
 
     const cashAccountId = await getAccountId(userId, cashCode);
     const revenueAccountId = await getAccountId(userId, revenueCode);
 
     if (!cashAccountId || !revenueAccountId) {
-      // Accounts not seeded yet — seed them first
       return { success: false, error: "Chart of accounts not seeded. Open the Ledger page first." };
     }
 
     const entryNumber = await getNextEntryNumber(userId, cropYear);
-
     const description = `${crop} sale to ${buyer || "Buyer"}${ticketNumber ? ` — Ticket #${ticketNumber}` : ""}${fieldName ? ` — ${fieldName}` : ""}`;
 
-    // Create journal entry + lines in transaction
     const entry = await sql`
       INSERT INTO journal_entries (
         user_id, entry_number, entry_date, description, memo,
@@ -111,7 +117,6 @@ export async function autoPostGrainSale(params: {
 
     const entryId = entry[0].id;
 
-    // Line 1: Debit Cash
     await sql`
       INSERT INTO journal_lines (
         journal_entry_id, account_id, description, debit, credit,
@@ -119,13 +124,11 @@ export async function autoPostGrainSale(params: {
       )
       VALUES (
         ${entryId}, ${cashAccountId}, ${`Cash from ${crop} sale`},
-        ${totalAmount}, 0,
-        ${bushels}, 'bu', ${pricePerBushel},
+        ${totalAmount}, 0, ${bushels}, 'bu', ${pricePerBushel},
         ${fieldName || null}, ${crop}, 1
       )
     `;
 
-    // Line 2: Credit Revenue
     await sql`
       INSERT INTO journal_lines (
         journal_entry_id, account_id, description, debit, credit,
@@ -133,8 +136,7 @@ export async function autoPostGrainSale(params: {
       )
       VALUES (
         ${entryId}, ${revenueAccountId}, ${`${crop} — ${bushels.toLocaleString()} bu @ $${pricePerBushel.toFixed(2)}`},
-        0, ${totalAmount},
-        ${bushels}, 'bu', ${pricePerBushel},
+        0, ${totalAmount}, ${bushels}, 'bu', ${pricePerBushel},
         ${fieldName || null}, ${crop}, 2
       )
     `;
@@ -147,138 +149,31 @@ export async function autoPostGrainSale(params: {
 }
 
 // ============================================================
-// AUTO-POST: INPUT PURCHASE (seed, chemical, fertilizer)
+// BULK AUTO-POST — all unposted grain loads for a crop year
+// Maps real grain_loads columns → engine params
 // ============================================================
-// Creates: Debit Expense Account → Credit Cash/AP
-export async function autoPostInputPurchase(params: {
-  userId: string;
-  sourceId: string;
-  expenseCode: string;  // e.g. "5000" for Seed, "5200" for Herbicide
-  amount: number;
-  description: string;
-  date: string;
-  fieldName?: string;
-  crop?: string;
-  cropYear: number;
-  vendor?: string;
-  paymentMethod?: "cash" | "credit" | "ap";  // default cash
-}): Promise<{ success: boolean; entryId?: string; error?: string }> {
-  try {
-    const { userId, sourceId, expenseCode, amount, description, date, fieldName, crop, cropYear, vendor, paymentMethod = "cash" } = params;
-
-    if (await entryExists(userId, "input_purchase", sourceId)) {
-      return { success: true, error: "Entry already exists" };
-    }
-
-    if (amount <= 0) {
-      return { success: false, error: "Invalid amount" };
-    }
-
-    const expenseAccountId = await getAccountId(userId, expenseCode);
-
-    // Payment goes to: Cash (1000), Credit Card (2010), or Accounts Payable (2000)
-    const paymentCodeMap: Record<string, string> = {
-      cash: "1000",
-      credit: "2010",
-      ap: "2000",
-    };
-    const paymentAccountId = await getAccountId(userId, paymentCodeMap[paymentMethod] || "1000");
-
-    if (!expenseAccountId || !paymentAccountId) {
-      return { success: false, error: "Accounts not found. Open the Ledger page first." };
-    }
-
-    const entryNumber = await getNextEntryNumber(userId, cropYear);
-
-    const entry = await sql`
-      INSERT INTO journal_entries (
-        user_id, entry_number, entry_date, description, memo,
-        source, source_id, crop_year, field_name, crop, is_posted
-      )
-      VALUES (
-        ${userId}, ${entryNumber}, ${date},
-        ${`${description}${vendor ? ` — ${vendor}` : ""}`},
-        ${null}, 'input_purchase', ${sourceId}, ${cropYear},
-        ${fieldName || null}, ${crop || null}, true
-      )
-      RETURNING id
-    `;
-
-    const entryId = entry[0].id;
-
-    // Debit Expense
-    await sql`
-      INSERT INTO journal_lines (
-        journal_entry_id, account_id, description, debit, credit,
-        field_name, crop, sort_order
-      )
-      VALUES (
-        ${entryId}, ${expenseAccountId}, ${description},
-        ${amount}, 0,
-        ${fieldName || null}, ${crop || null}, 1
-      )
-    `;
-
-    // Credit Cash/AP
-    await sql`
-      INSERT INTO journal_lines (
-        journal_entry_id, account_id, description, debit, credit,
-        field_name, crop, sort_order
-      )
-      VALUES (
-        ${entryId}, ${paymentAccountId}, ${`Payment — ${description}`},
-        0, ${amount},
-        ${fieldName || null}, ${crop || null}, 2
-      )
-    `;
-
-    return { success: true, entryId };
-  } catch (error: any) {
-    console.error("Auto-post input purchase error:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-// ============================================================
-// AUTO-POST: FUEL PURCHASE
-// ============================================================
-export async function autoPostFuelPurchase(params: {
-  userId: string;
-  sourceId: string;
-  fuelType: "diesel" | "gasoline";
-  amount: number;
-  litres?: number;
-  date: string;
-  cropYear: number;
-  vendor?: string;
-}): Promise<{ success: boolean; entryId?: string; error?: string }> {
-  const fuelCode = params.fuelType === "diesel" ? "5700" : "5710";
-  return autoPostInputPurchase({
-    userId: params.userId,
-    sourceId: params.sourceId,
-    expenseCode: fuelCode,
-    amount: params.amount,
-    description: `${params.fuelType === "diesel" ? "Diesel" : "Gasoline"}${params.litres ? ` — ${params.litres}L` : ""}${params.vendor ? ` from ${params.vendor}` : ""}`,
-    date: params.date,
-    cropYear: params.cropYear,
-    vendor: params.vendor,
-  });
-}
-
-// ============================================================
-// BULK AUTO-POST — process all unposted grain loads
-// ============================================================
-export async function autoPostAllGrainLoads(userId: string, cropYear: number): Promise<{
+async function autoPostAllGrainLoads(userId: string, cropYear: number): Promise<{
   posted: number;
   skipped: number;
   errors: string[];
 }> {
   const loads = await sql`
-    SELECT id, crop, bushels, price_per_bushel, buyer, delivery_date,
-           field_name, ticket_number, crop_year
-    FROM grain_loads
-    WHERE user_id = ${userId} AND crop_year = ${cropYear}
-    ORDER BY delivery_date ASC
+    SELECT
+      gl.id,
+      gl.crop,
+      gl.net_weight_kg,
+      gl.gross_weight_kg,
+      gl.price_per_bushel,
+      gl.date,
+      gl.field_name,
+      gl.ticket_number,
+      gl.crop_year,
+      c.customer_name
+    FROM grain_loads gl
+    LEFT JOIN customers c ON gl.customer_id = c.id
+    WHERE gl.farm_id = ${userId}
+      AND COALESCE(gl.crop_year, ${cropYear}) = ${cropYear}
+    ORDER BY gl.date ASC
   `;
 
   let posted = 0;
@@ -286,14 +181,28 @@ export async function autoPostAllGrainLoads(userId: string, cropYear: number): P
   const errors: string[] = [];
 
   for (const load of loads) {
+    // Skip loads missing crop or price
+    if (!load.crop || !load.price_per_bushel || parseFloat(load.price_per_bushel) <= 0) {
+      errors.push(`Load ${load.id}: Missing crop or price — skipped`);
+      continue;
+    }
+
+    const netKg = parseFloat(load.net_weight_kg) || parseFloat(load.gross_weight_kg) || 0;
+    if (netKg <= 0) {
+      errors.push(`Load ${load.id}: No weight data — skipped`);
+      continue;
+    }
+
+    const bushels = kgToBushels(netKg, load.crop);
+
     const result = await autoPostGrainSale({
       userId,
       grainLoadId: load.id,
       crop: load.crop,
-      bushels: parseFloat(load.bushels) || 0,
-      pricePerBushel: parseFloat(load.price_per_bushel) || 0,
-      buyer: load.buyer || "Unknown",
-      deliveryDate: load.delivery_date || new Date().toISOString().split("T")[0],
+      bushels,
+      pricePerBushel: parseFloat(load.price_per_bushel),
+      buyer: load.customer_name || "Unknown",
+      deliveryDate: load.date || new Date().toISOString().split("T")[0],
       fieldName: load.field_name,
       cropYear: parseInt(load.crop_year) || cropYear,
       ticketNumber: load.ticket_number,
@@ -309,4 +218,31 @@ export async function autoPostAllGrainLoads(userId: string, cropYear: number): P
   }
 
   return { posted, skipped, errors };
+}
+
+// ============================================================
+// HTTP HANDLER — POST /api/finance/auto-post
+// ============================================================
+export async function POST(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  try {
+    const body = await req.json();
+    const { action, cropYear = 2025 } = body;
+
+    if (action === "bulk_grain_loads") {
+      const result = await autoPostAllGrainLoads(userId, cropYear);
+      return NextResponse.json({
+        success: true,
+        ...result,
+        message: `Posted ${result.posted}, skipped ${result.skipped} (already synced)${result.errors.length > 0 ? `, ${result.errors.length} errors` : ""}`,
+      });
+    }
+
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  } catch (error: any) {
+    console.error("Auto-post error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }

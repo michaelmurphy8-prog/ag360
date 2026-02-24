@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from "@clerk/nextjs";
-import { Plus, Trash2, Package, TrendingUp, ArrowRightLeft, Truck, Pencil, Upload } from "lucide-react";
+import { Plus, Trash2, Package, TrendingUp, ArrowRightLeft, Truck, Pencil, Upload, BookOpen } from "lucide-react";
 
 const CROPS = ["Canola", "CWRS Wheat", "Durum", "Barley", "Oats", "Peas", "Lentils", "Flax", "Soybeans", "Corn"];
 const CONTRACT_TYPES = ["Cash Sale", "HTA (Basis Contract)", "Deferred Delivery", "Futures-First", "Target Order", "PRO/Pool"];
@@ -142,7 +142,13 @@ const [filterTo, setFilterTo] = useState("");
     dockage_percent: "",
     settlement_id: "",
     notes: "",
+    crop: "",
+    price_per_bushel: "",
+    ticket_number: "",
+    crop_year: "2025",
   });
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const [newDriver, setNewDriver] = useState({ driver_name: "", driver_id: "", phone: "" });
   const [newTruck, setNewTruck] = useState({ truck_name: "", truck_id: "", license_plate: "", capacity_mt: "" });
@@ -268,16 +274,40 @@ const [filterTo, setFilterTo] = useState("");
         gross_weight_kg: parseFloat(newLoad.gross_weight_kg) || null,
         dockage_percent: parseFloat(newLoad.dockage_percent) || null,
         from: newLoad.from || null,
+        crop: newLoad.crop || null,
+        price_per_bushel: newLoad.price_per_bushel ? parseFloat(newLoad.price_per_bushel) : null,
+        ticket_number: newLoad.ticket_number || null,
+        crop_year: parseInt(newLoad.crop_year) || 2025,
       }),
     });
     const data = await res.json();
     if (data.load) {
       await loadGrainData();
       setShowAddLoad(false);
-      setNewLoad({ date: new Date().toISOString().split("T")[0], driver_id: "", truck_id: "", customer_id: "", from: "", contract_reference: "", gross_weight_kg: "", dockage_percent: "", settlement_id: "", notes: "" });
+      setNewLoad({ date: new Date().toISOString().split("T")[0], driver_id: "", truck_id: "", customer_id: "", from: "", contract_reference: "", gross_weight_kg: "", dockage_percent: "", settlement_id: "", notes: "", crop: "", price_per_bushel: "", ticket_number: "", crop_year: "2025" });
     }
   }
-
+  async function syncToLedger() {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/finance/auto-post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "bulk_grain_loads", cropYear: 2025 }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSyncResult({ message: `✅ ${data.posted} posted, ${data.skipped} already synced${data.errors?.length > 0 ? `, ${data.errors.length} errors` : ""}`, type: "success" });
+      } else {
+        setSyncResult({ message: data.error || "Sync failed", type: "error" });
+      }
+    } catch {
+      setSyncResult({ message: "Network error — try again", type: "error" });
+    } finally {
+      setSyncing(false);
+    }
+  }
   async function updateLoad() {
     if (!editingLoad) return;
     const res = await fetch(`/api/grain-loads/${editingLoad.id}`, {
@@ -478,6 +508,9 @@ const [filterTo, setFilterTo] = useState("");
             <>
               <button onClick={() => setShowBulkUpload(true)} className="flex items-center gap-2 text-sm font-semibold text-[#4A7C59] bg-[#EEF5F0] border border-[#C8DDD0] px-4 py-2.5 rounded-full hover:bg-[#DDE3D6] transition-colors">
                 <Upload size={14} /> Bulk Upload
+              </button>
+              <button onClick={syncToLedger} disabled={syncing} className="flex items-center gap-2 text-sm font-semibold text-[#4A7C59] bg-[#EEF5F0] border border-[#C8DDD0] px-4 py-2.5 rounded-full hover:bg-[#DDE3D6] transition-colors disabled:opacity-50">
+                <BookOpen size={14} /> {syncing ? "Syncing..." : "Sync to Ledger"}
               </button>
               <button onClick={() => setShowAddLoad(true)} className="flex items-center gap-2 bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-[#3d6b4a] transition-colors">
                 <Plus size={14} /> Add Load
@@ -920,6 +953,11 @@ const [filterTo, setFilterTo] = useState("");
             )}
 
             {/* Add Load Form */}
+            {syncResult && (
+              <div className={`p-3 rounded-[12px] text-sm font-medium ${syncResult.type === "success" ? "bg-[#EEF5F0] text-[#4A7C59]" : "bg-red-50 text-red-600"}`}>
+                {syncResult.message}
+              </div>
+            )}
             {showAddLoad && (
               <div className="p-4 bg-[#F5F5F3] rounded-[16px] space-y-3">
                 <p className="text-sm font-bold text-[#222527]">Add Grain Load</p>
@@ -965,6 +1003,38 @@ const [filterTo, setFilterTo] = useState("");
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Settlement ID</label>
                     <input type="text" placeholder="e.g. S-001" value={newLoad.settlement_id} onChange={e => setNewLoad({...newLoad, settlement_id: e.target.value})} className={inputClass} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Crop *</label>
+                    <select value={newLoad.crop} onChange={e => setNewLoad({...newLoad, crop: e.target.value})} className={inputClass}>
+                      <option value="">Select crop...</option>
+                      <option value="Canola">Canola</option>
+                      <option value="HRS Wheat">HRS Wheat</option>
+                      <option value="HRW Wheat">HRW Wheat</option>
+                      <option value="Durum">Durum</option>
+                      <option value="Barley">Barley</option>
+                      <option value="Oats">Oats</option>
+                      <option value="Peas">Peas</option>
+                      <option value="Lentils">Lentils</option>
+                      <option value="Flax">Flax</option>
+                      <option value="Soybeans">Soybeans</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Price ($/bu)</label>
+                    <input type="number" step="0.01" placeholder="e.g. 14.50" value={newLoad.price_per_bushel} onChange={e => setNewLoad({...newLoad, price_per_bushel: e.target.value})} className={inputClass} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Ticket #</label>
+                    <input type="text" placeholder="e.g. 84521" value={newLoad.ticket_number} onChange={e => setNewLoad({...newLoad, ticket_number: e.target.value})} className={inputClass} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Crop Year</label>
+                    <select value={newLoad.crop_year} onChange={e => setNewLoad({...newLoad, crop_year: e.target.value})} className={inputClass}>
+                      <option value="2024">2024</option>
+                      <option value="2025">2025</option>
+                      <option value="2026">2026</option>
+                    </select>
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Gross Weight (kg) *</label>
