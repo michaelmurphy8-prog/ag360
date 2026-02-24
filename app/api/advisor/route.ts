@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
-import { getPricesData } from '@/lib/prices-data'
+import { getPricesData } from '@/lib/prices-data';
+import { buildFullFarmContext } from "@/lib/lily-context";
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -216,99 +217,82 @@ TONE:
 export async function POST(req: NextRequest) {
   const { messages, farmContext } = await req.json();
 
-  // ── Fetch live prices to inject into Lily's context
-let pricesContext = '';
+  // ── Pull userId from Clerk auth
+  let userId = "";
   try {
-    const pricesData = getPricesData();
+    const { auth } = await import("@clerk/nextjs/server");
+    const authResult = await auth();
+    userId = authResult.userId || "";
+  } catch (e) {
+    // Fall back to header if auth fails
+    userId = req.headers.get("x-user-id") || "";
+  }
 
-    // Fetch live FX rate
-    let fxRate = 1.3650;
-    let fxSource = 'fallback';
+  // ── Build comprehensive farm context from ALL AG360 data
+  let fullFarmData = "";
+  if (userId) {
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002';
-      const fxRes = await fetch(`${baseUrl}/api/grain360/fx`, {
-        signal: AbortSignal.timeout(3000),
-      });
-      const fxData = await fxRes.json();
-      if (fxData.success) {
-        fxRate = fxData.rate;
-        fxSource = fxData.source;
-      }
-    } catch {
-      console.error('FX fetch failed in Lily context, using fallback');
+      fullFarmData = await buildFullFarmContext(userId, 2025);
+    } catch (err) {
+      console.error("Failed to build farm context for Lily:", err);
     }
+  }
 
-    const futuresLines = pricesData.futures.map(f =>
-      `  - ${f.name} (${f.symbol}): ${f.lastPrice} ${f.unitCode} | Change: ${f.priceChange > 0 ? '+' : ''}${f.priceChange} (${f.percentChange}%)`
-    ).join('\n');
+  // ── Fetch live market prices
+  let pricesContext = "";
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const pricesRes = await fetch(`${baseUrl}/api/grain360/prices`);
+    const pricesData = await pricesRes.json();
 
-    const cashLines = pricesData.cashBids.map(b =>
-      `  - ${b.location} | ${b.commodity}: $${b.cashPrice.toFixed(2)}/bu CAD | Basis: ${b.basis.toFixed(2)}`
-    ).join('\n');
+    if (pricesData.success) {
+      const futures = pricesData.futures as {
+        symbol: string; name: string; lastPrice: number;
+        priceChange: number; percentChange: number; unitCode: string;
+      }[];
+      const cashBids = pricesData.cashBids as {
+        location: string; commodity: string;
+        cashPrice: number; basis: number;
+        deliveryStart: string; deliveryEnd: string;
+      }[];
 
-    pricesContext = `
----
-LIVE MARKET DATA${pricesData.source === 'mock' ? ' (DEMO DATA)' : ''} — ${new Date().toLocaleString('en-CA', { timeZone: 'America/Regina' })} CST:
+      const futuresLines = futures.map((f) =>
+        `  - ${f.name} (${f.symbol}): ${f.lastPrice} ${f.unitCode} | Change: ${f.priceChange > 0 ? "+" : ""}${f.priceChange} (${f.percentChange}%)`
+      ).join("\n");
 
-USD/CAD EXCHANGE RATE: ${fxRate.toFixed(4)} (source: ${fxSource})
-Note: Canola and SK cash bids are in CAD. Wheat, Corn, Cattle, and Diesel futures are in USD — multiply by ${fxRate.toFixed(4)} to convert to CAD.
+      const cashLines = cashBids.map((b) =>
+        `  - ${b.location} | ${b.commodity}: $${b.cashPrice.toFixed(2)}/bu | Basis: ${b.basis.toFixed(2)} | Delivery: ${b.deliveryStart} to ${b.deliveryEnd}`
+      ).join("\n");
+
+      pricesContext = `---
+LIVE MARKET DATA — ${new Date(pricesData.lastUpdated).toLocaleString("en-CA", { timeZone: "America/Regina" })} CST${pricesData.source === "mock" ? " (DEMO DATA)" : ""}:
 
 FUTURES:
 ${futuresLines}
 
-SASKATCHEWAN CASH BIDS (always CAD):
+SASKATCHEWAN CASH BIDS:
 ${cashLines}
 
-Use these prices in your advice. Reference specific numbers. When discussing USD-denominated contracts with Canadian farmers, always convert to CAD using the rate above.
+Use these prices in your advice. Reference specific numbers. Calculate basis implications.
 ---`;
-  } catch (err) {
-    console.error('Failed to load prices for Lily context:', err);
-  }
-
-  // ── Fetch active seeding log for Lily context
-let seedingContext = '';
-try {
-  const userId = req.headers.get('x-user-id') || '';
-  if (userId) {
-    const { neon } = await import('@neondatabase/serverless');
-    const sql = neon(process.env.DATABASE_URL!);
-    const records = await sql`
-      SELECT crop, seeding_date, acres, field_name
-      FROM agronomy_seeding_log
-      WHERE clerk_user_id = ${userId}
-      ORDER BY seeding_date DESC
-    `;
-    if (records.length > 0) {
-      const today = new Date();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const lines = records.map((r: any) => {
-        const seeded = new Date(r.seeding_date);
-        const daysIn = Math.floor((today.getTime() - seeded.getTime()) / (1000 * 60 * 60 * 24));
-        let window = 'Planning stage';
-        if (daysIn >= 0 && daysIn <= 7) window = 'Pre-seed / just seeded';
-        else if (daysIn <= 21) window = 'Early scout window — check emergence, cutworms, flea beetles';
-        else if (daysIn <= 42) window = 'In-crop herbicide window open — scout weeds before spraying';
-        else if (daysIn <= 70) window = 'Fungicide timing window — critical do not miss';
-        else if (daysIn <= 100) window = 'Pre-harvest window — check maturity thresholds';
-        else if (daysIn <= 120) window = 'Harvest approaching — prepare equipment and logistics';
-        return `  - ${r.crop}${r.field_name ? ` (${r.field_name})` : ''}${r.acres ? ` · ${r.acres} ac` : ''} · Seeded ${seeded.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })} · Day ${daysIn} · STATUS: ${window}`;
-      }).join('\n');
-      seedingContext = `---\nACTIVE SEEDED CROPS — WHAT IS IN THE GROUND RIGHT NOW:\n${lines}\n\nReference these crops and their current spray/scout windows in your advice. Be proactive — if a window is open, tell the farmer what to do now.\n---`;
     }
+  } catch (err) {
+    console.error("Failed to fetch prices for Lily:", err);
   }
-} catch (err) {
-  console.error('Failed to load seeding log for Lily:', err);
-}
 
-const systemWithContext = [
-  LILY_SYSTEM_PROMPT,
-  pricesContext,
-  seedingContext,
-  farmContext
-    ? `---\nFARMER CONTEXT — THIS IS THE FARM YOU ARE ADVISING RIGHT NOW:\n${farmContext}\n\nUse this data in every response. Reference the farm by name. Use their actual numbers.`
-    : ''
-].filter(Boolean).join('\n\n');
+  // ── Assemble full system prompt with all context
+  const systemWithContext = [
+    LILY_SYSTEM_PROMPT,
+    pricesContext,
+    fullFarmData,
+    farmContext
+      ? `---\nFARMER CONTEXT (from Farm Profile):\n${farmContext}\n\nUse this data in every response. Reference the farm by name. Use their actual numbers.\n---`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
+  // ── Stream response
   async function tryStream(attempt: number): Promise<Response> {
     try {
       const stream = await client.messages.stream({
@@ -323,7 +307,10 @@ const systemWithContext = [
         async start(controller) {
           try {
             for await (const chunk of stream) {
-              if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
+              if (
+                chunk.type === "content_block_delta" &&
+                chunk.delta.type === "text_delta"
+              ) {
                 controller.enqueue(encoder.encode(chunk.delta.text));
               }
             }
