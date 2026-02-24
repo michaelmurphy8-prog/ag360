@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Upload, Database } from "lucide-react";
 import {
   LayoutDashboard, Wheat, Leaf, Beef, Tractor, TrendingUp,
   Sprout, Package, Users, Cloud, Bot, Settings, ClipboardList,
@@ -34,11 +35,13 @@ const navItems: NavItem[] = [
   { label: "Agronomy", icon: Sprout, href: "/agronomy" },
   { label: "Fields", icon: Map, href: "/fields" },
   { label: "Inventory", icon: Package, href: "/inventory" },
+  { label: "Operations", href: "/grain360/operations", icon: Database },
   { label: "Labour & HR", icon: Users, href: "/labour" },
   { label: "Weather", icon: Cloud, href: "/weather" },
   { label: "Farm Profile", icon: ClipboardList, href: "/farm-profile" },
   { label: "Lily (Advisor)", icon: Bot, href: "/advisor" },
   { label: "Settings", icon: Settings, href: "/settings" },
+  { label: "Import Data", href: "/grain360/imports", icon: Upload },
 ];
 
 export default function SideNav() {
