@@ -6,7 +6,7 @@ import { Upload, Database, DollarSign, Lock, BookOpen, Receipt } from "lucide-re
 import {
   LayoutDashboard, Wheat, Leaf, Beef, Tractor, TrendingUp,
   Sprout, Package, Users, Cloud, Bot, Settings, ClipboardList,
-  BarChart2, ChevronDown, Map
+  BarChart2, ChevronDown, Map, FileText,
 } from "lucide-react";
 
 type SubItem = {
@@ -31,9 +31,10 @@ const navItems: NavItem[] = [
     href: "/finance",
     subItems: [
       { label: "Market Prices", href: "/grain360/prices", icon: BarChart2 },
-      { label: "Marketing", href: "/marketing", icon: TrendingUp },
-      { label: "P&L", href: "/finance/pnl", icon: BookOpen },
-      { label: "Ledger", href: "/finance/ledger", icon: Receipt },
+{ label: "Marketing", href: "/marketing", icon: TrendingUp },
+{ label: "P&L", href: "/finance/pnl", icon: BookOpen },
+{ label: "Contracts", href: "/finance/contracts", icon: FileText },
+{ label: "Ledger", href: "/finance/ledger", icon: Receipt },
     ],
   },
   {
