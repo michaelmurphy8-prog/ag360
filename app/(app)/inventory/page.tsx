@@ -106,6 +106,7 @@ function fmt(n: number) {
 
 export default function InventoryPage() {
   const { user, isLoaded } = useUser();
+  const [kpiUnit, setKpiUnit] = useState<"bu" | "mt">("bu");
   const [activeTab, setActiveTab] = useState<"holdings" | "contracts" | "movements" | "grain_loads" | "settlements">("holdings");
 
   // Existing state
@@ -714,39 +715,49 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
       </div>
 
       {/* KPI Strip */}
-      <div className="grid grid-cols-4 gap-4">
-        {activeTab !== "grain_loads" ? (
-          <>
-            {[
-              { label: "Total On Hand", value: `${totalBu.toLocaleString()} bu`, sub: "across all bins" },
-              { label: "Estimated Value", value: fmt(totalValue), sub: "at target prices" },
-              { label: "Contracted", value: `${totalContracted.toLocaleString()} bu`, sub: "committed sales" },
-              { label: "Unpriced", value: `${unpriced.toLocaleString()} bu`, sub: unpriced > 0 ? "needs a home" : "fully contracted", highlight: unpriced > 0 },
+      <div>
+{activeTab !== "grain_loads" ? (
+<>
+<div className="flex justify-end mb-2">
+  <div className="flex items-center bg-[#F3F4F6] rounded-full p-0.5 text-xs font-semibold">
+    <button onClick={() => setKpiUnit("bu")} className={`px-3 py-1 rounded-full transition-colors ${kpiUnit === "bu" ? "bg-white text-[#222527] shadow-sm" : "text-[#7A8A7C]"}`}>bu</button>
+    <button onClick={() => setKpiUnit("mt")} className={`px-3 py-1 rounded-full transition-colors ${kpiUnit === "mt" ? "bg-white text-[#222527] shadow-sm" : "text-[#7A8A7C]"}`}>MT</button>
+  </div>
+</div>
+<div className="grid grid-cols-4 gap-4">
+{[
+              { label: "Total On Hand", value: kpiUnit === "bu" ? `${Math.floor(totalBu).toLocaleString()} bu` : `${Math.floor(totalBu * 0.02722).toLocaleString()} MT`, sub: "across all bins" },
+              { label: "Estimated Value", value: fmt(Math.floor(totalValue)), sub: "at target prices" },
+              { label: "Contracted", value: kpiUnit === "bu" ? `${Math.floor(totalContracted).toLocaleString()} bu` : `${Math.floor(totalContracted * 0.02722).toLocaleString()} MT`, sub: "committed sales" },
+              { label: "Unpriced", value: kpiUnit === "bu" ? `${Math.floor(unpriced).toLocaleString()} bu` : `${Math.floor(unpriced * 0.02722).toLocaleString()} MT`, sub: unpriced > 0 ? "needs a home" : "fully contracted", highlight: unpriced > 0 },
             ].map((k) => (
-              <div key={k.label} className={`rounded-[20px] border shadow-sm p-5 ${k.highlight ? "bg-[#FFF8EC] border-[#F5D78E]" : "bg-white border-[#E4E7E0]"}`}>
-                <p className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">{k.label}</p>
-                <p className={`text-2xl font-bold mt-1 ${k.highlight ? "text-[#D97706]" : "text-[#222527]"}`}>{k.value}</p>
-                <p className="text-xs text-[#7A8A7C] mt-1">{k.sub}</p>
-              </div>
+<div key={k.label} className={`rounded-[20px] border shadow-sm p-5 ${k.highlight ? "bg-[#FFF8EC] border-[#F5D78E]" : "bg-white border-[#E4E7E0]"}`}>
+<p className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">{k.label}</p>
+<p className={`text-2xl font-bold mt-1 ${k.highlight ? "text-[#D97706]" : "text-[#222527]"}`}>{k.value}</p>
+<p className="text-xs text-[#7A8A7C] mt-1">{k.sub}</p>
+</div>
             ))}
-          </>
+</div>
+</>
         ) : (
           <>
-            {[
+<div className="grid grid-cols-4 gap-4">
+{[
               { label: "Total Loads", value: `${totalLoads}`, sub: "all time" },
               { label: "Gross Weight", value: `${totalGrossMT.toFixed(1)} MT`, sub: `${totalGrossKg.toLocaleString()} kg` },
               { label: "Net Weight", value: `${totalNetMT.toFixed(1)} MT`, sub: `${totalNetKg.toLocaleString()} kg` },
               { label: "Avg Dockage", value: grainLoads.filter(l => l.dockage_percent).length > 0 ? `${(grainLoads.filter(l => l.dockage_percent).reduce((s, l) => s + parseFloat(String(l.dockage_percent)), 0) / grainLoads.filter(l => l.dockage_percent).length).toFixed(2)}%` : "—", sub: "average across loads" },
             ].map((k) => (
-              <div key={k.label} className="rounded-[20px] border border-[#E4E7E0] shadow-sm p-5 bg-white">
-                <p className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">{k.label}</p>
-                <p className="text-2xl font-bold mt-1 text-[#222527]">{k.value}</p>
-                <p className="text-xs text-[#7A8A7C] mt-1">{k.sub}</p>
-              </div>
+<div key={k.label} className="rounded-[20px] border border-[#E4E7E0] shadow-sm p-5 bg-white">
+<p className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">{k.label}</p>
+<p className="text-2xl font-bold mt-1 text-[#222527]">{k.value}</p>
+<p className="text-xs text-[#7A8A7C] mt-1">{k.sub}</p>
+</div>
             ))}
-          </>
+</div>
+</>
         )}
-      </div>
+</div>
 
       {/* Tabs */}
       <div className="bg-white rounded-[20px] border border-[#E4E7E0] shadow-sm overflow-hidden">
