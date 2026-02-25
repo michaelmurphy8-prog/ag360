@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from "@clerk/nextjs";
-import { Plus, Trash2, Package, TrendingUp, ArrowRightLeft, Truck, Pencil, Upload, BookOpen } from "lucide-react";
+import { Plus, Trash2, Package, TrendingUp, ArrowRightLeft, Truck, Pencil, Upload, BookOpen, Camera } from "lucide-react";
 
 const CROPS = ["Canola", "CWRS Wheat", "Durum", "Barley", "Oats", "Peas", "Lentils", "Flax", "Soybeans", "Corn"];
 const CONTRACT_TYPES = ["Cash Sale", "HTA (Basis Contract)", "Deferred Delivery", "Futures-First", "Target Order", "PRO/Pool"];
@@ -153,6 +153,11 @@ const [filterTo, setFilterTo] = useState("");
   });
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [showTicketUpload, setShowTicketUpload] = useState(false);
+  const [ticketParsing, setTicketParsing] = useState(false);
+  const [ticketPreview, setTicketPreview] = useState<string | null>(null);
+  const [parsedTicket, setParsedTicket] = useState<any>(null);
+  const [ticketError, setTicketError] = useState<string | null>(null);
 
   const [newDriver, setNewDriver] = useState({ driver_name: "", driver_id: "", phone: "" });
   const [newTruck, setNewTruck] = useState({ truck_name: "", truck_id: "", license_plate: "", capacity_mt: "" });
@@ -290,6 +295,61 @@ const [filterTo, setFilterTo] = useState("");
       setShowAddLoad(false);
       setNewLoad({ date: new Date().toISOString().split("T")[0], driver_id: "", truck_id: "", customer_id: "", from: "", contract_reference: "", gross_weight_kg: "", dockage_percent: "", settlement_id: "", notes: "", crop: "", price_per_bushel: "", ticket_number: "", crop_year: "2025" });
     }
+  }
+  async function parseScaleTicket(file: File) {
+    setTicketParsing(true);
+    setTicketError(null);
+    setParsedTicket(null);
+
+    // Preview
+    const reader = new FileReader();
+    reader.onload = (e) => setTicketPreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+
+    // Convert to base64
+    const buffer = await file.arrayBuffer();
+    const base64 = btoa(
+      new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
+    );
+
+    try {
+      const res = await fetch("/api/grain-loads/parse-ticket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: base64, mimeType: file.type }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setParsedTicket(data.data);
+      } else {
+        setTicketError(data.error || "Failed to parse ticket");
+      }
+    } catch {
+      setTicketError("Network error — try again");
+    } finally {
+      setTicketParsing(false);
+    }
+  }
+
+  function applyTicketToForm() {
+    if (!parsedTicket) return;
+    setNewLoad({
+      ...newLoad,
+      date: parsedTicket.date || newLoad.date,
+      gross_weight_kg: parsedTicket.gross_weight_kg?.toString() || "",
+      dockage_percent: parsedTicket.dockage_percent?.toString() || "",
+      contract_reference: parsedTicket.contract_reference || "",
+      settlement_id: parsedTicket.delivery_number || "",
+      ticket_number: parsedTicket.ticket_number || "",
+      crop: parsedTicket.crop || "",
+      price_per_bushel: "",
+      crop_year: parsedTicket.date ? parsedTicket.date.split("-")[0] : "2025",
+      notes: `Parsed from scale ticket. Grade: ${parsedTicket.grade || "N/A"}. ${parsedTicket.remarks || ""}`.trim(),
+    });
+    setShowTicketUpload(false);
+    setShowAddLoad(true);
+    setParsedTicket(null);
+    setTicketPreview(null);
   }
   async function syncToLedger() {
     setSyncing(true);
@@ -512,6 +572,9 @@ const [filterTo, setFilterTo] = useState("");
             <>
               <button onClick={() => setShowBulkUpload(true)} className="flex items-center gap-2 text-sm font-semibold text-[#4A7C59] bg-[#EEF5F0] border border-[#C8DDD0] px-4 py-2.5 rounded-full hover:bg-[#DDE3D6] transition-colors">
                 <Upload size={14} /> Bulk Upload
+              </button>
+              <button onClick={() => setShowTicketUpload(true)} className="flex items-center gap-2 text-sm font-semibold text-[#4A7C59] bg-[#EEF5F0] border border-[#C8DDD0] px-4 py-2.5 rounded-full hover:bg-[#DDE3D6] transition-colors">
+                <Camera size={14} /> Scan Ticket
               </button>
               <button onClick={syncToLedger} disabled={syncing} className="flex items-center gap-2 text-sm font-semibold text-[#4A7C59] bg-[#EEF5F0] border border-[#C8DDD0] px-4 py-2.5 rounded-full hover:bg-[#DDE3D6] transition-colors disabled:opacity-50">
                 <BookOpen size={14} /> {syncing ? "Syncing..." : "Sync to Ledger"}
@@ -957,6 +1020,53 @@ const [filterTo, setFilterTo] = useState("");
             )}
 
             {/* Add Load Form */}
+            {/* Scale Ticket Upload */}
+            {showTicketUpload && (
+              <div className="p-4 bg-[#F5F5F3] rounded-[16px] space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-bold text-[#222527]">Scan Scale Ticket</p>
+                  <button onClick={() => { setShowTicketUpload(false); setParsedTicket(null); setTicketPreview(null); setTicketError(null); }} className="text-sm text-[#7A8A7C] hover:text-[#222527]">✕</button>
+                </div>
+                {!parsedTicket && (
+                  <div>
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[#C8DDD0] rounded-[12px] cursor-pointer hover:bg-[#EEF5F0] transition-colors">
+                      <Camera size={24} className="text-[#7A8A7C] mb-2" />
+                      <span className="text-sm text-[#7A8A7C]">{ticketParsing ? "Parsing ticket..." : "Take photo or upload scale ticket"}</span>
+                      <span className="text-xs text-[#7A8A7C] mt-1">JPG, PNG, or PDF</span>
+                      <input type="file" accept="image/*,application/pdf" capture="environment" className="hidden" disabled={ticketParsing} onChange={(e) => { const file = e.target.files?.[0]; if (file) parseScaleTicket(file); }} />
+                    </label>
+                    {ticketError && <p className="text-sm text-red-500 mt-2">{ticketError}</p>}
+                  </div>
+                )}
+                {parsedTicket && (
+                  <div className="space-y-3">
+                    <div className="flex gap-4">
+                      {ticketPreview && <img src={ticketPreview} alt="Scale ticket" className="w-48 h-auto rounded-[8px] border border-[#E4E7E0]" />}
+                      <div className="flex-1 grid grid-cols-2 gap-2 text-sm">
+                        <div><span className="text-[#7A8A7C]">Date:</span> <strong>{parsedTicket.date}</strong></div>
+                        <div><span className="text-[#7A8A7C]">Receipt #:</span> <strong>{parsedTicket.receipt_number}</strong></div>
+                        <div><span className="text-[#7A8A7C]">Elevator:</span> <strong>{parsedTicket.elevator_name} — {parsedTicket.station_name}</strong></div>
+                        <div><span className="text-[#7A8A7C]">Shipper:</span> <strong>{parsedTicket.shipper_name}</strong></div>
+                        <div><span className="text-[#7A8A7C]">Crop:</span> <strong>{parsedTicket.crop}</strong></div>
+                        <div><span className="text-[#7A8A7C]">Grade:</span> <strong>{parsedTicket.grade}</strong></div>
+                        <div><span className="text-[#7A8A7C]">Gross:</span> <strong>{parsedTicket.gross_weight_kg?.toLocaleString()} kg</strong></div>
+                        <div><span className="text-[#7A8A7C]">Dockage:</span> <strong>{parsedTicket.dockage_percent}%</strong></div>
+                        <div><span className="text-[#7A8A7C]">Net:</span> <strong>{parsedTicket.net_weight_kg?.toLocaleString()} kg</strong></div>
+                        <div><span className="text-[#7A8A7C]">Bushels:</span> <strong>{parsedTicket.net_bushels?.toLocaleString()}</strong></div>
+                        <div><span className="text-[#7A8A7C]">Moisture:</span> <strong>{parsedTicket.moisture_percent ? `${parsedTicket.moisture_percent}%` : "—"}</strong></div>
+                        <div><span className="text-[#7A8A7C]">Protein:</span> <strong>{parsedTicket.protein_percent ? `${parsedTicket.protein_percent}%` : "—"}</strong></div>
+                        <div className="col-span-2"><span className="text-[#7A8A7C]">Confidence:</span> <strong className={parsedTicket.confidence === "high" ? "text-[#4A7C59]" : "text-[#D97706]"}>{parsedTicket.confidence}</strong></div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={applyTicketToForm} className="bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#3d6b4a]">Use This Data → Add Load</button>
+                      <button onClick={() => { setParsedTicket(null); setTicketPreview(null); }} className="text-sm text-[#7A8A7C] px-5 py-2 rounded-full hover:bg-white">Retry</button>
+                      <button onClick={() => { setShowTicketUpload(false); setParsedTicket(null); setTicketPreview(null); }} className="text-sm text-[#7A8A7C] px-5 py-2 rounded-full hover:bg-white">Cancel</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             {syncResult && (
               <div className={`p-3 rounded-[12px] text-sm font-medium ${syncResult.type === "success" ? "bg-[#EEF5F0] text-[#4A7C59]" : "bg-red-50 text-red-600"}`}>
                 {syncResult.message}
