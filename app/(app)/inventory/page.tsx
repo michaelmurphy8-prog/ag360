@@ -131,6 +131,11 @@ export default function InventoryPage() {
   const [showManageTrucks, setShowManageTrucks] = useState(false);
   const [showManageCustomers, setShowManageCustomers] = useState(false);
 const [bulkUploadError, setBulkUploadError] = useState("");
+const KG_PER_BUSHEL: Record<string, number> = {
+    "HRS Wheat": 27.22, "HRW Wheat": 27.22, "Wheat": 27.22, "Durum": 27.22,
+    "Canola": 22.68, "Barley": 21.77, "Oats": 15.42,
+    "Peas": 27.22, "Lentils": 27.22, "Flax": 25.40, "Soybeans": 27.22, "Corn": 25.40,
+  };
 const [weightUnit, setWeightUnit] = useState<"kg" | "lb">("kg");
 const [filterFrom, setFilterFrom] = useState("");
 const [filterTo, setFilterTo] = useState("");
@@ -301,22 +306,49 @@ const [filterTo, setFilterTo] = useState("");
     setTicketError(null);
     setParsedTicket(null);
 
+    // Compress image if over 4MB using canvas
+    async function compressImage(f: File): Promise<{ base64: string; mimeType: string }> {
+      if (f.size <= 4 * 1024 * 1024) {
+        const buffer = await f.arrayBuffer();
+        const base64 = btoa(new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), ""));
+        return { base64, mimeType: f.type };
+      }
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const maxDim = 2048;
+          let w = img.width, h = img.height;
+          if (w > maxDim || h > maxDim) {
+            const ratio = Math.min(maxDim / w, maxDim / h);
+            w = Math.round(w * ratio);
+            h = Math.round(h * ratio);
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          const base64 = dataUrl.split(",")[1];
+          resolve({ base64, mimeType: "image/jpeg" });
+        };
+        img.src = URL.createObjectURL(f);
+      });
+    }
+
     // Preview
     const reader = new FileReader();
     reader.onload = (e) => setTicketPreview(e.target?.result as string);
     reader.readAsDataURL(file);
 
-    // Convert to base64
-    const buffer = await file.arrayBuffer();
-    const base64 = btoa(
-      new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
-    );
+    // Compress and convert to base64
+    const { base64, mimeType } = await compressImage(file);
 
     try {
       const res = await fetch("/api/grain-loads/parse-ticket", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: base64, mimeType: file.type }),
+        body: JSON.stringify({ image: base64, mimeType }),
       });
       const data = await res.json();
       if (data.success) {
@@ -333,6 +365,11 @@ const [filterTo, setFilterTo] = useState("");
 
   function applyTicketToForm() {
     if (!parsedTicket) return;
+    const netKg = parsedTicket.net_weight_kg || 0;
+    const crop = parsedTicket.crop || "";
+    const ticketBushels = parsedTicket.net_bushels;
+    const calcBushels = netKg && crop ? Math.round(netKg / (KG_PER_BUSHEL[crop] || 27.22)) : null;
+    const bushels = ticketBushels || calcBushels;
     setNewLoad({
       ...newLoad,
       date: parsedTicket.date || newLoad.date,
@@ -341,10 +378,10 @@ const [filterTo, setFilterTo] = useState("");
       contract_reference: parsedTicket.contract_reference || "",
       settlement_id: parsedTicket.delivery_number || "",
       ticket_number: parsedTicket.ticket_number || "",
-      crop: parsedTicket.crop || "",
+      crop,
       price_per_bushel: "",
       crop_year: parsedTicket.date ? parsedTicket.date.split("-")[0] : "2025",
-      notes: `Parsed from scale ticket. Grade: ${parsedTicket.grade || "N/A"}. ${parsedTicket.remarks || ""}`.trim(),
+      notes: `Parsed from scale ticket. Grade: ${parsedTicket.grade || "N/A"}. ${bushels ? `${bushels.toLocaleString()} bu` : ""}. Moisture: ${parsedTicket.moisture_percent || "N/A"}%. ${parsedTicket.remarks || ""}`.trim(),
     });
     setShowTicketUpload(false);
     setShowAddLoad(true);
@@ -1062,7 +1099,7 @@ const [filterTo, setFilterTo] = useState("");
                             {f("gross_weight_kg", "Gross", parsedTicket.gross_weight_kg?.toLocaleString(), " kg")}
                             {f("dockage_percent", "Dockage", parsedTicket.dockage_percent, "%")}
                             {f("net_weight_kg", "Net", parsedTicket.net_weight_kg?.toLocaleString(), " kg")}
-                            {f("net_bushels", "Bushels", parsedTicket.net_bushels?.toLocaleString() || "—")}
+                            {f("net_bushels", "Bushels", parsedTicket.net_bushels ? parsedTicket.net_bushels.toLocaleString() : parsedTicket.net_weight_kg && parsedTicket.crop ? `${Math.round(parsedTicket.net_weight_kg / (KG_PER_BUSHEL[parsedTicket.crop] || 27.22)).toLocaleString()} (calc)` : "—")}
                             {f("moisture_percent", "Moisture", parsedTicket.moisture_percent ? `${parsedTicket.moisture_percent}%` : "—")}
                             <div><span className="text-[#7A8A7C]">Protein:</span> <strong>{parsedTicket.protein_percent ? `${parsedTicket.protein_percent}%` : "—"}</strong></div>
                             <div className="col-span-2"><span className="text-[#7A8A7C]">Confidence:</span> <strong className={parsedTicket.confidence === "high" ? "text-[#4A7C59]" : "text-[#D97706]"}>{parsedTicket.confidence}</strong>
