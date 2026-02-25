@@ -82,6 +82,10 @@ type GrainLoad = {
   net_weight_kg?: number;
   settlement_id?: string;
   notes?: string;
+  crop?: string;
+  price_per_bushel?: number;
+  ticket_number?: string;
+  crop_year?: number;
 };
 
 type FarmProfile = {
@@ -1143,6 +1147,8 @@ const [filterTo, setFilterTo] = useState("");
                       <th className="text-left pb-3 pr-4">Customer</th>
                       <th className="text-left pb-3 pr-4">Contract</th>
                       <th className="text-left pb-3 pr-4">From</th>
+                      <th className="text-left pb-3 pr-4">Crop</th>
+                      <th className="text-right pb-3 pr-4">$/bu</th>
                       <th className="text-right pb-3 pr-4">Gross ({unitLabel})</th>
                       <th className="text-right pb-3 pr-4">Dockage</th>
                       <th className="text-right pb-3 pr-4">Net ({unitLabel})</th>
@@ -1159,6 +1165,8 @@ const [filterTo, setFilterTo] = useState("");
                         <td className="py-3 pr-4 text-[#7A8A7C]">{load.customer_name || "—"}</td>
                         <td className="py-3 pr-4 text-[#7A8A7C]">{load.contract_reference || "—"}</td>
                         <td className="py-3 pr-4 text-[#7A8A7C]">{load.from || "—"}</td>
+                        <td className="py-3 pr-4 font-medium text-[#222527]">{load.crop || "—"}</td>
+                        <td className="py-3 pr-4 text-right text-[#7A8A7C]">{load.price_per_bushel ? `$${Number(load.price_per_bushel).toFixed(2)}` : "—"}</td>
                         <td className="py-3 pr-4 text-right font-medium">{load.gross_weight_kg ? toDisplay(Number(load.gross_weight_kg)).toLocaleString("en-CA", { maximumFractionDigits: 0 }) : "—"}</td>
                         <td className="py-3 pr-4 text-right text-[#7A8A7C]">{load.dockage_percent ? `${load.dockage_percent}%` : "—"}</td>
                         <td className="py-3 pr-4 text-right font-semibold text-[#4A7C59]">{load.net_weight_kg ? toDisplay(Number(load.net_weight_kg)).toLocaleString("en-CA", { maximumFractionDigits: 0 }) : "—"}</td>
