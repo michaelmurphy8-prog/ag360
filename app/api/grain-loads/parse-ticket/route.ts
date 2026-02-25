@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     }
 
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250929",
+      model: "claude-opus-4-6",
       max_tokens: 1024,
       messages: [
         {
@@ -73,7 +73,8 @@ Return ONLY valid JSON — no markdown, no backticks, no explanation:
   "vehicle_id": "Vehicle Id, Trailer ID if shown, or null",
   "contract_reference": "Purchase Contract #, Contract #, or null",
   "remarks": "full remarks/comments section text, or null",
-  "confidence": "high if text is clear and all key fields found, medium if some fields uncertain, low if image quality is poor or significant data unclear"
+  "confidence": "high if text is clear and all key fields found, medium if some fields uncertain, low if image quality is poor or significant data unclear",
+  "uncertain_fields": ["list field names where you are less than 90% confident in the extracted value, e.g. ['date', 'dockage_percent']. Empty array if all fields are high confidence."]
 }
 
 If a field is not visible or not applicable, use null. Parse all numbers without commas.`,

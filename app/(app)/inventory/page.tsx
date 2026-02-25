@@ -1043,19 +1043,33 @@ const [filterTo, setFilterTo] = useState("");
                     <div className="flex gap-4">
                       {ticketPreview && <img src={ticketPreview} alt="Scale ticket" className="w-48 h-auto rounded-[8px] border border-[#E4E7E0]" />}
                       <div className="flex-1 grid grid-cols-2 gap-2 text-sm">
-                        <div><span className="text-[#7A8A7C]">Date:</span> <strong>{parsedTicket.date}</strong></div>
-                        <div><span className="text-[#7A8A7C]">Receipt #:</span> <strong>{parsedTicket.receipt_number}</strong></div>
-                        <div><span className="text-[#7A8A7C]">Elevator:</span> <strong>{parsedTicket.elevator_name} — {parsedTicket.station_name}</strong></div>
-                        <div><span className="text-[#7A8A7C]">Shipper:</span> <strong>{parsedTicket.shipper_name}</strong></div>
-                        <div><span className="text-[#7A8A7C]">Crop:</span> <strong>{parsedTicket.crop}</strong></div>
-                        <div><span className="text-[#7A8A7C]">Grade:</span> <strong>{parsedTicket.grade}</strong></div>
-                        <div><span className="text-[#7A8A7C]">Gross:</span> <strong>{parsedTicket.gross_weight_kg?.toLocaleString()} kg</strong></div>
-                        <div><span className="text-[#7A8A7C]">Dockage:</span> <strong>{parsedTicket.dockage_percent}%</strong></div>
-                        <div><span className="text-[#7A8A7C]">Net:</span> <strong>{parsedTicket.net_weight_kg?.toLocaleString()} kg</strong></div>
-                        <div><span className="text-[#7A8A7C]">Bushels:</span> <strong>{parsedTicket.net_bushels?.toLocaleString()}</strong></div>
-                        <div><span className="text-[#7A8A7C]">Moisture:</span> <strong>{parsedTicket.moisture_percent ? `${parsedTicket.moisture_percent}%` : "—"}</strong></div>
-                        <div><span className="text-[#7A8A7C]">Protein:</span> <strong>{parsedTicket.protein_percent ? `${parsedTicket.protein_percent}%` : "—"}</strong></div>
-                        <div className="col-span-2"><span className="text-[#7A8A7C]">Confidence:</span> <strong className={parsedTicket.confidence === "high" ? "text-[#4A7C59]" : "text-[#D97706]"}>{parsedTicket.confidence}</strong></div>
+                        {(() => {
+                          const uf = parsedTicket.uncertain_fields || [];
+                          const f = (field: string, label: string, value: any, suffix?: string) => (
+                            <div className={uf.includes(field) ? "bg-[#FFF8EC] border border-[#F5D78E] rounded px-1.5 py-0.5" : ""}>
+                              <span className="text-[#7A8A7C]">{label}:</span>{" "}
+                              <strong className={uf.includes(field) ? "text-[#D97706]" : ""}>{value}{suffix || ""}</strong>
+                              {uf.includes(field) && <span className="text-[10px] text-[#D97706] ml-1">⚠ verify</span>}
+                            </div>
+                          );
+                          return (<>
+                            {f("date", "Date", parsedTicket.date)}
+                            {f("receipt_number", "Receipt #", parsedTicket.receipt_number)}
+                            <div><span className="text-[#7A8A7C]">Elevator:</span> <strong>{parsedTicket.elevator_name} — {parsedTicket.station_name}</strong></div>
+                            {f("shipper_name", "Shipper", parsedTicket.shipper_name)}
+                            {f("crop", "Crop", parsedTicket.crop)}
+                            {f("grade", "Grade", parsedTicket.grade)}
+                            {f("gross_weight_kg", "Gross", parsedTicket.gross_weight_kg?.toLocaleString(), " kg")}
+                            {f("dockage_percent", "Dockage", parsedTicket.dockage_percent, "%")}
+                            {f("net_weight_kg", "Net", parsedTicket.net_weight_kg?.toLocaleString(), " kg")}
+                            {f("net_bushels", "Bushels", parsedTicket.net_bushels?.toLocaleString() || "—")}
+                            {f("moisture_percent", "Moisture", parsedTicket.moisture_percent ? `${parsedTicket.moisture_percent}%` : "—")}
+                            <div><span className="text-[#7A8A7C]">Protein:</span> <strong>{parsedTicket.protein_percent ? `${parsedTicket.protein_percent}%` : "—"}</strong></div>
+                            <div className="col-span-2"><span className="text-[#7A8A7C]">Confidence:</span> <strong className={parsedTicket.confidence === "high" ? "text-[#4A7C59]" : "text-[#D97706]"}>{parsedTicket.confidence}</strong>
+                              {uf.length > 0 && <span className="text-xs text-[#D97706] ml-2">({uf.length} field{uf.length > 1 ? "s" : ""} need review)</span>}
+                            </div>
+                          </>);
+                        })()}
                       </div>
                     </div>
                     <div className="flex gap-2">
