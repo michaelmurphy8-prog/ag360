@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from "@clerk/nextjs";
-import { Plus, Trash2, Package, TrendingUp, ArrowRightLeft, Truck, Pencil, Upload, BookOpen, Camera } from "lucide-react";
+import { Plus, Trash2, Package, TrendingUp, ArrowRightLeft, Truck, Pencil, Upload, BookOpen, Camera, FileText, AlertTriangle, ChevronLeft } from "lucide-react";
 
 const CROPS = ["Canola", "CWRS Wheat", "Durum", "Barley", "Oats", "Peas", "Lentils", "Flax", "Soybeans", "Corn"];
 const CONTRACT_TYPES = ["Cash Sale", "HTA (Basis Contract)", "Deferred Delivery", "Futures-First", "Target Order", "PRO/Pool"];
@@ -106,7 +106,7 @@ function fmt(n: number) {
 
 export default function InventoryPage() {
   const { user, isLoaded } = useUser();
-  const [activeTab, setActiveTab] = useState<"holdings" | "contracts" | "movements" | "grain_loads">("holdings");
+  const [activeTab, setActiveTab] = useState<"holdings" | "contracts" | "movements" | "grain_loads" | "settlements">("holdings");
 
   // Existing state
   const [holdings, setHoldings] = useState<Holding[]>([]);
@@ -157,7 +157,14 @@ const [filterTo, setFilterTo] = useState("");
     crop_year: "2025",
   });
   const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<{ message: string; type: "success" | "error" } | null>(null);
+const [syncResult, setSyncResult] = useState<{ message: string; type: "success" | "error" } | null>(null);
+// Settlements state
+const [settlements, setSettlements] = useState<any[]>([]);
+const [selectedSettlement, setSelectedSettlement] = useState<any | null>(null);
+const [settlementLines, setSettlementLines] = useState<any[]>([]);
+const [settlementParsing, setSettlementParsing] = useState(false);
+const [settlementError, setSettlementError] = useState<string | null>(null);
+const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
   const [showTicketUpload, setShowTicketUpload] = useState(false);
   const [ticketParsing, setTicketParsing] = useState(false);
   const [ticketPreview, setTicketPreview] = useState<string | null>(null);
@@ -216,6 +223,7 @@ const [filterTo, setFilterTo] = useState("");
     if (!user?.id) return;
     loadAll(user.id);
     loadGrainData();
+    loadSettlements();
   }, [isLoaded, user?.id]);
 
   // Existing functions
@@ -409,6 +417,56 @@ const [filterTo, setFilterTo] = useState("");
       setSyncing(false);
     }
   }
+  async function loadSettlements() {
+    try {
+      const res = await fetch("/api/settlements");
+      const data = await res.json();
+      setSettlements(data.settlements || []);
+    } catch { /* ignore */ }
+  }
+  async function loadSettlementDetail(id: string) {
+    try {
+      const res = await fetch(`/api/settlements/${id}`);
+      const data = await res.json();
+      setSelectedSettlement(data.settlement);
+      setSettlementLines(data.lines || []);
+    } catch { /* ignore */ }
+  }
+  async function parseSettlement(file: File) {
+    setSettlementParsing(true);
+    setSettlementError(null);
+    setSettlementAnalysis(null);
+    const buffer = await file.arrayBuffer();
+    const base64 = btoa(new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), ""));
+    try {
+      const res = await fetch("/api/settlements/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pdf: base64, filename: file.name }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSettlementAnalysis(data.analysis);
+        setSelectedSettlement(data.settlement);
+        setSettlementLines(data.lines || []);
+        await loadSettlements();
+      } else {
+        setSettlementError(data.error || "Failed to parse settlement");
+      }
+    } catch {
+      setSettlementError("Network error — try again");
+    } finally {
+      setSettlementParsing(false);
+    }
+  }
+  async function deleteSettlement(id: string) {
+    if (!confirm("Delete this settlement?")) return;
+    await fetch(`/api/settlements?id=${id}`, { method: "DELETE" });
+    setSelectedSettlement(null);
+    setSettlementLines([]);
+    setSettlementAnalysis(null);
+    await loadSettlements();
+  }
   async function updateLoad() {
     if (!editingLoad) return;
     const res = await fetch(`/api/grain-loads/${editingLoad.id}`, {
@@ -599,7 +657,7 @@ const [filterTo, setFilterTo] = useState("");
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[#222527]">Inventory</h1>
-          <p className="text-sm text-[#7A8A7C] mt-1">Holdings, contracts, movements, and grain loads</p>
+          <p className="text-sm text-[#7A8A7C] mt-1">Holdings, contracts, movements, grain loads, and settlements</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={exportCSV} className="flex items-center gap-2 text-sm font-semibold text-[#4A7C59] bg-[#EEF5F0] border border-[#C8DDD0] px-4 py-2.5 rounded-full hover:bg-[#DDE3D6] transition-colors">
@@ -678,6 +736,7 @@ const [filterTo, setFilterTo] = useState("");
             { key: "contracts", label: "Contracts", icon: TrendingUp },
             { key: "movements", label: "Movement Log", icon: ArrowRightLeft },
             { key: "grain_loads", label: "Grain Loads", icon: Truck },
+{ key: "settlements", label: "Settlements", icon: FileText },
           ] as const).map(({ key, label, icon: Icon }) => (
             <button key={key} onClick={() => setActiveTab(key)}
               className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold border-b-2 transition-colors ${activeTab === key ? "border-[#4A7C59] text-[#4A7C59]" : "border-transparent text-[#7A8A7C] hover:text-[#222527]"}`}>
@@ -1361,6 +1420,214 @@ const [filterTo, setFilterTo] = useState("");
                       {toDisplay(filteredNetKg).toLocaleString("en-CA", { maximumFractionDigits: 0 })} {unitLabel}
                     </span>
                   </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {/* SETTLEMENTS TAB */}
+        {activeTab === "settlements" && (
+          <div className="p-6 space-y-4">
+            {/* Back button when viewing detail */}
+            {selectedSettlement && (
+              <button onClick={() => { setSelectedSettlement(null); setSettlementLines([]); setSettlementAnalysis(null); }} className="flex items-center gap-1 text-sm text-[#7A8A7C] hover:text-[#222527] mb-2">
+                <ChevronLeft size={14} /> Back to all settlements
+              </button>
+            )}
+
+            {/* Upload area */}
+            {!selectedSettlement && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-[#3d6b4a] cursor-pointer transition-colors">
+                    <Upload size={14} /> Upload Settlement PDF
+                    <input type="file" accept=".pdf" className="hidden" onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) parseSettlement(file);
+                      e.target.value = "";
+                    }} />
+                  </label>
+                  {settlementParsing && <span className="text-sm text-[#7A8A7C] animate-pulse">Parsing with AI... this may take 30-60 seconds</span>}
+                </div>
+                {settlementError && (
+                  <div className="p-3 rounded-[12px] bg-red-50 text-red-600 text-sm font-medium">{settlementError}</div>
+                )}
+
+                {/* Settlements list */}
+                {settlements.length === 0 && !settlementParsing ? (
+                  <p className="text-sm text-[#7A8A7C] py-8 text-center">No settlements yet — upload a PDF to get started.</p>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide border-b border-[#E4E7E0]">
+                        <th className="text-left pb-3 pr-4">Settlement #</th>
+                        <th className="text-left pb-3 pr-4">Terminal</th>
+                        <th className="text-left pb-3 pr-4">Date</th>
+                        <th className="text-left pb-3 pr-4">Crop</th>
+                        <th className="text-right pb-3 pr-4">Loads</th>
+                        <th className="text-right pb-3 pr-4">Net (MT)</th>
+                        <th className="text-right pb-3 pr-4">Net Payable</th>
+                        <th className="text-left pb-3 pr-4">Status</th>
+                        <th className="text-left pb-3 pr-4">Flags</th>
+                        <th className="pb-3"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F5F5F3]">
+                      {settlements.map((s) => {
+                        const flags = typeof s.flags === "string" ? JSON.parse(s.flags) : s.flags || {};
+                        const totalFlags = (flags.dockage_outliers || 0) + (flags.price_mismatches || 0) + (flags.math_errors || 0);
+                        return (
+                          <tr key={s.id} className="cursor-pointer hover:bg-[#F9FAF8]" onClick={() => loadSettlementDetail(s.id)}>
+                            <td className="py-3 pr-4 font-semibold text-[#222527]">{s.settlement_number || "—"}</td>
+                            <td className="py-3 pr-4 text-[#7A8A7C]">{s.terminal_name} {s.terminal_location ? `— ${s.terminal_location}` : ""}</td>
+                            <td className="py-3 pr-4 text-[#7A8A7C]">{s.issue_date?.split("T")[0]}</td>
+                            <td className="py-3 pr-4"><span className="text-xs bg-[#EEF5F0] text-[#4A7C59] font-semibold px-2 py-0.5 rounded-full">{s.crop}</span></td>
+                            <td className="py-3 pr-4 text-right">{s.total_loads}</td>
+                            <td className="py-3 pr-4 text-right">{Number(s.total_net_weight_mt).toLocaleString("en-CA", { maximumFractionDigits: 1 })}</td>
+                            <td className="py-3 pr-4 text-right font-semibold text-[#4A7C59]">${Number(s.net_payable).toLocaleString("en-CA", { maximumFractionDigits: 2 })}</td>
+                            <td className="py-3 pr-4">
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${s.status === "posted" ? "bg-[#EEF5F0] text-[#4A7C59]" : s.status === "reviewed" ? "bg-blue-50 text-blue-600" : "bg-[#FFF8EC] text-[#D97706]"}`}>
+                                {s.status}
+                              </span>
+                            </td>
+                            <td className="py-3 pr-4">
+                              {totalFlags > 0 ? (
+                                <span className="flex items-center gap-1 text-xs font-semibold text-[#D97706]">
+                                  <AlertTriangle size={12} /> {totalFlags}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-[#4A7C59]">✓</span>
+                              )}
+                            </td>
+                            <td className="py-3">
+                              <button onClick={(e) => { e.stopPropagation(); deleteSettlement(s.id); }} className="text-gray-400 hover:text-red-500">
+                                <Trash2 size={13} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+
+            {/* Settlement Detail View */}
+            {selectedSettlement && (
+              <div className="space-y-4">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-[#222527]">
+                      {selectedSettlement.terminal_name} — Settlement #{selectedSettlement.settlement_number}
+                    </h2>
+                    <p className="text-sm text-[#7A8A7C]">
+                      {selectedSettlement.terminal_location} • {selectedSettlement.issue_date?.split("T")[0]} • {selectedSettlement.crop} • {selectedSettlement.grade || ""}
+                    </p>
+                  </div>
+                  <span className={`text-xs font-semibold px-3 py-1 rounded-full ${selectedSettlement.status === "posted" ? "bg-[#EEF5F0] text-[#4A7C59]" : "bg-[#FFF8EC] text-[#D97706]"}`}>
+                    {selectedSettlement.status}
+                  </span>
+                </div>
+
+                {/* Summary Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { label: "Net Payable", value: `$${Number(selectedSettlement.net_payable).toLocaleString("en-CA", { maximumFractionDigits: 2 })}`, sub: `Gross: $${Number(selectedSettlement.gross_payable).toLocaleString("en-CA", { maximumFractionDigits: 2 })}` },
+                    { label: "Total Loads", value: selectedSettlement.total_loads, sub: `${Number(selectedSettlement.total_net_weight_mt).toLocaleString("en-CA", { maximumFractionDigits: 1 })} MT net` },
+                    { label: "Avg Dockage", value: `${Number(selectedSettlement.avg_dockage_pct).toFixed(2)}%`, sub: `${Number(selectedSettlement.total_dockage_mt).toLocaleString("en-CA", { maximumFractionDigits: 1 })} MT total`, highlight: Number(selectedSettlement.avg_dockage_pct) > 4 },
+                    { label: "Price / MT", value: `$${Number(selectedSettlement.price_per_mt).toLocaleString("en-CA", { maximumFractionDigits: 2 })}`, sub: `${Number(selectedSettlement.total_bushels).toLocaleString()} bu total` },
+                  ].map(k => (
+                    <div key={k.label} className={`rounded-[16px] border shadow-sm p-4 ${k.highlight ? "bg-[#FFF8EC] border-[#F5D78E]" : "bg-white border-[#E4E7E0]"}`}>
+                      <p className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">{k.label}</p>
+                      <p className={`text-xl font-bold mt-1 ${k.highlight ? "text-[#D97706]" : "text-[#222527]"}`}>{k.value}</p>
+                      <p className="text-xs text-[#7A8A7C] mt-1">{k.sub}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Adjustment Details */}
+                {settlementAnalysis?.adjustment_details && settlementAnalysis.adjustment_details.length > 0 && (
+                  <div className="rounded-[16px] border border-[#E4E7E0] bg-white p-4">
+                    <p className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide mb-2">Adjustments / Deductions</p>
+                    <div className="space-y-1">
+                      {settlementAnalysis.adjustment_details.map((adj: any, i: number) => (
+                        <div key={i} className="flex justify-between text-sm">
+                          <span className="text-[#7A8A7C]">{adj.name}</span>
+                          <span className={`font-medium ${adj.amount < 0 ? "text-red-500" : "text-[#222527]"}`}>${adj.amount.toLocaleString("en-CA", { maximumFractionDigits: 2 })}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Flag Summary */}
+                {(() => {
+                  const flags = typeof selectedSettlement.flags === "string" ? JSON.parse(selectedSettlement.flags) : selectedSettlement.flags || {};
+                  const totalFlags = (flags.dockage_outliers || 0) + (flags.price_mismatches || 0) + (flags.math_errors || 0) + (flags.partial_loads || 0);
+                  if (totalFlags === 0) return (
+                    <div className="p-3 rounded-[12px] bg-[#EEF5F0] text-[#4A7C59] text-sm font-medium">
+                      ✓ No irregularities found — all loads look clean
+                    </div>
+                  );
+                  return (
+                    <div className="p-3 rounded-[12px] bg-[#FFF8EC] border border-[#F5D78E] text-sm space-y-1">
+                      <p className="font-semibold text-[#D97706] flex items-center gap-1"><AlertTriangle size={14} /> {totalFlags} flag{totalFlags > 1 ? "s" : ""} detected</p>
+                      {flags.dockage_outliers > 0 && <p className="text-[#7A8A7C]">• {flags.dockage_outliers} dockage outlier{flags.dockage_outliers > 1 ? "s" : ""} (above 1.5× average)</p>}
+                      {flags.price_mismatches > 0 && <p className="text-[#7A8A7C]">• {flags.price_mismatches} price mismatch{flags.price_mismatches > 1 ? "es" : ""}</p>}
+                      {flags.math_errors > 0 && <p className="text-[#7A8A7C]">• {flags.math_errors} math discrepanc{flags.math_errors > 1 ? "ies" : "y"}</p>}
+                      {flags.partial_loads > 0 && <p className="text-[#7A8A7C]">• {flags.partial_loads} partial load{flags.partial_loads > 1 ? "s" : ""} (&lt;50% avg weight)</p>}
+                    </div>
+                  );
+                })()}
+
+                {/* Line Items Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide border-b border-[#E4E7E0]">
+                        <th className="text-left pb-3 pr-3">#</th>
+                        <th className="text-left pb-3 pr-3">Date</th>
+                        <th className="text-left pb-3 pr-3">Receipt/CPER</th>
+                        <th className="text-right pb-3 pr-3">Unload (MT)</th>
+                        <th className="text-right pb-3 pr-3">Dockage %</th>
+                        <th className="text-right pb-3 pr-3">Dockage (MT)</th>
+                        <th className="text-right pb-3 pr-3">Net (MT)</th>
+                        <th className="text-right pb-3 pr-3">Moisture</th>
+                        <th className="text-right pb-3 pr-3">$/MT</th>
+                        <th className="text-right pb-3">Gross $</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F5F5F3]">
+                      {settlementLines.map((line) => {
+                        const flags = typeof line.flags === "string" ? JSON.parse(line.flags) : line.flags || {};
+                        const hasFlag = flags.dockage_outlier || flags.dockage_high || flags.price_mismatch || flags.math_error || flags.partial_load;
+                        const isRed = flags.dockage_outlier === "red";
+                        const isAmber = flags.dockage_high === "amber" || flags.price_mismatch || flags.partial_load;
+                        const rowBg = isRed ? "bg-red-50" : isAmber ? "bg-[#FFF8EC]" : "";
+                        return (
+                          <tr key={line.id} className={rowBg}>
+                            <td className="py-2.5 pr-3 text-[#7A8A7C]">
+                              {line.line_number}
+                              {hasFlag && <AlertTriangle size={11} className={`inline ml-1 ${isRed ? "text-red-500" : "text-[#D97706]"}`} />}
+                            </td>
+                            <td className="py-2.5 pr-3 text-[#7A8A7C]">{line.delivery_date?.split("T")[0]}</td>
+                            <td className="py-2.5 pr-3 font-medium text-[#222527]">{line.receipt_number || line.cper_number || "—"}</td>
+                            <td className="py-2.5 pr-3 text-right">{line.unload_weight_mt ? Number(line.unload_weight_mt).toFixed(3) : "—"}</td>
+                            <td className={`py-2.5 pr-3 text-right font-medium ${isRed ? "text-red-600 font-bold" : isAmber && flags.dockage_high ? "text-[#D97706] font-bold" : ""}`}>
+                              {line.dockage_pct ? `${Number(line.dockage_pct).toFixed(2)}%` : "—"}
+                            </td>
+                            <td className="py-2.5 pr-3 text-right text-[#7A8A7C]">{line.dockage_mt ? Number(line.dockage_mt).toFixed(3) : "—"}</td>
+                            <td className="py-2.5 pr-3 text-right font-semibold text-[#4A7C59]">{line.net_weight_mt ? Number(line.net_weight_mt).toFixed(3) : "—"}</td>
+                            <td className="py-2.5 pr-3 text-right text-[#7A8A7C]">{line.moisture_pct ? `${Number(line.moisture_pct).toFixed(1)}%` : "—"}</td>
+                            <td className="py-2.5 pr-3 text-right text-[#7A8A7C]">${line.price_per_mt ? Number(line.price_per_mt).toFixed(2) : "—"}</td>
+                            <td className="py-2.5 text-right font-medium">${line.gross_amount ? Number(line.gross_amount).toLocaleString("en-CA", { maximumFractionDigits: 2 }) : "—"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
