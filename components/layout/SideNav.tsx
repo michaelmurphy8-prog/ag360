@@ -45,6 +45,7 @@ const navItems: NavItem[] = [
       { label: "Weather", href: "/weather", icon: Cloud },
     ],
   },
+  
   {
     label: "Fields",
     icon: Map,
@@ -124,21 +125,33 @@ export default function SideNav() {
             <div key={item.href}>
               {/* Parent item */}
               {hasSubItems ? (
-                <button
-                  onClick={() => toggleSection(item.href)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-sm font-medium transition-colors ${
-                    isActive || isParentOfActive
-                      ? "bg-[#DDE3D6] text-[#4A7C59]"
-                      : "text-[#7A8A7C] hover:bg-[#F5F5F3] hover:text-[#222527]"
-                  }`}
-                >
-                  <Icon size={16} />
-                  <span className="flex-1 text-left">{item.label}</span>
-                  <ChevronDown
-                    size={14}
-                    className={`transition-transform duration-200 ${isOpen ? "rotate-0" : "-rotate-90"}`}
-                  />
-                </button>
+                <div className="flex items-center">
+                  <Link
+                    href={item.href}
+                    onClick={() => { if (!isOpen) toggleSection(item.href) }}
+                    className={`flex-1 flex items-center gap-3 px-3 py-2.5 rounded-l-[10px] text-sm font-medium transition-colors ${
+                      isActive || isParentOfActive
+                        ? "bg-[#DDE3D6] text-[#4A7C59]"
+                        : "text-[#7A8A7C] hover:bg-[#F5F5F3] hover:text-[#222527]"
+                    }`}
+                  >
+                    <Icon size={16} />
+                    <span className="flex-1 text-left">{item.label}</span>
+                  </Link>
+                  <button
+                    onClick={() => toggleSection(item.href)}
+                    className={`px-2 py-2.5 rounded-r-[10px] transition-colors ${
+                      isActive || isParentOfActive
+                        ? "bg-[#DDE3D6] text-[#4A7C59]"
+                        : "text-[#7A8A7C] hover:bg-[#F5F5F3]"
+                    }`}
+                  >
+                    <ChevronDown
+                      size={14}
+                      className={`transition-transform duration-200 ${isOpen ? "rotate-0" : "-rotate-90"}`}
+                    />
+                  </button>
+                </div>
               ) : (
                 <Link
                   href={item.href}
