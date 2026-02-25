@@ -12,6 +12,7 @@ import {
   parseNumber, VARIABLE_COST_KEYS, FIXED_COST_KEYS, VARIABLE_COST_LABELS,
   type InputCosts, type SoilZone, type Crop,
 } from '@/lib/agronomy-data'
+import ScoutReports from '@/components/scout-reports'
 
 // ─── Sub-tab config ────────────────────────────────────────────────────────────
 
@@ -648,6 +649,7 @@ function ScoutTab({ crops }: { crops: Crop[] }) {
 
   return (
     <div className="space-y-6">
+      <ScoutReports crops={crops} />
       <div className="bg-white border border-[#E4E7E0] rounded-xl p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-[#222527] mb-1">Pest & Disease Diagnosis</h2>
         <p className="text-xs text-[#7A8A7C] mb-5">

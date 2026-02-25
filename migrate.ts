@@ -103,5 +103,42 @@ await sql`
 `;
 console.log('Created settlement_lines table');
 
+// Scout Photo Capture tables
+await sql`
+  CREATE TABLE IF NOT EXISTS scout_entries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    clerk_user_id TEXT NOT NULL,
+    date DATE NOT NULL,
+    field_name TEXT,
+    crop TEXT,
+    growth_stage TEXT,
+    issue_type TEXT,
+    severity TEXT,
+    symptoms TEXT[],
+    notes TEXT,
+    recommendation TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+  )
+`
+console.log('Created scout_entries table')
+
+await sql`
+  CREATE TABLE IF NOT EXISTS scout_photos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    scout_entry_id UUID NOT NULL REFERENCES scout_entries(id) ON DELETE CASCADE,
+    clerk_user_id TEXT NOT NULL,
+    image_url TEXT NOT NULL,
+    thumbnail_url TEXT,
+    file_name TEXT,
+    file_size INTEGER,
+    mime_type TEXT,
+    analysis JSONB,
+    analyzed_at TIMESTAMPTZ,
+    context_meta JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )
+`
+console.log('Created scout_photos table')
 }
 migrate().catch(console.error);
