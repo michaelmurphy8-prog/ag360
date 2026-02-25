@@ -467,6 +467,26 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
     setSettlementAnalysis(null);
     await loadSettlements();
   }
+  async function postSettlementToLedger(id: string) {
+    if (!confirm("Post this settlement to the ledger? This will create a journal entry.")) return;
+    try {
+      const res = await fetch(`/api/settlements/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "post_to_ledger" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message);
+        await loadSettlementDetail(id);
+        await loadSettlements();
+      } else {
+        alert(`Error: ${data.error}`);
+      }
+    } catch {
+      alert("Network error — try again");
+    }
+  }
   async function updateLoad() {
     if (!editingLoad) return;
     const res = await fetch(`/api/grain-loads/${editingLoad.id}`, {
@@ -1526,9 +1546,16 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
                       {selectedSettlement.terminal_location} • {selectedSettlement.issue_date?.split("T")[0]} • {selectedSettlement.crop} • {selectedSettlement.grade || ""}
                     </p>
                   </div>
-                  <span className={`text-xs font-semibold px-3 py-1 rounded-full ${selectedSettlement.status === "posted" ? "bg-[#EEF5F0] text-[#4A7C59]" : "bg-[#FFF8EC] text-[#D97706]"}`}>
-                    {selectedSettlement.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {selectedSettlement.status !== "posted" && (
+                      <button onClick={() => postSettlementToLedger(selectedSettlement.id)} className="flex items-center gap-2 bg-[#4A7C59] text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#3d6b4a] transition-colors">
+                        <BookOpen size={14} /> Post to Ledger
+                      </button>
+                    )}
+                    <span className={`text-xs font-semibold px-3 py-1 rounded-full ${selectedSettlement.status === "posted" ? "bg-[#EEF5F0] text-[#4A7C59]" : "bg-[#FFF8EC] text-[#D97706]"}`}>
+                      {selectedSettlement.status}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Summary Cards */}

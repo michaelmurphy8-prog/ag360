@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     // Send PDF to Claude Opus for extraction
     const response = await anthropic.messages.create({
       model: "claude-opus-4-6",
-      max_tokens: 8192,
+      max_tokens: 16384,
       messages: [
         {
           role: "user",
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 Return this exact structure:
 {
   "header": {
-    "settlement_number": "string",
+    "settlement_number": "string — look for Settlement #, SETTLEMENT # in header, or the number next to CPER # if no explicit settlement number exists",
     "terminal_name": "company name (Bunge, Cargill, Viterra, MFSeeds, etc.)",
     "terminal_location": "city/station",
     "issue_date": "YYYY-MM-DD",
@@ -150,10 +150,19 @@ IMPORTANT RULES:
         settlementFlags.price_mismatches++;
       }
 
-      // Math verification: net_weight × price ≈ gross_amount
-      if (line.net_weight_mt && line.price_per_mt && line.gross_amount) {
-        const expected = Math.round(line.net_weight_mt * line.price_per_mt * 100) / 100;
-        if (Math.abs(expected - line.gross_amount) > 1.00) {
+      // Math verification: try net_weight × price first, then unload_weight × price
+      if (line.price_per_mt && line.gross_amount) {
+        let mathOk = false;
+        if (line.net_weight_mt) {
+          const expectedNet = Math.round(line.net_weight_mt * line.price_per_mt * 100) / 100;
+          if (Math.abs(expectedNet - line.gross_amount) <= 1.00) mathOk = true;
+        }
+        if (!mathOk && line.unload_weight_mt) {
+          const expectedUnload = Math.round(line.unload_weight_mt * line.price_per_mt * 100) / 100;
+          if (Math.abs(expectedUnload - line.gross_amount) <= 1.00) mathOk = true;
+        }
+        if (!mathOk && line.net_weight_mt) {
+          const expected = Math.round(line.net_weight_mt * line.price_per_mt * 100) / 100;
           flags.math_error = { expected, actual: line.gross_amount, diff: Math.round((expected - line.gross_amount) * 100) / 100 };
           settlementFlags.math_errors++;
         }
