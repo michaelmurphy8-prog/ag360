@@ -47,14 +47,14 @@ const navItems: NavItem[] = [
   },
   
   {
-    label: "Fields",
-    icon: Map,
-    href: "/fields",
+    label: "Operations",
+    icon: Database,
+    href: "/grain360/operations",
     subItems: [
+      { label: "Fields", href: "/fields", icon: Map },
       { label: "Import Data", href: "/grain360/imports", icon: Upload },
     ],
   },
-  { label: "Operations", icon: Database, href: "/grain360/operations" },
   { label: "Inventory", icon: Package, href: "/inventory" },
   { label: "Machinery", icon: Tractor, href: "/machinery" },
   { label: "Labour & HR", icon: Users, href: "/labour" },
