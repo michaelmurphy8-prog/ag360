@@ -1,8 +1,27 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+// middleware.ts (root of project)
+// Handles auth protection + redirects signed-in users away from landing page
 
-const isPublicRoute = createRouteMatcher(["/", "/login(.*)", "/signup(.*)", "/pricing(.*)"]);
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+
+// Public routes — no auth required
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/login(.*)",
+  "/signup(.*)",
+  "/pricing(.*)",
+  "/api/webhooks(.*)",
+]);
 
 export default clerkMiddleware(async (auth, request) => {
+  const { userId } = await auth();
+
+  // If user is signed in and hitting the landing page, redirect to dashboard
+  if (userId && request.nextUrl.pathname === "/") {
+    return NextResponse.redirect(new URL("/overview", request.url));
+  }
+
+  // Protect all non-public routes
   if (!isPublicRoute(request)) {
     await auth.protect();
   }
