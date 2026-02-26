@@ -38,11 +38,24 @@ interface Detection {
   why: string[]
 }
 
+interface ProductRecommendation {
+  product: string
+  active_ingredient: string
+  group: string
+  rate: string
+  water_volume?: string
+  timing?: string
+  phi_days?: number
+  precautions?: string[]
+  tank_mix_notes?: string
+}
+
 interface Analysis {
   summary: string
   detections: Detection[]
   recommended_actions: string[]
   what_to_check_next: string[]
+  product_recommendations?: ProductRecommendation[]
   spray_water_checklist?: {
     triggered: boolean
     questions: string[]
@@ -590,6 +603,37 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
                   {analysis.what_to_check_next.map((q, i) => (
                     <p key={i} className="text-sm text-[#7A8A7C] mb-0.5">→ {q}</p>
                   ))}
+                </div>
+              )}
+
+{/* Product Recommendations */}
+              {analysis.product_recommendations && analysis.product_recommendations.length > 0 && (
+                <div className="bg-white border border-[#E4E7E0] rounded-lg px-4 py-3">
+                  <span className="text-xs font-semibold text-[#222527] block mb-2">🧪 Product Recommendations</span>
+                  {analysis.product_recommendations.map((p, i) => (
+                    <div key={i} className="mb-3 last:mb-0 pb-3 last:pb-0 border-b border-[#E4E7E0] last:border-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-[#222527]">{p.product}</span>
+                        <span className="text-xs bg-[#F5F5F3] border border-[#E4E7E0] px-2 py-0.5 rounded font-medium text-[#7A8A7C]">Group {p.group}</span>
+                      </div>
+                      <p className="text-xs text-[#7A8A7C] mb-1">{p.active_ingredient}</p>
+                      <div className="grid grid-cols-2 gap-2 text-xs mt-1">
+                        <div><span className="text-[#7A8A7C]">Rate:</span> <span className="text-[#4A7C59] font-semibold">{p.rate}</span></div>
+                        {p.water_volume && <div><span className="text-[#7A8A7C]">Water:</span> <span className="text-[#222527]">{p.water_volume}</span></div>}
+                        {p.timing && <div><span className="text-[#7A8A7C]">Timing:</span> <span className="text-[#222527]">{p.timing}</span></div>}
+                        {p.phi_days !== undefined && <div><span className="text-[#7A8A7C]">PHI:</span> <span className="text-[#222527]">{p.phi_days} days</span></div>}
+                      </div>
+                      {p.tank_mix_notes && (
+                        <p className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1 mt-1.5">🔀 {p.tank_mix_notes}</p>
+                      )}
+                      {p.precautions && p.precautions.length > 0 && (
+                        <div className="mt-1.5 text-xs text-[#7A8A7C]">
+                          {p.precautions.map((pr, j) => <p key={j}>⚠️ {pr}</p>)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <p className="text-xs text-[#7A8A7C] mt-2 italic">Always verify rates and PHI on the registered product label before application.</p>
                 </div>
               )}
 

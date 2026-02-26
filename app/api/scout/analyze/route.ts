@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { neon } from '@neondatabase/serverless'
 import Anthropic from '@anthropic-ai/sdk'
 import { SCOUT_ANALYSIS_PROMPT } from '@/lib/scout-analysis-prompt'
+import { buildChemicalContextForLily } from '@/lib/chemical-data'
 
 const sql = neon(process.env.DATABASE_URL!)
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
   const response = await anthropic.messages.create({
     model: 'claude-opus-4-6',
     max_tokens: 4096,
-    system: SCOUT_ANALYSIS_PROMPT,
+    system: SCOUT_ANALYSIS_PROMPT + '\n\n' + buildChemicalContextForLily(),
     messages: [
       {
         role: 'user',
