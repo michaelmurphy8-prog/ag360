@@ -14,6 +14,7 @@ import {
   AreaChart, Area, LineChart, Line,
 } from "recharts";
 import { getCropColor, buToMt } from "@/lib/crop-colors";
+import { useRouter } from "next/navigation";
 
 // ─── Theme ──────────────────────────────────────────────
 const T = {
@@ -86,6 +87,7 @@ const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", ba
 // ═══════════════════════════════════════════════════════════
 export default function MarketingPage() {
   const { user } = useUser();
+  const router = useRouter();
   const [data, setData] = useState<MarketingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [cropYear, setCropYear] = useState(String(new Date().getFullYear()));
@@ -341,7 +343,9 @@ export default function MarketingPage() {
 
           <div style={{ marginTop: 24, background: "linear-gradient(135deg, rgba(52,211,153,0.06), rgba(96,165,250,0.06))", border: `1px solid ${T.border}`, borderRadius: 14, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ fontSize: 20 }}>🌱</span><div><span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>Ask Lily about your marketing position</span><p style={{ fontSize: 11, color: T.text3, margin: "2px 0 0" }}>AI-powered advice based on your contracts, prices, and production</p></div></div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{["Build a sell plan", "Am I behind on deliveries?", "Break-even by crop"].map((chip) => (<button key={chip} style={{ padding: "5px 12px", borderRadius: 20, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.text2, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap" }}>{chip}</button>))}</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{["Build a sell plan for my unpriced crops", "Am I behind on deliveries?", "What's my break-even price by crop?"].map((chip) => (
+  <button key={chip} onClick={() => router.push(`/advisor?prompt=${encodeURIComponent(chip)}`)} style={{ padding: "5px 12px", borderRadius: 20, border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.04)", color: T.text2, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap" }}>{chip}</button>
+))}</div>
           </div>
         </>
 

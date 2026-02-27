@@ -188,7 +188,26 @@ export default function AdvisorPage() {
         if (data.profile) setProfile(data.profile);
         setProfileLoaded(true);
       });
-  }, [user?.id]);
+}, [user?.id]);
+// Auto-send prompt from query params (e.g. from Marketing chips)
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const prompt = params.get("prompt");
+    if (prompt) {
+      setPendingPrompt(prompt);
+      window.history.replaceState({}, "", "/advisor");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (pendingPrompt && user?.id && !loading && messages.length === 0) {
+      sendMessage(pendingPrompt);
+      setPendingPrompt(null);
+    }
+  }, [pendingPrompt, user?.id, loading]);
 
   async function sendMessage(text: string) {
     if (!text.trim() || loading) return;
