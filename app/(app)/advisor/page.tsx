@@ -366,7 +366,7 @@ export default function AdvisorPage() {
                     <LilyIcon size={16} />
                   </div>
                 )}
-                <div className={`max-w-2xl ${
+                <div className={`relative group/msg max-w-2xl ${
                   msg.role === "user"
                     ? "rounded-2xl rounded-br-md px-5 py-3"
                     : "rounded-2xl rounded-bl-md px-5 py-4"
@@ -379,6 +379,20 @@ export default function AdvisorPage() {
                     ? <LilyMessage content={msg.content} />
                     : <p className="text-[13px] text-[#080C15] font-medium leading-relaxed">{msg.content}</p>
                   }
+                  {msg.role === "assistant" && (
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(msg.content);
+                        const btn = document.getElementById(`copy-${i}`);
+                        if (btn) { btn.textContent = "Copied!"; setTimeout(() => { btn.textContent = "Copy"; }, 1500); }
+                      }}
+                      id={`copy-${i}`}
+                      className="absolute -bottom-6 right-0 opacity-0 group-hover/msg:opacity-100 transition-opacity text-[10px] font-medium px-2.5 py-1 rounded-md"
+                      style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", color: "#94A3B8" }}
+                    >
+                      Copy
+                    </button>
+                  )}
                 </div>
                 {msg.role === "user" && (
                   <div className="w-7 h-7 rounded-full bg-white/[0.06] border border-white/[0.08] flex items-center justify-center shrink-0 mt-1">
