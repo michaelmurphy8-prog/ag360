@@ -4,12 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  LayoutDashboard, Wheat, Leaf, Beef, Tractor,
-  Sprout, Package, Users, Cloud, Bot, Settings,
-  ClipboardList, DollarSign, ChevronDown, Lock,
-  Truck, Wrench, MapPin,
+  LayoutDashboard, Wheat, Sprout, Tractor, Package, Users, Cloud,
+  Settings, ClipboardList, DollarSign, ChevronDown, Lock, Wrench,
+  MapPin, Leaf, Beef, TrendingUp, Map,
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
+import LilyIcon from "@/components/LilyIcon";
 
 // ─── Nav Structure ───────────────────────────────────────────
 interface NavItem {
@@ -33,21 +33,14 @@ const navSections: { title?: string; items: NavItem[] }[] = [
         label: "Finance", icon: DollarSign,
         children: [
           { label: "Ledger", href: "/finance/ledger" },
-          { label: "Field P&L", href: "/finance/field-pl" },
+          { label: "P&L", href: "/finance/pnl" },
+          { label: "Marketing", href: "/marketing" },
         ],
       },
+      { label: "Agronomy", icon: Sprout, href: "/agronomy" },
       {
-        label: "Agronomy", icon: Sprout,
+        label: "Operations", icon: Wrench,
         children: [
-          { label: "Crop Economics", href: "/agronomy" },
-          { label: "Spray Calendar", href: "/agronomy/spray-calendar" },
-          { label: "Scout Reports", href: "/agronomy/scout" },
-        ],
-      },
-      {
-        label: "Operations", icon: Truck,
-        children: [
-          { label: "Grain Loads", href: "/grain360/loads" },
           { label: "Fields", href: "/fields" },
         ],
       },
@@ -55,12 +48,18 @@ const navSections: { title?: string; items: NavItem[] }[] = [
   },
   {
     items: [
-      { label: "Inventory", icon: Package, href: "/inventory" },
+      {
+        label: "Inventory", icon: Package,
+        children: [
+          { label: "Inventory", href: "/inventory" },
+          { label: "Bin Map", href: "/inventory/bin-map" },
+        ],
+      },
       { label: "Machinery", icon: Tractor, href: "/machinery" },
       { label: "Labour & HR", icon: Users, href: "/labour" },
       { label: "Farm Profile", icon: ClipboardList, href: "/farm-profile" },
       { label: "Weather", icon: Cloud, href: "/weather" },
-      { label: "Lily (Advisor)", icon: Bot, href: "/advisor" },
+      { label: "Lily (Advisor)", icon: LilyIcon, href: "/advisor" },
     ],
   },
   {
@@ -90,7 +89,7 @@ function Logo() {
 
 // ─── Expandable Nav Group ────────────────────────────────────
 function NavGroup({ item, pathname }: { item: NavItem; pathname: string }) {
-  const isChildActive = item.children?.some((c) => pathname.startsWith(c.href)) ?? false;
+  const isChildActive = item.children?.some((c) => pathname === c.href || pathname.startsWith(c.href + "/")) ?? false;
   const [open, setOpen] = useState(isChildActive);
   const Icon = item.icon;
 

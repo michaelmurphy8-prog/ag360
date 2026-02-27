@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import {
-  Sprout, BookOpen, DollarSign, Search, Shield, Calendar, ChevronRight
+  Sprout, BookOpen, DollarSign, Search, Shield, Calendar, ChevronRight,
+  Trophy, BarChart3, Target, Bug, Leaf, Lightbulb, Droplets, Zap,
+  AlertTriangle, Trash2, TrendingUp, TrendingDown, Minus, CheckCircle, XCircle,
 } from 'lucide-react'
 import {
   CROPS, SPRAY_RATES, HERBICIDE_PASSES, DEFAULT_INPUT_COSTS,
@@ -13,6 +15,7 @@ import {
   type InputCosts, type SoilZone, type Crop,
 } from '@/lib/agronomy-data'
 import ScoutReports from '@/components/scout-reports'
+import LilyIcon from '@/components/LilyIcon'
 
 // ─── Sub-tab config ────────────────────────────────────────────────────────────
 
@@ -26,13 +29,19 @@ const TABS = [
 ]
 
 const PROVINCES = ['SK', 'AB', 'MB']
+
 const CAT_COLORS: Record<string, string> = {
-  Cereal: 'bg-amber-50 text-amber-700 border-amber-200',
-  Oilseed: 'bg-green-50 text-green-700 border-green-200',
-  Pulse: 'bg-blue-50 text-blue-700 border-blue-200',
+  Cereal: 'bg-[#F59E0B]/[0.08] text-[#F59E0B] border-[#F59E0B]/20',
+  Oilseed: 'bg-[#34D399]/[0.08] text-[#34D399] border-[#34D399]/20',
+  Pulse: 'bg-[#38BDF8]/[0.08] text-[#38BDF8] border-[#38BDF8]/20',
 }
 
-// ─── Main Page ─────────────────────────────────────────────────────────────────
+const selectClass = "text-sm border border-white/[0.10] rounded-lg px-3 py-1.5 bg-[#111827] text-[#F1F5F9] focus:outline-none focus:border-[#34D399]/50"
+const inputClass = "w-full text-sm border border-white/[0.10] rounded-lg px-2 py-2 bg-white/[0.04] text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:border-[#34D399]/50"
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  MAIN PAGE
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export default function AgronomyPage() {
   const { user } = useUser()
@@ -41,7 +50,6 @@ export default function AgronomyPage() {
   const [zone, setZone] = useState<SoilZone>('Black')
   const [profileLoaded, setProfileLoaded] = useState(false)
 
-  // Pull province + soil zone from Farm Profile automatically
   useEffect(() => {
     async function loadProfile() {
       try {
@@ -51,12 +59,12 @@ export default function AgronomyPage() {
         const json = await res.json()
         if (json.profile) {
           if (json.profile.province) {
-  const provMap: Record<string, string> = {
-    Saskatchewan: 'SK', Alberta: 'AB', Manitoba: 'MB',
-    SK: 'SK', AB: 'AB', MB: 'MB',
-  }
-  setProvince(provMap[json.profile.province] ?? 'SK')
-}
+            const provMap: Record<string, string> = {
+              Saskatchewan: 'SK', Alberta: 'AB', Manitoba: 'MB',
+              SK: 'SK', AB: 'AB', MB: 'MB',
+            }
+            setProvince(provMap[json.profile.province] ?? 'SK')
+          }
           if (json.profile.soilZone) setZone(json.profile.soilZone as SoilZone)
         }
       } catch {
@@ -73,28 +81,31 @@ export default function AgronomyPage() {
   const sources = PROV_SOURCES[province] ?? PROV_SOURCES['SK']
 
   if (!profileLoaded) return (
-    <div className="min-h-screen bg-[#F9FAF8] flex items-center justify-center">
-      <div className="text-[#7A8A7C] text-sm animate-pulse">Loading agronomy data...</div>
+    <div className="flex items-center justify-center h-64">
+      <div className="flex gap-1.5">
+        {[0, 150, 300].map(d => (
+          <div key={d} className="w-2 h-2 rounded-full bg-[#34D399] animate-bounce" style={{ animationDelay: `${d}ms` }} />
+        ))}
+      </div>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-[#F9FAF8] text-[#222527]">
+    <div className="space-y-0">
 
-      {/* Page Header */}
-      <div className="bg-white border-b border-[#E4E7E0] px-6 py-4">
+      {/* ── Page Header ─────────────────────────────────── */}
+      <div className="pb-5 mb-6 border-b border-white/[0.06]">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-[#222527]">Agronomy</h1>
-            <p className="text-sm text-[#7A8A7C] mt-0.5">
+            <h1 className="text-[28px] font-bold text-[#F1F5F9] tracking-tight">Agronomy</h1>
+            <p className="text-[13px] text-[#64748B] mt-0.5">
               Crop planning, scouting, protection & spray management
             </p>
           </div>
 
-          {/* Province + Zone Selectors */}
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
-              <label className="text-xs font-medium text-[#7A8A7C]">Province</label>
+              <label className="font-mono text-[9px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">Province</label>
               <select
                 value={province}
                 onChange={e => {
@@ -102,18 +113,18 @@ export default function AgronomyPage() {
                   const zones = ZONES_BY_PROVINCE[e.target.value]
                   if (zones && !zones.includes(zone)) setZone(zones[0])
                 }}
-                className="text-sm border border-[#E4E7E0] rounded-lg px-3 py-1.5 bg-white text-[#222527] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/30"
+                className={selectClass}
               >
                 {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-xs font-medium text-[#7A8A7C]">Soil Zone</label>
+              <label className="font-mono text-[9px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">Soil Zone</label>
               <select
                 value={zone}
                 onChange={e => setZone(e.target.value as SoilZone)}
-                className="text-sm border border-[#E4E7E0] rounded-lg px-3 py-1.5 bg-white text-[#222527] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/30"
+                className={selectClass}
               >
                 {availableZones.map(z => (
                   <option key={z} value={z}>{ZONE_LABELS[z]}</option>
@@ -121,15 +132,14 @@ export default function AgronomyPage() {
               </select>
             </div>
 
-            {/* Source Badge */}
-            <div className="text-xs text-[#7A8A7C] bg-[#F5F5F3] border border-[#E4E7E0] px-3 py-1.5 rounded-lg hidden md:block">
+            <div className="font-mono text-[10px] text-[#64748B] bg-white/[0.03] border border-white/[0.06] px-3 py-1.5 rounded-lg hidden md:block">
               Source: {sources.crop}
             </div>
           </div>
         </div>
 
         {/* Sub-tab Navigation */}
-        <div className="flex gap-1 mt-4 overflow-x-auto">
+        <div className="flex gap-1 mt-5 overflow-x-auto">
           {TABS.map(tab => {
             const Icon = tab.icon
             const active = activeTab === tab.id
@@ -137,10 +147,10 @@ export default function AgronomyPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 ${
                   active
-                    ? 'bg-[#4A7C59] text-white'
-                    : 'text-[#7A8A7C] hover:text-[#222527] hover:bg-[#F5F5F3]'
+                    ? 'bg-[#34D399] text-[#080C15]'
+                    : 'text-[#64748B] hover:text-[#F1F5F9] hover:bg-white/[0.04]'
                 }`}
               >
                 <Icon size={14} />
@@ -151,8 +161,8 @@ export default function AgronomyPage() {
         </div>
       </div>
 
-      {/* Tab Content */}
-      <div className="p-6">
+      {/* ── Tab Content ───────────────────────────────── */}
+      <div>
         {activeTab === 'dashboard' && (
           <CropDashboard crops={filteredCrops} zone={zone} province={province} />
         )}
@@ -176,77 +186,73 @@ export default function AgronomyPage() {
   )
 }
 
-// ─── Crop Dashboard ────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  CROP DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function CropDashboard({ crops, zone, province }: { crops: Crop[], zone: SoilZone, province: string }) {
   const [filterCat, setFilterCat] = useState<string>('All')
   const categories = ['All', 'Cereal', 'Oilseed', 'Pulse']
-
   const filtered = crops.filter(c => filterCat === 'All' || c.cat === filterCat)
 
   return (
     <div className="space-y-4">
-      {/* Category Filter */}
       <div className="flex items-center gap-2 flex-wrap">
         {categories.map(cat => (
           <button
             key={cat}
             onClick={() => setFilterCat(cat)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
               filterCat === cat
-                ? 'bg-[#4A7C59] text-white'
-                : 'bg-white border border-[#E4E7E0] text-[#7A8A7C] hover:text-[#222527]'
+                ? 'bg-[#34D399] text-[#080C15]'
+                : 'bg-white/[0.03] border border-white/[0.06] text-[#64748B] hover:text-[#F1F5F9] hover:border-white/[0.12]'
             }`}
           >
             {cat}
           </button>
         ))}
-        <span className="text-xs text-[#7A8A7C] ml-2">{filtered.length} crops for {province} · {ZONE_LABELS[zone]} zone</span>
+        <span className="text-xs text-[#64748B] ml-2">{filtered.length} crops for {province} · {ZONE_LABELS[zone]} zone</span>
       </div>
 
-      {/* Crop Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(crop => {
           const zd = getZoneData(crop, zone)
           if (!zd) return null
           return (
-            <div key={crop.name} className="bg-white border border-[#E4E7E0] rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-3">
+            <div key={crop.name} className="bg-[#111827] border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.12] transition-all duration-200 group">
+              <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h3 className="font-semibold text-[#222527]">{crop.name}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${CAT_COLORS[crop.cat]}`}>
+                  <h3 className="font-semibold text-[#F1F5F9] group-hover:text-white transition-colors">{crop.name}</h3>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold mt-1 inline-block ${CAT_COLORS[crop.cat]}`}>
                     {crop.cat}
                   </span>
                 </div>
                 <div className="text-right">
-                  <div className="text-lg font-bold text-[#4A7C59]">{zd.rev}</div>
-                  <div className="text-xs text-[#7A8A7C]">gross/ac</div>
+                  <div className="text-lg font-bold text-[#34D399]">{zd.rev}</div>
+                  <div className="text-[10px] text-[#64748B]">gross/ac</div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 mb-3">
-                <div className="bg-[#F9FAF8] rounded-lg p-2 text-center">
-                  <div className="text-xs text-[#7A8A7C]">Yield</div>
-                  <div className="text-sm font-semibold text-[#222527]">{zd.yield}</div>
-                </div>
-                <div className="bg-[#F9FAF8] rounded-lg p-2 text-center">
-                  <div className="text-xs text-[#7A8A7C]">Price</div>
-                  <div className="text-sm font-semibold text-[#222527]">{zd.price}</div>
-                </div>
-                <div className="bg-[#F9FAF8] rounded-lg p-2 text-center">
-                  <div className="text-xs text-[#7A8A7C]">BE Price</div>
-                  <div className="text-sm font-semibold text-red-500">{zd.beP}</div>
-                </div>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {[
+                  { label: 'Yield', value: zd.yield },
+                  { label: 'Price', value: zd.price },
+                  { label: 'BE Price', value: zd.beP, red: true },
+                ].map(item => (
+                  <div key={item.label} className="bg-white/[0.03] border border-white/[0.04] rounded-lg p-2 text-center">
+                    <div className="text-[10px] text-[#64748B]">{item.label}</div>
+                    <div className={`text-sm font-semibold ${item.red ? 'text-[#EF4444]' : 'text-[#F1F5F9]'}`}>{item.value}</div>
+                  </div>
+                ))}
               </div>
 
-              {/* Nutrient Bar */}
-              <div className="flex items-center gap-2 text-xs text-[#7A8A7C]">
-                <span className="font-medium">Fertility:</span>
-                {zd.N > 0 && <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">N {zd.N}</span>}
-                {zd.P > 0 && <span className="bg-orange-50 text-orange-700 px-1.5 py-0.5 rounded">P {zd.P}</span>}
-                {zd.S > 0 && <span className="bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded">S {zd.S}</span>}
-                {zd.K > 0 && <span className="bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded">K {zd.K}</span>}
-                <span className="text-[#7A8A7C]">lb/ac</span>
+              <div className="flex items-center gap-2 text-[10px] text-[#64748B]">
+                <Droplets size={11} className="text-[#38BDF8]" />
+                {zd.N > 0 && <span className="bg-[#38BDF8]/[0.08] text-[#38BDF8] px-1.5 py-0.5 rounded font-medium">N {zd.N}</span>}
+                {zd.P > 0 && <span className="bg-[#F59E0B]/[0.08] text-[#F59E0B] px-1.5 py-0.5 rounded font-medium">P {zd.P}</span>}
+                {zd.S > 0 && <span className="bg-[#FBBF24]/[0.08] text-[#FBBF24] px-1.5 py-0.5 rounded font-medium">S {zd.S}</span>}
+                {zd.K > 0 && <span className="bg-[#818CF8]/[0.08] text-[#818CF8] px-1.5 py-0.5 rounded font-medium">K {zd.K}</span>}
+                <span className="text-[#475569]">lb/ac</span>
               </div>
             </div>
           )
@@ -256,7 +262,9 @@ function CropDashboard({ crops, zone, province }: { crops: Crop[], zone: SoilZon
   )
 }
 
-// ─── Playbook ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  PLAYBOOK
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function Playbook({ crops, zone, province }: { crops: Crop[], zone: SoilZone, province: string }) {
   const [selected, setSelected] = useState<Crop>(crops[0])
@@ -267,23 +275,23 @@ function Playbook({ crops, zone, province }: { crops: Crop[], zone: SoilZone, pr
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       {/* Crop Selector */}
       <div className="lg:col-span-1">
-        <div className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden shadow-sm">
-          <div className="px-4 py-3 border-b border-[#E4E7E0]">
-            <h3 className="text-sm font-semibold text-[#222527]">Select Crop</h3>
+        <div className="bg-[#111827] border border-white/[0.06] rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-white/[0.06]">
+            <h3 className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">Select Crop</h3>
           </div>
-          <div className="divide-y divide-[#E4E7E0]">
+          <div className="divide-y divide-white/[0.04]">
             {crops.map(crop => (
               <button
                 key={crop.name}
                 onClick={() => setSelected(crop)}
-                className={`w-full text-left px-4 py-2.5 flex items-center justify-between transition-colors ${
+                className={`w-full text-left px-4 py-2.5 flex items-center justify-between transition-all ${
                   selected.name === crop.name
-                    ? 'bg-[#4A7C59]/5 text-[#4A7C59]'
-                    : 'text-[#222527] hover:bg-[#F9FAF8]'
+                    ? 'bg-[#34D399]/[0.06] text-[#34D399] border-l-2 border-l-[#34D399]'
+                    : 'text-[#94A3B8] hover:bg-white/[0.03] hover:text-[#F1F5F9] border-l-2 border-l-transparent'
                 }`}
               >
                 <span className="text-sm font-medium">{crop.name}</span>
-                <ChevronRight size={14} className="text-[#7A8A7C]" />
+                <ChevronRight size={14} className="text-[#475569]" />
               </button>
             ))}
           </div>
@@ -295,20 +303,20 @@ function Playbook({ crops, zone, province }: { crops: Crop[], zone: SoilZone, pr
         {zd && (
           <>
             {/* Header */}
-            <div className="bg-white border border-[#E4E7E0] rounded-xl p-5 shadow-sm">
+            <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-5">
               <div className="flex items-start justify-between flex-wrap gap-3">
                 <div>
-                  <h2 className="text-xl font-bold text-[#222527]">{selected.name}</h2>
+                  <h2 className="text-xl font-bold text-[#F1F5F9]">{selected.name}</h2>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${CAT_COLORS[selected.cat]}`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${CAT_COLORS[selected.cat]}`}>
                       {selected.cat}
                     </span>
-                    <span className="text-xs text-[#7A8A7C]">{ZONE_LABELS[zone]} zone · {province}</span>
+                    <span className="text-xs text-[#64748B]">{ZONE_LABELS[zone]} zone · {province}</span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-[#4A7C59]">{zd.rev}</div>
-                  <div className="text-xs text-[#7A8A7C]">gross revenue/ac</div>
+                  <div className="text-2xl font-bold text-[#34D399]">{zd.rev}</div>
+                  <div className="text-[10px] text-[#64748B]">gross revenue/ac</div>
                 </div>
               </div>
 
@@ -319,89 +327,100 @@ function Playbook({ crops, zone, province }: { crops: Crop[], zone: SoilZone, pr
                   { label: 'Breakeven Yield', value: zd.beY },
                   { label: 'Breakeven Price', value: zd.beP },
                 ].map(item => (
-                  <div key={item.label} className="bg-[#F9FAF8] rounded-lg p-3 text-center">
-                    <div className="text-xs text-[#7A8A7C] mb-1">{item.label}</div>
-                    <div className="font-bold text-[#222527]">{item.value}</div>
+                  <div key={item.label} className="bg-white/[0.03] border border-white/[0.04] rounded-lg p-3 text-center">
+                    <div className="text-[10px] text-[#64748B] mb-1">{item.label}</div>
+                    <div className="font-bold text-[#F1F5F9]">{item.value}</div>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Fertility */}
-            <div className="bg-white border border-[#E4E7E0] rounded-xl p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-[#222527] mb-3">Fertility Recommendations (lb/ac)</h3>
+            <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-5">
+              <h3 className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[2px] mb-3">Fertility Recommendations (lb/ac)</h3>
               <div className="grid grid-cols-4 gap-3">
                 {[
-                  { label: 'Nitrogen (N)', value: zd.N, color: 'bg-blue-50 text-blue-700 border-blue-200' },
-                  { label: 'Phosphorus (P)', value: zd.P, color: 'bg-orange-50 text-orange-700 border-orange-200' },
-                  { label: 'Sulphur (S)', value: zd.S, color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
-                  { label: 'Potassium (K)', value: zd.K, color: 'bg-purple-50 text-purple-700 border-purple-200' },
+                  { label: 'Nitrogen (N)', value: zd.N, color: '#38BDF8' },
+                  { label: 'Phosphorus (P)', value: zd.P, color: '#F59E0B' },
+                  { label: 'Sulphur (S)', value: zd.S, color: '#FBBF24' },
+                  { label: 'Potassium (K)', value: zd.K, color: '#818CF8' },
                 ].map(n => (
-                  <div key={n.label} className={`rounded-xl p-3 text-center border ${n.color}`}>
-                    <div className="text-2xl font-bold">{n.value}</div>
-                    <div className="text-xs font-medium mt-1">{n.label}</div>
+                  <div key={n.label} className="rounded-xl p-3 text-center border"
+                    style={{ background: `${n.color}08`, borderColor: `${n.color}20` }}>
+                    <div className="text-2xl font-bold" style={{ color: n.color }}>{n.value}</div>
+                    <div className="text-[10px] font-medium mt-1" style={{ color: n.color }}>{n.label}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Rotation + Pests + Diseases */}
+            {/* Rotation + Spray Timings */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white border border-[#E4E7E0] rounded-xl p-4 shadow-sm">
-                <h3 className="text-sm font-semibold text-[#222527] mb-2">Rotation Notes</h3>
-                <p className="text-sm text-[#7A8A7C]">{selected.rot}</p>
+              <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-[#F1F5F9] mb-2">Rotation Notes</h3>
+                <p className="text-sm text-[#94A3B8] leading-relaxed">{selected.rot}</p>
               </div>
-              <div className="bg-white border border-[#E4E7E0] rounded-xl p-4 shadow-sm">
-                <h3 className="text-sm font-semibold text-[#222527] mb-2">Spray Timings</h3>
-                <p className="text-sm text-[#7A8A7C]">{selected.timings}</p>
+              <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-[#F1F5F9] mb-2">Spray Timings</h3>
+                <p className="text-sm text-[#94A3B8] leading-relaxed">{selected.timings}</p>
               </div>
             </div>
 
+            {/* Insects + Diseases */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white border border-[#E4E7E0] rounded-xl p-4 shadow-sm">
-                <h3 className="text-sm font-semibold text-[#222527] mb-2">Key Insects</h3>
-                <div className="flex flex-wrap gap-1">
+              <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Bug size={14} className="text-[#EF4444]" />
+                  <h3 className="text-sm font-semibold text-[#F1F5F9]">Key Insects</h3>
+                </div>
+                <div className="flex flex-wrap gap-1 mb-2">
                   {selected.insects.map(i => (
-                    <span key={i} className="text-xs bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-full">{i}</span>
+                    <span key={i} className="text-[10px] bg-[#EF4444]/[0.08] text-[#EF4444] border border-[#EF4444]/20 px-2 py-0.5 rounded-full font-medium">{i}</span>
                   ))}
                 </div>
-                <p className="text-xs text-[#7A8A7C] mt-2">{selected.wNotes}</p>
+                <p className="text-xs text-[#64748B] leading-relaxed">{selected.wNotes}</p>
               </div>
-              <div className="bg-white border border-[#E4E7E0] rounded-xl p-4 shadow-sm">
-                <h3 className="text-sm font-semibold text-[#222527] mb-2">Key Diseases</h3>
-                <div className="flex flex-wrap gap-1">
+              <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle size={14} className="text-[#818CF8]" />
+                  <h3 className="text-sm font-semibold text-[#F1F5F9]">Key Diseases</h3>
+                </div>
+                <div className="flex flex-wrap gap-1 mb-2">
                   {selected.diseases.map(d => (
-                    <span key={d} className="text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full">{d}</span>
+                    <span key={d} className="text-[10px] bg-[#818CF8]/[0.08] text-[#818CF8] border border-[#818CF8]/20 px-2 py-0.5 rounded-full font-medium">{d}</span>
                   ))}
                 </div>
-                <p className="text-xs text-[#7A8A7C] mt-2">{selected.dNotes}</p>
+                <p className="text-xs text-[#64748B] leading-relaxed">{selected.dNotes}</p>
               </div>
             </div>
 
             {/* Outlook */}
             {outlook && (
-              <div className="bg-white border border-[#E4E7E0] rounded-xl p-4 shadow-sm">
-                <h3 className="text-sm font-semibold text-[#222527] mb-3">5-Year Commodity Outlook</h3>
+              <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp size={14} className="text-[#34D399]" />
+                  <h3 className="text-sm font-semibold text-[#F1F5F9]">5-Year Commodity Outlook</h3>
+                </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-[#F9FAF8] rounded-lg p-3">
-                    <div className="text-xs text-[#7A8A7C]">10-Year Price Range</div>
-                    <div className="font-semibold text-[#222527] mt-1">{outlook.range10yr}</div>
+                  <div className="bg-white/[0.03] border border-white/[0.04] rounded-lg p-3">
+                    <div className="text-[10px] text-[#64748B]">10-Year Price Range</div>
+                    <div className="font-semibold text-[#F1F5F9] mt-1">{outlook.range10yr}</div>
                   </div>
-                  <div className="bg-[#F9FAF8] rounded-lg p-3">
-                    <div className="text-xs text-[#7A8A7C]">5-Year Forecast</div>
-                    <div className="font-semibold text-[#222527] mt-1">{outlook.forecast5yr}</div>
+                  <div className="bg-white/[0.03] border border-white/[0.04] rounded-lg p-3">
+                    <div className="text-[10px] text-[#64748B]">5-Year Forecast</div>
+                    <div className="font-semibold text-[#F1F5F9] mt-1">{outlook.forecast5yr}</div>
                   </div>
-                  <div className="bg-[#F9FAF8] rounded-lg p-3 text-center">
-                    <div className="text-xs text-[#7A8A7C]">Outlook</div>
-                    <div className="text-xl font-bold text-[#4A7C59] mt-1">{outlook.direction}</div>
-                    <div className="text-xs text-[#4A7C59] font-medium">{outlook.rating}</div>
+                  <div className="bg-white/[0.03] border border-white/[0.04] rounded-lg p-3 text-center">
+                    <div className="text-[10px] text-[#64748B]">Outlook</div>
+                    <div className="text-xl font-bold text-[#34D399] mt-1">{outlook.direction}</div>
+                    <div className="text-xs text-[#34D399] font-medium">{outlook.rating}</div>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Source */}
-            <div className="text-xs text-[#7A8A7C] bg-[#F9FAF8] border border-[#E4E7E0] rounded-lg px-4 py-2">
+            <div className="font-mono text-[10px] text-[#64748B] bg-white/[0.02] border border-white/[0.04] rounded-lg px-4 py-2">
               Source: {selected.src}
             </div>
           </>
@@ -411,12 +430,13 @@ function Playbook({ crops, zone, province }: { crops: Crop[], zone: SoilZone, pr
   )
 }
 
-// ─── Input Costs ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  INPUT COSTS / CROP ECONOMICS
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function InputCostsTab({ crops, zone }: { crops: Crop[], zone: SoilZone }) {
   const total = getTotalCosts(DEFAULT_INPUT_COSTS)
 
-  // Build ranked crop data
   const cropEconomics = crops
     .map(crop => {
       const zd = getZoneData(crop, zone)
@@ -427,18 +447,8 @@ function InputCostsTab({ crops, zone }: { crops: Crop[], zone: SoilZone }) {
       const guidePrice = parseNumber(zd.price)
       const margin = revenueNum - total
       const isPerLb = zd.price.includes('/lb')
-const profitable = isPerLb ? margin >= 0 : guidePrice > bePrice
-      return {
-        name: crop.name,
-        cat: crop.cat,
-        rev: revenueNum,
-        yield: zd.yield,
-        price: zd.price,
-        guidePrice,
-        bePrice,
-        margin,
-        profitable,
-      }
+      const profitable = isPerLb ? margin >= 0 : guidePrice > bePrice
+      return { name: crop.name, cat: crop.cat, rev: revenueNum, yield: zd.yield, price: zd.price, guidePrice, bePrice, margin, profitable }
     })
     .filter(Boolean)
     .sort((a, b) => b!.rev - a!.rev) as {
@@ -453,56 +463,52 @@ const profitable = isPerLb ? margin >= 0 : guidePrice > bePrice
 
   return (
     <div className="space-y-6">
-
-      {/* Top KPI Strip */}
+      {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white border border-[#E4E7E0] rounded-xl p-4 shadow-sm">
-          <div className="text-xs text-[#7A8A7C] font-medium uppercase tracking-wide mb-1">Total Cost/Ac</div>
-          <div className="text-2xl font-bold text-[#222527]">${total.toFixed(0)}</div>
-          <div className="text-xs text-[#7A8A7C] mt-0.5">Default prairie average</div>
+        <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
+          <div className="font-mono text-[10px] text-[#64748B] font-semibold uppercase tracking-[1.5px] mb-1">Total Cost/Ac</div>
+          <div className="text-2xl font-bold text-[#F1F5F9]">${total.toFixed(0)}</div>
+          <div className="text-[10px] text-[#475569] mt-0.5">Default prairie average</div>
         </div>
-        <div className="bg-white border border-[#E4E7E0] rounded-xl p-4 shadow-sm">
-          <div className="text-xs text-[#7A8A7C] font-medium uppercase tracking-wide mb-1">Profitable Crops</div>
-          <div className="text-2xl font-bold text-emerald-600">{profitableCount}</div>
-          <div className="text-xs text-[#7A8A7C] mt-0.5">Above breakeven at guide price</div>
+        <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
+          <div className="font-mono text-[10px] text-[#64748B] font-semibold uppercase tracking-[1.5px] mb-1">Profitable Crops</div>
+          <div className="text-2xl font-bold text-[#34D399]">{profitableCount}</div>
+          <div className="text-[10px] text-[#475569] mt-0.5">Above breakeven at guide price</div>
         </div>
-        <div className="bg-white border border-[#E4E7E0] rounded-xl p-4 shadow-sm">
-          <div className="text-xs text-[#7A8A7C] font-medium uppercase tracking-wide mb-1">At Risk Crops</div>
-          <div className="text-2xl font-bold text-red-500">{atRiskCount}</div>
-          <div className="text-xs text-[#7A8A7C] mt-0.5">Below breakeven at guide price</div>
+        <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
+          <div className="font-mono text-[10px] text-[#64748B] font-semibold uppercase tracking-[1.5px] mb-1">At Risk Crops</div>
+          <div className="text-2xl font-bold text-[#EF4444]">{atRiskCount}</div>
+          <div className="text-[10px] text-[#475569] mt-0.5">Below breakeven at guide price</div>
         </div>
-        <div className="bg-white border border-[#E4E7E0] rounded-xl p-4 shadow-sm">
-          <div className="text-xs text-[#7A8A7C] font-medium uppercase tracking-wide mb-1">Best Gross Revenue</div>
-          <div className="text-2xl font-bold text-[#4A7C59]">${bestMargin?.rev.toFixed(0)}/ac</div>
-          <div className="text-xs text-[#7A8A7C] mt-0.5">{bestMargin?.name}</div>
+        <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
+          <div className="font-mono text-[10px] text-[#64748B] font-semibold uppercase tracking-[1.5px] mb-1">Best Gross Revenue</div>
+          <div className="text-2xl font-bold text-[#34D399]">${bestMargin?.rev.toFixed(0)}/ac</div>
+          <div className="text-[10px] text-[#475569] mt-0.5">{bestMargin?.name}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Top 3 Crops by Revenue */}
-        <div className="bg-white border border-[#E4E7E0] rounded-xl p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-[#222527] mb-4">
-            🏆 Top Crops by Gross Revenue — {ZONE_LABELS[zone]} Zone
-          </h3>
+        {/* Top 3 */}
+        <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Trophy size={14} className="text-[#F59E0B]" />
+            <h3 className="text-sm font-semibold text-[#F1F5F9]">Top Crops by Gross Revenue — {ZONE_LABELS[zone]} Zone</h3>
+          </div>
           <div className="space-y-3">
             {top3.map((crop, i) => (
               <div key={crop.name} className="flex items-center gap-3">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 ${
-                  i === 0 ? 'bg-yellow-400' : i === 1 ? 'bg-slate-400' : 'bg-amber-600'
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                  i === 0 ? 'bg-[#F59E0B] text-[#080C15]' : i === 1 ? 'bg-[#94A3B8] text-[#080C15]' : 'bg-[#B45309] text-white'
                 }`}>
                   {i + 1}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-[#222527]">{crop.name}</span>
-                    <span className="text-sm font-bold text-[#4A7C59]">${crop.rev.toFixed(0)}/ac</span>
+                    <span className="text-sm font-medium text-[#F1F5F9]">{crop.name}</span>
+                    <span className="text-sm font-bold text-[#34D399]">${crop.rev.toFixed(0)}/ac</span>
                   </div>
-                  <div className="w-full bg-[#F9FAF8] rounded-full h-1.5">
-                    <div
-                      className="bg-[#4A7C59] h-1.5 rounded-full"
-                      style={{ width: `${(crop.rev / cropEconomics[0].rev) * 100}%` }}
-                    />
+                  <div className="w-full bg-white/[0.04] rounded-full h-1.5">
+                    <div className="bg-[#34D399] h-1.5 rounded-full transition-all" style={{ width: `${(crop.rev / cropEconomics[0].rev) * 100}%` }} />
                   </div>
                 </div>
               </div>
@@ -510,72 +516,62 @@ const profitable = isPerLb ? margin >= 0 : guidePrice > bePrice
           </div>
         </div>
 
-        {/* Margin vs Cost */}
-        <div className="bg-white border border-[#E4E7E0] rounded-xl p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-[#222527] mb-4">
-            📊 Net Margin at Guide Price
-          </h3>
+        {/* Net Margin */}
+        <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 size={14} className="text-[#38BDF8]" />
+            <h3 className="text-sm font-semibold text-[#F1F5F9]">Net Margin at Guide Price</h3>
+          </div>
           <div className="space-y-2">
             {cropEconomics.slice(0, 6).map(crop => (
-              <div key={crop.name} className="flex items-center justify-between py-1.5 border-b border-[#E4E7E0]/50 last:border-0">
-                <span className="text-sm text-[#222527]">{crop.name}</span>
+              <div key={crop.name} className="flex items-center justify-between py-1.5 border-b border-white/[0.04] last:border-0">
+                <span className="text-sm text-[#94A3B8]">{crop.name}</span>
                 <div className="flex items-center gap-2">
-                  <span className={`text-sm font-bold ${crop.margin >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                  <span className={`text-sm font-bold ${crop.margin >= 0 ? 'text-[#34D399]' : 'text-[#EF4444]'}`}>
                     {crop.margin >= 0 ? '+' : ''}${crop.margin.toFixed(0)}/ac
                   </span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                    crop.margin >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
-                  }`}>
-                    {crop.margin >= 0 ? '✓' : '✗'}
-                  </span>
+                  {crop.margin >= 0
+                    ? <CheckCircle size={12} className="text-[#34D399]" />
+                    : <XCircle size={12} className="text-[#EF4444]" />
+                  }
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Breakeven by Crop — full list */}
-        <div className="bg-white border border-[#E4E7E0] rounded-xl p-5 shadow-sm lg:col-span-2">
-          <h3 className="text-sm font-semibold text-[#222527] mb-4">
-            🎯 Breakeven Price Analysis — All Crops
-          </h3>
+        {/* Breakeven Table */}
+        <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-5 lg:col-span-2">
+          <div className="flex items-center gap-2 mb-4">
+            <Target size={14} className="text-[#F59E0B]" />
+            <h3 className="text-sm font-semibold text-[#F1F5F9]">Breakeven Price Analysis — All Crops</h3>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#E4E7E0] text-xs text-[#7A8A7C]">
-                  <th className="text-left px-3 py-2 font-medium">Crop</th>
-                  <th className="text-left px-3 py-2 font-medium">Category</th>
-                  <th className="text-right px-3 py-2 font-medium">Target Yield</th>
-                  <th className="text-right px-3 py-2 font-medium">Guide Price</th>
-                  <th className="text-right px-3 py-2 font-medium">Breakeven Price</th>
-                  <th className="text-right px-3 py-2 font-medium">Gross Revenue</th>
-                  <th className="text-right px-3 py-2 font-medium">Net Margin</th>
-                  <th className="text-center px-3 py-2 font-medium">Status</th>
+                <tr className="border-b border-white/[0.06]">
+                  {['Crop', 'Category', 'Target Yield', 'Guide Price', 'Breakeven Price', 'Gross Revenue', 'Net Margin', 'Status'].map(h => (
+                    <th key={h} className={`font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1px] px-3 py-2 ${h === 'Status' ? 'text-center' : h === 'Crop' || h === 'Category' ? 'text-left' : 'text-right'}`}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {cropEconomics.map(crop => (
-                  <tr key={crop.name} className="border-b border-[#E4E7E0]/50 last:border-0 hover:bg-[#F9FAF8]">
-                    <td className="px-3 py-2.5 font-medium text-[#222527]">{crop.name}</td>
+                  <tr key={crop.name} className="border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02] transition-colors">
+                    <td className="px-3 py-2.5 font-medium text-[#F1F5F9]">{crop.name}</td>
                     <td className="px-3 py-2.5">
-                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${CAT_COLORS[crop.cat]}`}>
-                        {crop.cat}
-                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${CAT_COLORS[crop.cat]}`}>{crop.cat}</span>
                     </td>
-                    <td className="px-3 py-2.5 text-right text-[#222527]">{crop.yield}</td>
-                    <td className="px-3 py-2.5 text-right text-[#222527]">{crop.price}</td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-[#222527]">
-                      ${crop.bePrice.toFixed(2)}
-                    </td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-[#4A7C59]">
-                      ${crop.rev.toFixed(0)}/ac
-                    </td>
-                    <td className={`px-3 py-2.5 text-right font-bold ${crop.margin >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                    <td className="px-3 py-2.5 text-right text-[#94A3B8]">{crop.yield}</td>
+                    <td className="px-3 py-2.5 text-right text-[#94A3B8]">{crop.price}</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-[#F1F5F9]">${crop.bePrice.toFixed(2)}</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-[#34D399]">${crop.rev.toFixed(0)}/ac</td>
+                    <td className={`px-3 py-2.5 text-right font-bold ${crop.margin >= 0 ? 'text-[#34D399]' : 'text-[#EF4444]'}`}>
                       {crop.margin >= 0 ? '+' : ''}${crop.margin.toFixed(0)}/ac
                     </td>
                     <td className="px-3 py-2.5 text-center">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        crop.profitable ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                        crop.profitable ? 'bg-[#34D399]/[0.08] text-[#34D399]' : 'bg-[#EF4444]/[0.08] text-[#EF4444]'
                       }`}>
                         {crop.profitable ? 'Profitable' : 'At Risk'}
                       </span>
@@ -585,17 +581,18 @@ const profitable = isPerLb ? margin >= 0 : guidePrice > bePrice
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-[#7A8A7C] mt-3">
+          <p className="text-[10px] text-[#475569] mt-3">
             Based on default input costs of ${total.toFixed(0)}/ac. Update your actual costs in Farm Profile for precise breakeven calculations.
           </p>
         </div>
-
       </div>
     </div>
   )
 }
 
-// ─── Scout ────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SCOUT
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function ScoutTab({ crops }: { crops: Crop[] }) {
   const [selectedCrop, setSelectedCrop] = useState<string>('')
@@ -641,126 +638,95 @@ function ScoutTab({ crops }: { crops: Crop[] }) {
   )
 
   function reset() {
-    setSelectedCrop('')
-    setSelectedType('')
-    setSelectedSymptom('')
-    setSelectedPest('')
+    setSelectedCrop(''); setSelectedType(''); setSelectedSymptom(''); setSelectedPest('')
   }
 
   return (
     <div className="space-y-6">
       <ScoutReports crops={crops} />
-      <div className="bg-white border border-[#E4E7E0] rounded-xl p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-[#222527] mb-1">Pest & Disease Diagnosis</h2>
-        <p className="text-xs text-[#7A8A7C] mb-5">
-          Work through the steps below to get registered product recommendations with rates.
-        </p>
+      <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-5">
+        <h2 className="text-sm font-semibold text-[#F1F5F9] mb-1">Pest & Disease Diagnosis</h2>
+        <p className="text-xs text-[#64748B] mb-5">Work through the steps below to get registered product recommendations with rates.</p>
 
-        {/* Step 1 — Crop */}
+        {/* Step 1 */}
         <div className="mb-5">
           <div className="flex items-center gap-2 mb-2">
-            <span className="w-5 h-5 rounded-full bg-[#4A7C59] text-white text-xs font-bold flex items-center justify-center">1</span>
-            <label className="text-xs font-semibold text-[#222527] uppercase tracking-wide">Select Crop</label>
+            <span className="w-5 h-5 rounded-full bg-[#34D399] text-[#080C15] text-xs font-bold flex items-center justify-center">1</span>
+            <label className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[1.5px]">Select Crop</label>
           </div>
           <div className="flex flex-wrap gap-2">
             {crops.map(c => (
-              <button
-                key={c.name}
+              <button key={c.name}
                 onClick={() => { setSelectedCrop(c.name); setSelectedType(''); setSelectedSymptom(''); setSelectedPest('') }}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  selectedCrop === c.name
-                    ? 'bg-[#4A7C59] text-white'
-                    : 'bg-[#F9FAF8] border border-[#E4E7E0] text-[#7A8A7C] hover:text-[#222527]'
-                }`}
-              >
-                {c.name}
-              </button>
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  selectedCrop === c.name ? 'bg-[#34D399] text-[#080C15]' : 'bg-white/[0.03] border border-white/[0.06] text-[#64748B] hover:text-[#F1F5F9]'
+                }`}>{c.name}</button>
             ))}
           </div>
         </div>
 
-        {/* Step 2 — Type */}
+        {/* Step 2 */}
         {selectedCrop && (
           <div className="mb-5">
             <div className="flex items-center gap-2 mb-2">
-              <span className="w-5 h-5 rounded-full bg-[#4A7C59] text-white text-xs font-bold flex items-center justify-center">2</span>
-              <label className="text-xs font-semibold text-[#222527] uppercase tracking-wide">What Are You Seeing?</label>
+              <span className="w-5 h-5 rounded-full bg-[#34D399] text-[#080C15] text-xs font-bold flex items-center justify-center">2</span>
+              <label className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[1.5px]">What Are You Seeing?</label>
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={() => { setSelectedType('insects'); setSelectedSymptom(''); setSelectedPest('') }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedType === 'insects'
-                    ? 'bg-red-500 text-white'
-                    : 'bg-[#F9FAF8] border border-[#E4E7E0] text-[#7A8A7C] hover:text-[#222527]'
-                }`}
-              >
-                🐛 Insect Damage
+              <button onClick={() => { setSelectedType('insects'); setSelectedSymptom(''); setSelectedPest('') }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  selectedType === 'insects' ? 'bg-[#EF4444] text-white' : 'bg-white/[0.03] border border-white/[0.06] text-[#64748B] hover:text-[#F1F5F9]'
+                }`}>
+                <Bug size={14} /> Insect Damage
               </button>
-              <button
-                onClick={() => { setSelectedType('diseases'); setSelectedSymptom(''); setSelectedPest('') }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedType === 'diseases'
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-[#F9FAF8] border border-[#E4E7E0] text-[#7A8A7C] hover:text-[#222527]'
-                }`}
-              >
-                🍂 Disease Symptoms
+              <button onClick={() => { setSelectedType('diseases'); setSelectedSymptom(''); setSelectedPest('') }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  selectedType === 'diseases' ? 'bg-[#818CF8] text-white' : 'bg-white/[0.03] border border-white/[0.06] text-[#64748B] hover:text-[#F1F5F9]'
+                }`}>
+                <Leaf size={14} /> Disease Symptoms
               </button>
             </div>
           </div>
         )}
 
-        {/* Step 3 — Symptoms Observed */}
+        {/* Step 3 */}
         {selectedType && (
           <div className="mb-5">
             <div className="flex items-center gap-2 mb-2">
-              <span className="w-5 h-5 rounded-full bg-[#4A7C59] text-white text-xs font-bold flex items-center justify-center">3</span>
-              <label className="text-xs font-semibold text-[#222527] uppercase tracking-wide">Symptoms Observed</label>
+              <span className="w-5 h-5 rounded-full bg-[#34D399] text-[#080C15] text-xs font-bold flex items-center justify-center">3</span>
+              <label className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[1.5px]">Symptoms Observed</label>
             </div>
             <div className="flex flex-wrap gap-2">
               {symptomList.map(s => (
-                <button
-                  key={s.label}
+                <button key={s.label}
                   onClick={() => { setSelectedSymptom(s.label); setSelectedPest('') }}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                     selectedSymptom === s.label
-                      ? selectedType === 'insects' ? 'bg-red-500 text-white' : 'bg-purple-500 text-white'
-                      : 'bg-[#F9FAF8] border border-[#E4E7E0] text-[#7A8A7C] hover:text-[#222527]'
-                  }`}
-                >
-                  {s.label}
-                </button>
+                      ? selectedType === 'insects' ? 'bg-[#EF4444] text-white' : 'bg-[#818CF8] text-white'
+                      : 'bg-white/[0.03] border border-white/[0.06] text-[#64748B] hover:text-[#F1F5F9]'
+                  }`}>{s.label}</button>
               ))}
             </div>
           </div>
         )}
 
-        {/* Step 4 — Identify Pest */}
+        {/* Step 4 */}
         {selectedSymptom && filteredPests.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="w-5 h-5 rounded-full bg-[#4A7C59] text-white text-xs font-bold flex items-center justify-center">4</span>
-              <label className="text-xs font-semibold text-[#222527] uppercase tracking-wide">Identify the Problem</label>
+              <span className="w-5 h-5 rounded-full bg-[#34D399] text-[#080C15] text-xs font-bold flex items-center justify-center">4</span>
+              <label className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[1.5px]">Identify the Problem</label>
             </div>
             <div className="flex flex-wrap gap-2">
               {filteredPests.map(pest => (
-                <button
-                  key={pest}
-                  onClick={() => setSelectedPest(pest)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                <button key={pest} onClick={() => setSelectedPest(pest)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                     selectedPest === pest
-                      ? selectedType === 'insects' ? 'bg-red-500 text-white' : 'bg-purple-500 text-white'
-                      : 'bg-[#F9FAF8] border border-[#E4E7E0] text-[#7A8A7C] hover:text-[#222527]'
-                  }`}
-                >
-                  {pest}
-                </button>
+                      ? selectedType === 'insects' ? 'bg-[#EF4444] text-white' : 'bg-[#818CF8] text-white'
+                      : 'bg-white/[0.03] border border-white/[0.06] text-[#64748B] hover:text-[#F1F5F9]'
+                  }`}>{pest}</button>
               ))}
             </div>
-            {filteredPests.length === 0 && (
-              <p className="text-xs text-[#7A8A7C]">No matching pests found for this symptom on {selectedCrop}. Ask Lily for guidance.</p>
-            )}
           </div>
         )}
       </div>
@@ -769,48 +735,45 @@ function ScoutTab({ crops }: { crops: Crop[] }) {
       {selectedPest && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-[#222527]">Recommended Products — {selectedPest}</h3>
-            <button onClick={reset} className="text-xs text-[#7A8A7C] hover:text-[#222527] underline">Start over</button>
+            <h3 className="font-semibold text-[#F1F5F9]">Recommended Products — {selectedPest}</h3>
+            <button onClick={reset} className="text-xs text-[#64748B] hover:text-[#F1F5F9] underline transition-colors">Start over</button>
           </div>
 
           {sprayData.length > 0 ? sprayData.map(sr => (
-            <div key={sr.pest} className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden shadow-sm">
-              <div className="px-4 py-3 border-b border-[#E4E7E0]">
-                <span className="font-medium text-[#222527]">{sr.pest}</span>
-                <span className="text-xs text-[#7A8A7C] ml-2">· {sr.crop}</span>
+            <div key={sr.pest} className="bg-[#111827] border border-white/[0.06] rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-white/[0.06]">
+                <span className="font-medium text-[#F1F5F9]">{sr.pest}</span>
+                <span className="text-xs text-[#64748B] ml-2">· {sr.crop}</span>
               </div>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#E4E7E0] text-xs text-[#7A8A7C]">
-                    <th className="text-left px-4 py-2 font-medium">Product</th>
-                    <th className="text-left px-4 py-2 font-medium">Rate</th>
-                    <th className="text-left px-4 py-2 font-medium">Group</th>
-                    <th className="text-left px-4 py-2 font-medium">Notes</th>
+                  <tr className="border-b border-white/[0.06]">
+                    {['Product', 'Rate', 'Group', 'Notes'].map(h => (
+                      <th key={h} className="text-left px-4 py-2 font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1px]">{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {sr.products.map((p, i) => (
-                    <tr key={i} className="border-b border-[#E4E7E0]/50 last:border-0 hover:bg-[#F9FAF8]">
-                      <td className="px-4 py-2.5 font-medium text-[#222527]">{p.name}</td>
-                      <td className="px-4 py-2.5 text-[#4A7C59] font-semibold">{p.rate}</td>
+                    <tr key={i} className="border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02] transition-colors">
+                      <td className="px-4 py-2.5 font-medium text-[#F1F5F9]">{p.name}</td>
+                      <td className="px-4 py-2.5 text-[#34D399] font-semibold">{p.rate}</td>
                       <td className="px-4 py-2.5">
-                        <span className="text-xs bg-[#F5F5F3] border border-[#E4E7E0] px-2 py-0.5 rounded font-medium text-[#7A8A7C]">
-                          {p.grp}
-                        </span>
+                        <span className="text-[10px] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded font-medium text-[#94A3B8]">{p.grp}</span>
                       </td>
-                      <td className="px-4 py-2.5 text-xs text-[#7A8A7C]">{p.notes}</td>
+                      <td className="px-4 py-2.5 text-xs text-[#64748B]">{p.notes}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <div className="px-4 py-2 bg-[#F9FAF8] border-t border-[#E4E7E0]">
-                <p className="text-xs text-[#7A8A7C]">Source: {sr.src}</p>
+              <div className="px-4 py-2 border-t border-white/[0.04] bg-white/[0.02]">
+                <p className="text-[10px] text-[#475569]">Source: {sr.src}</p>
               </div>
             </div>
           )) : (
-            <div className="bg-white border border-[#E4E7E0] rounded-xl p-6 text-center">
-              <p className="text-[#7A8A7C] text-sm">No specific product data found for {selectedPest}.</p>
-              <p className="text-xs text-[#7A8A7C] mt-1">Ask Lily for guidance on this pest.</p>
+            <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-6 text-center">
+              <p className="text-[#64748B] text-sm">No specific product data found for {selectedPest}.</p>
+              <p className="text-xs text-[#475569] mt-1">Ask Lily for guidance on this pest.</p>
             </div>
           )}
         </div>
@@ -819,48 +782,47 @@ function ScoutTab({ crops }: { crops: Crop[] }) {
   )
 }
 
-// ─── Protection ───────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  PROTECTION
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function ProtectionTab() {
   return (
     <div className="space-y-4">
-      <div className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden shadow-sm">
-        <div className="px-5 py-4 border-b border-[#E4E7E0]">
-          <h2 className="font-semibold text-[#222527]">5-Pass Herbicide Timing System</h2>
-          <p className="text-xs text-[#7A8A7C] mt-0.5">
-            Standard prairie spray program — apply each pass at the right timing window
-          </p>
+      <div className="bg-[#111827] border border-white/[0.06] rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-white/[0.06]">
+          <h2 className="font-semibold text-[#F1F5F9]">5-Pass Herbicide Timing System</h2>
+          <p className="text-xs text-[#64748B] mt-0.5">Standard prairie spray program — apply each pass at the right timing window</p>
         </div>
-        <div className="divide-y divide-[#E4E7E0]">
-          {HERBICIDE_PASSES.map((pass, i) => (
+        <div className="divide-y divide-white/[0.04]">
+          {HERBICIDE_PASSES.map((pass) => (
             <div key={pass.pass} className="p-5">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#4A7C59] text-white flex items-center justify-center text-sm font-bold">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#34D399] text-[#080C15] flex items-center justify-center text-sm font-bold">
                   {pass.pass}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
-                    <h3 className="font-semibold text-[#222527]">{pass.label}</h3>
-                    <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium">
+                    <h3 className="font-semibold text-[#F1F5F9]">{pass.label}</h3>
+                    <span className="text-[10px] bg-[#F59E0B]/[0.08] text-[#F59E0B] border border-[#F59E0B]/20 px-2 py-0.5 rounded-full font-semibold">
                       {pass.timing}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                    <div>
-                      <span className="text-xs font-medium text-[#7A8A7C] uppercase tracking-wide block mb-1">Products</span>
-                      <span className="text-[#222527]">{pass.products}</span>
-                    </div>
-                    <div>
-                      <span className="text-xs font-medium text-[#7A8A7C] uppercase tracking-wide block mb-1">Target Weeds</span>
-                      <span className="text-[#222527]">{pass.targetWeeds}</span>
-                    </div>
-                    <div>
-                      <span className="text-xs font-medium text-[#7A8A7C] uppercase tracking-wide block mb-1">Crops</span>
-                      <span className="text-[#222527]">{pass.crops}</span>
-                    </div>
+                    {[
+                      { label: 'Products', value: pass.products },
+                      { label: 'Target Weeds', value: pass.targetWeeds },
+                      { label: 'Crops', value: pass.crops },
+                    ].map(item => (
+                      <div key={item.label}>
+                        <span className="font-mono text-[9px] font-semibold text-[#64748B] uppercase tracking-[1.5px] block mb-1">{item.label}</span>
+                        <span className="text-[#94A3B8]">{item.value}</span>
+                      </div>
+                    ))}
                   </div>
-                  <div className="mt-2 text-xs text-[#7A8A7C] bg-[#F9FAF8] border border-[#E4E7E0] rounded-lg px-3 py-2">
-                    💡 {pass.notes}
+                  <div className="mt-2 flex items-start gap-2 text-xs text-[#64748B] bg-white/[0.02] border border-white/[0.04] rounded-lg px-3 py-2">
+                    <Lightbulb size={12} className="text-[#F59E0B] mt-0.5 flex-shrink-0" />
+                    <span>{pass.notes}</span>
                   </div>
                 </div>
               </div>
@@ -872,20 +834,19 @@ function ProtectionTab() {
   )
 }
 
-// ─── Spray Calendar ───────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SPRAY CALENDAR
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function SprayCalendarTab({ crops }: { crops: Crop[] }) {
   const { user } = useUser()
-  const months = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct']
   const [seedingLog, setSeedingLog] = useState<{
     id: string; crop: string; seeding_date: string; acres: number; field_name: string; notes: string
   }[]>([])
   const [form, setForm] = useState({ crop: crops[0]?.name ?? '', seeding_date: '', acres: '', field_name: '', notes: '' })
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    fetchLog()
-  }, [user?.id])
+  useEffect(() => { fetchLog() }, [user?.id])
 
   async function fetchLog() {
     try {
@@ -925,117 +886,81 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
     const seeded = new Date(seedingDate)
     const today = new Date()
     const daysIn = Math.floor((today.getTime() - seeded.getTime()) / (1000 * 60 * 60 * 24))
-    if (daysIn < 0) return { label: 'Not Yet Seeded', color: 'text-[#7A8A7C]', bg: 'bg-[#F9FAF8]', urgent: false }
-    if (daysIn <= 7) return { label: 'Pre-Seed / Just Seeded', color: 'text-amber-700', bg: 'bg-amber-50', urgent: false }
-    if (daysIn <= 21) return { label: 'Early Scout Window', color: 'text-blue-700', bg: 'bg-blue-50', urgent: true }
-    if (daysIn <= 42) return { label: '⚠️ In-Crop Spray Window', color: 'text-[#4A7C59]', bg: 'bg-green-50', urgent: true }
-    if (daysIn <= 70) return { label: '⚠️ Fungicide Window', color: 'text-purple-700', bg: 'bg-purple-50', urgent: true }
-    if (daysIn <= 100) return { label: 'Pre-Harvest Window', color: 'text-orange-700', bg: 'bg-orange-50', urgent: true }
-    if (daysIn <= 120) return { label: 'Harvest Approaching', color: 'text-red-700', bg: 'bg-red-50', urgent: true }
-    return { label: 'Season Complete', color: 'text-[#7A8A7C]', bg: 'bg-[#F9FAF8]', urgent: false }
+    if (daysIn < 0) return { label: 'Not Yet Seeded', color: 'text-[#64748B]', bg: 'bg-white/[0.03]', urgent: false }
+    if (daysIn <= 7) return { label: 'Pre-Seed / Just Seeded', color: 'text-[#F59E0B]', bg: 'bg-[#F59E0B]/[0.06]', urgent: false }
+    if (daysIn <= 21) return { label: 'Early Scout Window', color: 'text-[#38BDF8]', bg: 'bg-[#38BDF8]/[0.06]', urgent: true }
+    if (daysIn <= 42) return { label: 'In-Crop Spray Window', color: 'text-[#34D399]', bg: 'bg-[#34D399]/[0.06]', urgent: true }
+    if (daysIn <= 70) return { label: 'Fungicide Window', color: 'text-[#818CF8]', bg: 'bg-[#818CF8]/[0.06]', urgent: true }
+    if (daysIn <= 100) return { label: 'Pre-Harvest Window', color: 'text-[#F97316]', bg: 'bg-[#F97316]/[0.06]', urgent: true }
+    if (daysIn <= 120) return { label: 'Harvest Approaching', color: 'text-[#EF4444]', bg: 'bg-[#EF4444]/[0.06]', urgent: true }
+    return { label: 'Season Complete', color: 'text-[#64748B]', bg: 'bg-white/[0.03]', urgent: false }
   }
 
   return (
     <div className="space-y-6">
-
       {/* Seeding Log Entry */}
-      <div className="bg-white border border-[#E4E7E0] rounded-xl p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-[#222527] mb-4">Log Seeded Crop</h3>
+      <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-5">
+        <h3 className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[2px] mb-4">Log Seeded Crop</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <div>
-            <label className="text-xs text-[#7A8A7C] font-medium block mb-1">Crop</label>
-            <select
-              value={form.crop}
-              onChange={e => setForm(p => ({ ...p, crop: e.target.value }))}
-              className="w-full text-sm border border-[#E4E7E0] rounded-lg px-2 py-2 bg-white text-[#222527] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/30"
-            >
+            <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Crop</label>
+            <select value={form.crop} onChange={e => setForm(p => ({ ...p, crop: e.target.value }))} className={inputClass + " bg-[#111827]"}>
               {crops.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-xs text-[#7A8A7C] font-medium block mb-1">Seeding Date</label>
-            <input
-              type="date"
-              value={form.seeding_date}
-              onChange={e => setForm(p => ({ ...p, seeding_date: e.target.value }))}
-              className="w-full text-sm border border-[#E4E7E0] rounded-lg px-2 py-2 bg-white text-[#222527] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/30"
-            />
+            <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Seeding Date</label>
+            <input type="date" value={form.seeding_date} onChange={e => setForm(p => ({ ...p, seeding_date: e.target.value }))} className={inputClass} />
           </div>
           <div>
-            <label className="text-xs text-[#7A8A7C] font-medium block mb-1">Acres</label>
-            <input
-              type="number"
-              placeholder="e.g. 320"
-              value={form.acres}
-              onChange={e => setForm(p => ({ ...p, acres: e.target.value }))}
-              className="w-full text-sm border border-[#E4E7E0] rounded-lg px-2 py-2 bg-white text-[#222527] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/30"
-            />
+            <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Acres</label>
+            <input type="number" placeholder="e.g. 320" value={form.acres} onChange={e => setForm(p => ({ ...p, acres: e.target.value }))} className={inputClass} />
           </div>
           <div>
-            <label className="text-xs text-[#7A8A7C] font-medium block mb-1">Field Name</label>
-            <input
-              type="text"
-              placeholder="e.g. North Quarter"
-              value={form.field_name}
-              onChange={e => setForm(p => ({ ...p, field_name: e.target.value }))}
-              className="w-full text-sm border border-[#E4E7E0] rounded-lg px-2 py-2 bg-white text-[#222527] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/30"
-            />
+            <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Field Name</label>
+            <input type="text" placeholder="e.g. North Quarter" value={form.field_name} onChange={e => setForm(p => ({ ...p, field_name: e.target.value }))} className={inputClass} />
           </div>
           <div>
-            <label className="text-xs text-[#7A8A7C] font-medium block mb-1">Notes</label>
-            <input
-              type="text"
-              placeholder="Optional"
-              value={form.notes}
-              onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-              className="w-full text-sm border border-[#E4E7E0] rounded-lg px-2 py-2 bg-white text-[#222527] focus:outline-none focus:ring-2 focus:ring-[#4A7C59]/30"
-            />
+            <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Notes</label>
+            <input type="text" placeholder="Optional" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} className={inputClass} />
           </div>
           <div className="flex items-end">
-            <button
-              onClick={addEntry}
-              disabled={saving || !form.seeding_date}
-              className="w-full px-4 py-2 bg-[#4A7C59] text-white text-sm font-medium rounded-lg hover:bg-[#3d6b4a] disabled:opacity-50 transition-colors"
-            >
+            <button onClick={addEntry} disabled={saving || !form.seeding_date}
+              className="w-full px-4 py-2 bg-[#34D399] text-[#080C15] text-sm font-semibold rounded-lg hover:bg-[#6EE7B7] disabled:opacity-40 transition-colors">
               {saving ? 'Saving...' : 'Log Crop'}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Active Seeding Log with Window Status */}
+      {/* Active Windows */}
       {seedingLog.length > 0 && (
-        <div className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden shadow-sm">
-          <div className="px-5 py-4 border-b border-[#E4E7E0]">
-            <h3 className="text-sm font-semibold text-[#222527]">Active Crop Windows</h3>
-            <p className="text-xs text-[#7A8A7C] mt-0.5">Based on days since seeding — reminders appear on your Overview dashboard</p>
+        <div className="bg-[#111827] border border-white/[0.06] rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-white/[0.06]">
+            <h3 className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">Active Crop Windows</h3>
+            <p className="text-[10px] text-[#475569] mt-0.5">Based on days since seeding — reminders appear on your Overview dashboard</p>
           </div>
-          <div className="divide-y divide-[#E4E7E0]">
+          <div className="divide-y divide-white/[0.04]">
             {seedingLog.map(entry => {
               const status = getWindowStatus(entry.seeding_date)
               const seeded = new Date(entry.seeding_date)
               const daysIn = Math.floor((new Date().getTime() - seeded.getTime()) / (1000 * 60 * 60 * 24))
               return (
-                <div key={entry.id} className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <div className="font-medium text-[#222527]">{entry.crop}</div>
-                      <div className="text-xs text-[#7A8A7C] mt-0.5">
-                        Seeded {new Date(entry.seeding_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        {entry.field_name && ` · ${entry.field_name}`}
-                        {entry.acres && ` · ${entry.acres} ac`}
-                      </div>
+                <div key={entry.id} className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap hover:bg-white/[0.02] transition-colors">
+                  <div>
+                    <div className="font-medium text-[#F1F5F9]">{entry.crop}</div>
+                    <div className="text-[10px] text-[#64748B] mt-0.5">
+                      Seeded {new Date(entry.seeding_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {entry.field_name && ` · ${entry.field_name}`}
+                      {entry.acres && ` · ${entry.acres} ac`}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className={`text-xs font-medium px-3 py-1.5 rounded-lg ${status.bg} ${status.color}`}>
+                    <div className={`text-[10px] font-semibold px-3 py-1.5 rounded-lg ${status.bg} ${status.color}`}>
                       Day {daysIn} — {status.label}
                     </div>
-                    <button
-                      onClick={() => deleteEntry(entry.id)}
-                      className="text-xs text-red-400 hover:text-red-600 transition-colors"
-                    >
-                      Remove
+                    <button onClick={() => deleteEntry(entry.id)} className="text-xs text-[#EF4444]/60 hover:text-[#EF4444] transition-colors">
+                      <Trash2 size={12} />
                     </button>
                   </div>
                 </div>
@@ -1045,11 +970,11 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
         </div>
       )}
 
-      {/* Visual Spray Calendar */}
-      <div className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden shadow-sm">
-        <div className="px-5 py-4 border-b border-[#E4E7E0]">
-          <h2 className="font-semibold text-[#222527]">Seasonal Spray Calendar</h2>
-          <p className="text-xs text-[#7A8A7C] mt-0.5">
+      {/* Spray Calendar */}
+      <div className="bg-[#111827] border border-white/[0.06] rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-white/[0.06]">
+          <h2 className="font-semibold text-[#F1F5F9]">Seasonal Spray Calendar</h2>
+          <p className="text-[10px] text-[#475569] mt-0.5">
             {seedingLog.length > 0
               ? 'Showing actual spray windows based on your logged seeding dates'
               : 'Log a seeded crop above to see personalized windows — showing guide defaults below'}
@@ -1057,34 +982,29 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
         </div>
 
         {/* Legend */}
-        <div className="px-5 py-3 border-b border-[#E4E7E0] flex flex-wrap gap-3">
+        <div className="px-5 py-3 border-b border-white/[0.04] flex flex-wrap gap-4">
           {[
-            { color: 'bg-amber-400', label: 'Pre-Seed Burnoff' },
-            { color: 'bg-blue-400', label: 'Pre-Emergence (Soil)' },
-            { color: 'bg-[#4A7C59]', label: 'In-Crop Herbicide' },
-            { color: 'bg-purple-400', label: 'Fungicide' },
-            { color: 'bg-orange-400', label: 'Pre-Harvest / Desiccation' },
+            { color: 'bg-[#F59E0B]', label: 'Pre-Seed Burnoff' },
+            { color: 'bg-[#38BDF8]', label: 'Pre-Emergence' },
+            { color: 'bg-[#34D399]', label: 'In-Crop Herbicide' },
+            { color: 'bg-[#818CF8]', label: 'Fungicide' },
+            { color: 'bg-[#F97316]', label: 'Pre-Harvest' },
           ].map(item => (
             <div key={item.label} className="flex items-center gap-1.5">
-              <div className={`w-3 h-3 rounded ${item.color}`}></div>
-              <span className="text-xs text-[#7A8A7C]">{item.label}</span>
+              <div className={`w-2.5 h-2.5 rounded ${item.color}`} />
+              <span className="text-[10px] text-[#64748B]">{item.label}</span>
             </div>
           ))}
         </div>
 
         <div className="overflow-x-auto">
           {seedingLog.length > 0 ? (
-            // ── Personalized view based on actual seeding dates ──
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#E4E7E0]">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8A7C] w-44">Crop / Field</th>
-                  <th className="text-left px-3 py-3 text-xs font-semibold text-[#7A8A7C]">Seeded</th>
-                  <th className="text-left px-3 py-3 text-xs font-semibold text-[#7A8A7C]">Pre-Seed Burnoff</th>
-                  <th className="text-left px-3 py-3 text-xs font-semibold text-[#7A8A7C]">Pre-Emergence</th>
-                  <th className="text-left px-3 py-3 text-xs font-semibold text-[#7A8A7C]">In-Crop Herbicide</th>
-                  <th className="text-left px-3 py-3 text-xs font-semibold text-[#7A8A7C]">Fungicide</th>
-                  <th className="text-left px-3 py-3 text-xs font-semibold text-[#7A8A7C]">Pre-Harvest</th>
+                <tr className="border-b border-white/[0.06]">
+                  {['Crop / Field', 'Seeded', 'Pre-Seed Burnoff', 'Pre-Emergence', 'In-Crop Herbicide', 'Fungicide', 'Pre-Harvest'].map(h => (
+                    <th key={h} className="text-left px-4 py-3 font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1px]">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -1093,8 +1013,7 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
                   const today = new Date()
 
                   function addDays(d: Date, n: number) {
-                    const r = new Date(d)
-                    r.setDate(r.getDate() + n)
+                    const r = new Date(d); r.setDate(r.getDate() + n)
                     return r.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
                   }
 
@@ -1104,27 +1023,27 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
                   }
 
                   const windows = [
-                    { label: `${addDays(seeded, -3)} – ${addDays(seeded, 0)}`, color: 'bg-amber-100 text-amber-700 border-amber-200', active: isActive(-3, 0) },
-                    { label: `${addDays(seeded, 1)} – ${addDays(seeded, 7)}`, color: 'bg-blue-100 text-blue-700 border-blue-200', active: isActive(1, 7) },
-                    { label: `${addDays(seeded, 21)} – ${addDays(seeded, 42)}`, color: 'bg-green-100 text-green-700 border-green-200', active: isActive(21, 42) },
-                    { label: `${addDays(seeded, 42)} – ${addDays(seeded, 70)}`, color: 'bg-purple-100 text-purple-700 border-purple-200', active: isActive(42, 70) },
-                    { label: `${addDays(seeded, 90)} – ${addDays(seeded, 110)}`, color: 'bg-orange-100 text-orange-700 border-orange-200', active: isActive(90, 110) },
+                    { label: `${addDays(seeded, -3)} – ${addDays(seeded, 0)}`, color: 'bg-[#F59E0B]/[0.08] text-[#F59E0B] border-[#F59E0B]/20', active: isActive(-3, 0) },
+                    { label: `${addDays(seeded, 1)} – ${addDays(seeded, 7)}`, color: 'bg-[#38BDF8]/[0.08] text-[#38BDF8] border-[#38BDF8]/20', active: isActive(1, 7) },
+                    { label: `${addDays(seeded, 21)} – ${addDays(seeded, 42)}`, color: 'bg-[#34D399]/[0.08] text-[#34D399] border-[#34D399]/20', active: isActive(21, 42) },
+                    { label: `${addDays(seeded, 42)} – ${addDays(seeded, 70)}`, color: 'bg-[#818CF8]/[0.08] text-[#818CF8] border-[#818CF8]/20', active: isActive(42, 70) },
+                    { label: `${addDays(seeded, 90)} – ${addDays(seeded, 110)}`, color: 'bg-[#F97316]/[0.08] text-[#F97316] border-[#F97316]/20', active: isActive(90, 110) },
                   ]
 
                   return (
-                    <tr key={entry.id} className="border-b border-[#E4E7E0]/50 hover:bg-[#F9FAF8]">
-                      <td className="px-5 py-3">
-                        <div className="font-medium text-[#222527]">{entry.crop}</div>
-                        {entry.field_name && <div className="text-xs text-[#7A8A7C]">{entry.field_name}</div>}
+                    <tr key={entry.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-[#F1F5F9]">{entry.crop}</div>
+                        {entry.field_name && <div className="text-[10px] text-[#64748B]">{entry.field_name}</div>}
                       </td>
-                      <td className="px-3 py-3 text-xs text-[#7A8A7C]">
+                      <td className="px-4 py-3 text-xs text-[#64748B]">
                         {seeded.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}
                       </td>
                       {windows.map((w, i) => (
                         <td key={i} className="px-3 py-3">
-                          <span className={`text-xs px-2 py-1 rounded-lg border font-medium inline-block ${w.color} ${w.active ? 'ring-2 ring-offset-1 ring-current' : ''}`}>
+                          <span className={`text-[10px] px-2 py-1 rounded-lg border font-semibold inline-block ${w.color} ${w.active ? 'ring-1 ring-current ring-offset-1 ring-offset-[#111827]' : ''}`}>
                             {w.label}
-                            {w.active && <span className="ml-1">●</span>}
+                            {w.active && <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-current" />}
                           </span>
                         </td>
                       ))}
@@ -1134,13 +1053,12 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
               </tbody>
             </table>
           ) : (
-            // ── Generic month view when no seeding data logged ──
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#E4E7E0]">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-[#7A8A7C] w-40">Crop</th>
+                <tr className="border-b border-white/[0.06]">
+                  <th className="text-left px-5 py-3 font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1px] w-40">Crop</th>
                   {['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'].map(m => (
-                    <th key={m} className="text-center px-2 py-3 text-xs font-semibold text-[#7A8A7C]">{m}</th>
+                    <th key={m} className="text-center px-2 py-3 font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1px]">{m}</th>
                   ))}
                 </tr>
               </thead>
@@ -1148,20 +1066,20 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
                 {crops.map(crop => {
                   const timingStr = crop.timings
                   return (
-                    <tr key={crop.name} className="border-b border-[#E4E7E0]/50 hover:bg-[#F9FAF8]">
-                      <td className="px-5 py-3 font-medium text-[#222527]">{crop.name}</td>
+                    <tr key={crop.name} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                      <td className="px-5 py-3 font-medium text-[#F1F5F9]">{crop.name}</td>
                       {[0,1,2,3,4,5,6].map(mi => {
                         const bars: string[] = []
-                        if (mi === 0 && timingStr.includes('Pre-seed')) bars.push('bg-amber-400')
-                        if (mi === 1 && timingStr.includes('Soil')) bars.push('bg-blue-400')
-                        if ((mi === 2 || mi === 3) && timingStr.includes('In-crop')) bars.push('bg-[#4A7C59]')
-                        if ((mi === 3 || mi === 4)) bars.push('bg-purple-400')
-                        if ((mi === 5 || mi === 6) && (timingStr.includes('Pre-harv') || timingStr.includes('Desiccation'))) bars.push('bg-orange-400')
+                        if (mi === 0 && timingStr.includes('Pre-seed')) bars.push('bg-[#F59E0B]')
+                        if (mi === 1 && timingStr.includes('Soil')) bars.push('bg-[#38BDF8]')
+                        if ((mi === 2 || mi === 3) && timingStr.includes('In-crop')) bars.push('bg-[#34D399]')
+                        if ((mi === 3 || mi === 4)) bars.push('bg-[#818CF8]')
+                        if ((mi === 5 || mi === 6) && (timingStr.includes('Pre-harv') || timingStr.includes('Desiccation'))) bars.push('bg-[#F97316]')
                         return (
                           <td key={mi} className="px-2 py-3 text-center">
                             <div className="flex flex-col gap-0.5 items-center">
                               {bars.map((color, bi) => (
-                                <div key={bi} className={`h-2 w-6 rounded-full ${color} opacity-80`}></div>
+                                <div key={bi} className={`h-2 w-6 rounded-full ${color} opacity-70`} />
                               ))}
                             </div>
                           </td>

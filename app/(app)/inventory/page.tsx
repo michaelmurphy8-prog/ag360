@@ -2,7 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from "@clerk/nextjs";
-import { Plus, Trash2, Package, TrendingUp, ArrowRightLeft, Truck, Pencil, Upload, BookOpen, Camera, FileText, AlertTriangle, ChevronLeft } from "lucide-react";
+import {
+  Plus, Trash2, Package, TrendingUp, ArrowRightLeft, Truck, Pencil, Upload,
+  BookOpen, Camera, FileText, AlertTriangle, ChevronLeft, ChevronDown, ChevronUp,
+  X, Loader2, CheckCircle, DollarSign, BarChart3, Scale, Wheat, Users, Settings2,
+  Download, Filter, RotateCcw, ShieldCheck, XCircle, Eye,
+} from "lucide-react";
 
 const CROPS = ["Canola", "CWRS Wheat", "Durum", "Barley", "Oats", "Peas", "Lentils", "Flax", "Soybeans", "Corn"];
 const CONTRACT_TYPES = ["Cash Sale", "HTA (Basis Contract)", "Deferred Delivery", "Futures-First", "Target Order", "PRO/Pool"];
@@ -51,7 +56,7 @@ type Driver = {
   phone?: string;
 };
 
-type Truck = {
+type TruckType = {
   id: string;
   truck_name: string;
   truck_id?: string;
@@ -100,16 +105,70 @@ type FarmProfile = {
   primaryElevator?: string;
 };
 
+// ─── Shared Styles ────────────────────────────────────────────────────────────
+
+const inputClass = "w-full text-sm border border-white/[0.10] rounded-lg px-3 py-2 bg-white/[0.04] text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:border-[#34D399]/50 transition-colors";
+const selectClass = "w-full text-sm border border-white/[0.10] rounded-lg px-3 py-2 bg-[#111827] text-[#F1F5F9] focus:outline-none focus:border-[#34D399]/50 transition-colors";
+const labelClass = "text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]";
+const btnPrimary = "flex items-center gap-1.5 bg-[#34D399] text-[#080C15] text-xs font-semibold px-5 py-2 rounded-full hover:bg-[#6EE7B7] transition-colors disabled:opacity-40";
+const btnSecondary = "flex items-center gap-1.5 text-xs font-semibold text-[#34D399] bg-[#34D399]/[0.08] border border-[#34D399]/15 px-4 py-2 rounded-full hover:bg-[#34D399]/[0.14] transition-colors";
+const btnGhost = "text-xs text-[#64748B] px-4 py-2 rounded-full hover:bg-white/[0.04] transition-colors";
+
 function fmt(n: number) {
   return `$${Math.abs(n).toLocaleString("en-CA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
+
+// ─── KPI Card ─────────────────────────────────────────────────────────────────
+
+function KpiCard({ label, value, sub, icon: Icon, highlight, accent }: {
+  label: string; value: string; sub: string;
+  icon: React.ElementType; highlight?: boolean; accent?: boolean;
+}) {
+  return (
+    <div className={`rounded-xl border p-5 transition-colors ${
+      highlight
+        ? "bg-[#F59E0B]/[0.04] border-[#F59E0B]/15"
+        : "bg-[#111827] border-white/[0.06]"
+    }`}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">{label}</p>
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+          highlight ? "bg-[#F59E0B]/[0.10]" : accent ? "bg-[#34D399]/[0.10]" : "bg-white/[0.04]"
+        }`}>
+          <Icon size={14} className={highlight ? "text-[#F59E0B]" : accent ? "text-[#34D399]" : "text-[#94A3B8]"} />
+        </div>
+      </div>
+      <p className={`text-2xl font-bold ${highlight ? "text-[#F59E0B]" : "text-[#F1F5F9]"}`}>{value}</p>
+      <p className="text-[10px] text-[#475569] mt-1">{sub}</p>
+    </div>
+  );
+}
+
+// ─── Form Card Wrapper ────────────────────────────────────────────────────────
+
+function FormCard({ title, onClose, children, accent }: {
+  title: string; onClose: () => void; children: React.ReactNode; accent?: boolean;
+}) {
+  return (
+    <div className={`rounded-xl border p-5 space-y-4 ${
+      accent ? "bg-[#F59E0B]/[0.03] border-[#F59E0B]/15" : "bg-[#111827] border-[#34D399]/15"
+    }`}>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-[#F1F5F9]">{title}</h3>
+        <button onClick={onClose} className="text-[#475569] hover:text-[#F1F5F9] transition-colors"><X size={16} /></button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function InventoryPage() {
   const { user, isLoaded } = useUser();
   const [kpiUnit, setKpiUnit] = useState<"bu" | "mt">("bu");
   const [activeTab, setActiveTab] = useState<"holdings" | "contracts" | "movements" | "grain_loads" | "settlements">("holdings");
 
-  // Existing state
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
@@ -120,10 +179,9 @@ export default function InventoryPage() {
   const [newContract, setNewContract] = useState<Contract>({ crop: "Canola", contract_type: "Cash Sale", quantity_bu: 0, price_per_bu: 0, elevator: "" });
   const [newMovement, setNewMovement] = useState<Movement>({ movement_type: "Delivery Out", crop: "Canola", quantity_bu: 0, movement_date: new Date().toISOString().split("T")[0] });
 
-  // Grain loads state
   const [grainLoads, setGrainLoads] = useState<GrainLoad[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [trucks, setTrucks] = useState<Truck[]>([]);
+  const [trucks, setTrucks] = useState<TruckType[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [showAddLoad, setShowAddLoad] = useState(false);
   const [editingLoad, setEditingLoad] = useState<GrainLoad | null>(null);
@@ -131,41 +189,30 @@ export default function InventoryPage() {
   const [showManageDrivers, setShowManageDrivers] = useState(false);
   const [showManageTrucks, setShowManageTrucks] = useState(false);
   const [showManageCustomers, setShowManageCustomers] = useState(false);
-const [bulkUploadError, setBulkUploadError] = useState("");
-const KG_PER_BUSHEL: Record<string, number> = {
+  const [bulkUploadError, setBulkUploadError] = useState("");
+  const KG_PER_BUSHEL: Record<string, number> = {
     "HRS Wheat": 27.22, "HRW Wheat": 27.22, "Wheat": 27.22, "Durum": 27.22,
     "Canola": 22.68, "Barley": 21.77, "Oats": 15.42,
     "Peas": 27.22, "Lentils": 27.22, "Flax": 25.40, "Soybeans": 27.22, "Corn": 25.40,
   };
-const [weightUnit, setWeightUnit] = useState<"kg" | "lb">("kg");
-const [filterFrom, setFilterFrom] = useState("");
-const [filterTo, setFilterTo] = useState("");
+  const [weightUnit, setWeightUnit] = useState<"kg" | "lb">("kg");
+  const [filterFrom, setFilterFrom] = useState("");
+  const [filterTo, setFilterTo] = useState("");
 
   const [newLoad, setNewLoad] = useState({
     date: new Date().toISOString().split("T")[0],
-    driver_id: "",
-    truck_id: "",
-    customer_id: "",
-    from: "",
-    contract_reference: "",
-    gross_weight_kg: "",
-    dockage_percent: "",
-    settlement_id: "",
-    notes: "",
-    crop: "",
-    price_per_bushel: "",
-    ticket_number: "",
-    crop_year: "2025",
+    driver_id: "", truck_id: "", customer_id: "", from: "", contract_reference: "",
+    gross_weight_kg: "", dockage_percent: "", settlement_id: "", notes: "",
+    crop: "", price_per_bushel: "", ticket_number: "", crop_year: "2025",
   });
   const [syncing, setSyncing] = useState(false);
-const [syncResult, setSyncResult] = useState<{ message: string; type: "success" | "error" } | null>(null);
-// Settlements state
-const [settlements, setSettlements] = useState<any[]>([]);
-const [selectedSettlement, setSelectedSettlement] = useState<any | null>(null);
-const [settlementLines, setSettlementLines] = useState<any[]>([]);
-const [settlementParsing, setSettlementParsing] = useState(false);
-const [settlementError, setSettlementError] = useState<string | null>(null);
-const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
+  const [syncResult, setSyncResult] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [settlements, setSettlements] = useState<any[]>([]);
+  const [selectedSettlement, setSelectedSettlement] = useState<any | null>(null);
+  const [settlementLines, setSettlementLines] = useState<any[]>([]);
+  const [settlementParsing, setSettlementParsing] = useState(false);
+  const [settlementError, setSettlementError] = useState<string | null>(null);
+  const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
   const [showTicketUpload, setShowTicketUpload] = useState(false);
   const [ticketParsing, setTicketParsing] = useState(false);
   const [ticketPreview, setTicketPreview] = useState<string | null>(null);
@@ -177,6 +224,8 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
   const [newCustomer, setNewCustomer] = useState({ customer_name: "", customer_id: "", location: "" });
 
   const headers = { "x-user-id": user?.id || "" };
+
+  // ─── Data Loading ─────────────────────────────────────────────────────────
 
   const loadAll = useCallback(async (uid?: string) => {
     const h2 = { "x-user-id": uid || user?.id || "" };
@@ -195,12 +244,8 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
       const seeded = profile.inventory
         .filter((i) => i.mode === "on_hand" && i.bushels && i.bushels > 0)
         .map((i) => ({
-          crop: i.crop,
-          location: "Main Bin",
-          quantity_bu: i.bushels || 0,
-          grade: "#1",
-          moisture: 0,
-          estimated_price: i.targetPrice || 0,
+          crop: i.crop, location: "Main Bin", quantity_bu: i.bushels || 0,
+          grade: "#1", moisture: 0, estimated_price: i.targetPrice || 0,
         }));
       if (seeded.length > 0) setHoldings(seeded);
     }
@@ -220,18 +265,17 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
   }, []);
 
   useEffect(() => {
-    if (!isLoaded) return;
-    if (!user?.id) return;
+    if (!isLoaded || !user?.id) return;
     loadAll(user.id);
     loadGrainData();
     loadSettlements();
   }, [isLoaded, user?.id]);
 
-  // Existing functions
+  // ─── CRUD Functions ───────────────────────────────────────────────────────
+
   async function addHolding() {
     const res = await fetch("/api/inventory/holdings", {
-      method: "POST",
-      headers: { ...headers, "Content-Type": "application/json" },
+      method: "POST", headers: { ...headers, "Content-Type": "application/json" },
       body: JSON.stringify({ action: "add", item: newHolding }),
     });
     const data = await res.json();
@@ -243,8 +287,7 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
 
   async function deleteHolding(id: number) {
     await fetch("/api/inventory/holdings", {
-      method: "POST",
-      headers: { ...headers, "Content-Type": "application/json" },
+      method: "POST", headers: { ...headers, "Content-Type": "application/json" },
       body: JSON.stringify({ action: "delete", item: { id } }),
     });
     setHoldings(holdings.filter(h => h.id !== id));
@@ -252,8 +295,7 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
 
   async function addContract() {
     const res = await fetch("/api/inventory/contracts", {
-      method: "POST",
-      headers: { ...headers, "Content-Type": "application/json" },
+      method: "POST", headers: { ...headers, "Content-Type": "application/json" },
       body: JSON.stringify({ action: "add", item: newContract }),
     });
     const data = await res.json();
@@ -264,8 +306,7 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
 
   async function deleteContract(id: number) {
     await fetch("/api/inventory/contracts", {
-      method: "POST",
-      headers: { ...headers, "Content-Type": "application/json" },
+      method: "POST", headers: { ...headers, "Content-Type": "application/json" },
       body: JSON.stringify({ action: "delete", item: { id } }),
     });
     setContracts(contracts.filter(c => c.id !== id));
@@ -273,8 +314,7 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
 
   async function logMovement(item: Movement) {
     const res = await fetch("/api/inventory/movements", {
-      method: "POST",
-      headers: { ...headers, "Content-Type": "application/json" },
+      method: "POST", headers: { ...headers, "Content-Type": "application/json" },
       body: JSON.stringify({ item }),
     });
     const data = await res.json();
@@ -287,17 +327,16 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
     setNewMovement({ movement_type: "Delivery Out", crop: "Canola", quantity_bu: 0, movement_date: new Date().toISOString().split("T")[0] });
   }
 
-  // Grain load functions
+  // ─── Grain Load Functions ─────────────────────────────────────────────────
+
   async function addLoad() {
     const res = await fetch("/api/grain-loads", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...newLoad,
         gross_weight_kg: parseFloat(newLoad.gross_weight_kg) || null,
         dockage_percent: parseFloat(newLoad.dockage_percent) || null,
-        from: newLoad.from || null,
-        crop: newLoad.crop || null,
+        from: newLoad.from || null, crop: newLoad.crop || null,
         price_per_bushel: newLoad.price_per_bushel ? parseFloat(newLoad.price_per_bushel) : null,
         ticket_number: newLoad.ticket_number || null,
         crop_year: parseInt(newLoad.crop_year) || 2025,
@@ -310,12 +349,11 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
       setNewLoad({ date: new Date().toISOString().split("T")[0], driver_id: "", truck_id: "", customer_id: "", from: "", contract_reference: "", gross_weight_kg: "", dockage_percent: "", settlement_id: "", notes: "", crop: "", price_per_bushel: "", ticket_number: "", crop_year: "2025" });
     }
   }
+
   async function parseScaleTicket(file: File) {
     setTicketParsing(true);
     setTicketError(null);
     setParsedTicket(null);
-
-    // Compress image if over 4MB using canvas
     async function compressImage(f: File): Promise<{ base64: string; mimeType: string }> {
       if (f.size <= 4 * 1024 * 1024) {
         const buffer = await f.arrayBuffer();
@@ -328,48 +366,30 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
           const canvas = document.createElement("canvas");
           const maxDim = 2048;
           let w = img.width, h = img.height;
-          if (w > maxDim || h > maxDim) {
-            const ratio = Math.min(maxDim / w, maxDim / h);
-            w = Math.round(w * ratio);
-            h = Math.round(h * ratio);
-          }
-          canvas.width = w;
-          canvas.height = h;
+          if (w > maxDim || h > maxDim) { const ratio = Math.min(maxDim / w, maxDim / h); w = Math.round(w * ratio); h = Math.round(h * ratio); }
+          canvas.width = w; canvas.height = h;
           const ctx = canvas.getContext("2d")!;
           ctx.drawImage(img, 0, 0, w, h);
           const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-          const base64 = dataUrl.split(",")[1];
-          resolve({ base64, mimeType: "image/jpeg" });
+          resolve({ base64: dataUrl.split(",")[1], mimeType: "image/jpeg" });
         };
         img.src = URL.createObjectURL(f);
       });
     }
-
-    // Preview
     const reader = new FileReader();
     reader.onload = (e) => setTicketPreview(e.target?.result as string);
     reader.readAsDataURL(file);
-
-    // Compress and convert to base64
     const { base64, mimeType } = await compressImage(file);
-
     try {
       const res = await fetch("/api/grain-loads/parse-ticket", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image: base64, mimeType }),
       });
       const data = await res.json();
-      if (data.success) {
-        setParsedTicket(data.data);
-      } else {
-        setTicketError(data.error || "Failed to parse ticket");
-      }
-    } catch {
-      setTicketError("Network error — try again");
-    } finally {
-      setTicketParsing(false);
-    }
+      if (data.success) setParsedTicket(data.data);
+      else setTicketError(data.error || "Failed to parse ticket");
+    } catch { setTicketError("Network error — try again"); }
+    finally { setTicketParsing(false); }
   }
 
   function applyTicketToForm() {
@@ -380,124 +400,86 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
     const calcBushels = netKg && crop ? Math.round(netKg / (KG_PER_BUSHEL[crop] || 27.22)) : null;
     const bushels = ticketBushels || calcBushels;
     setNewLoad({
-      ...newLoad,
-      date: parsedTicket.date || newLoad.date,
+      ...newLoad, date: parsedTicket.date || newLoad.date,
       gross_weight_kg: parsedTicket.gross_weight_kg?.toString() || "",
       dockage_percent: parsedTicket.dockage_percent?.toString() || "",
       contract_reference: parsedTicket.contract_reference || "",
       settlement_id: parsedTicket.delivery_number || "",
-      ticket_number: parsedTicket.ticket_number || "",
-      crop,
+      ticket_number: parsedTicket.ticket_number || "", crop,
       price_per_bushel: "",
       crop_year: parsedTicket.date ? parsedTicket.date.split("-")[0] : "2025",
       notes: `Parsed from scale ticket. Grade: ${parsedTicket.grade || "N/A"}. ${bushels ? `${bushels.toLocaleString()} bu` : ""}. Moisture: ${parsedTicket.moisture_percent || "N/A"}%. ${parsedTicket.remarks || ""}`.trim(),
     });
-    setShowTicketUpload(false);
-    setShowAddLoad(true);
-    setParsedTicket(null);
-    setTicketPreview(null);
+    setShowTicketUpload(false); setShowAddLoad(true);
+    setParsedTicket(null); setTicketPreview(null);
   }
+
   async function syncToLedger() {
-    setSyncing(true);
-    setSyncResult(null);
+    setSyncing(true); setSyncResult(null);
     try {
       const res = await fetch("/api/finance/auto-post", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "bulk_grain_loads", cropYear: 2025 }),
       });
       const data = await res.json();
       if (data.success) {
-        setSyncResult({ message: `✅ ${data.posted} posted, ${data.skipped} already synced${data.errors?.length > 0 ? `, ${data.errors.length} errors` : ""}`, type: "success" });
+        setSyncResult({ message: `${data.posted} posted, ${data.skipped} already synced${data.errors?.length > 0 ? `, ${data.errors.length} errors` : ""}`, type: "success" });
       } else {
         setSyncResult({ message: data.error || "Sync failed", type: "error" });
       }
-    } catch {
-      setSyncResult({ message: "Network error — try again", type: "error" });
-    } finally {
-      setSyncing(false);
-    }
+    } catch { setSyncResult({ message: "Network error — try again", type: "error" }); }
+    finally { setSyncing(false); }
   }
+
   async function loadSettlements() {
-    try {
-      const res = await fetch("/api/settlements");
-      const data = await res.json();
-      setSettlements(data.settlements || []);
-    } catch { /* ignore */ }
+    try { const res = await fetch("/api/settlements"); const data = await res.json(); setSettlements(data.settlements || []); } catch { /* ignore */ }
   }
   async function loadSettlementDetail(id: string) {
-    try {
-      const res = await fetch(`/api/settlements/${id}`);
-      const data = await res.json();
-      setSelectedSettlement(data.settlement);
-      setSettlementLines(data.lines || []);
-    } catch { /* ignore */ }
+    try { const res = await fetch(`/api/settlements/${id}`); const data = await res.json(); setSelectedSettlement(data.settlement); setSettlementLines(data.lines || []); } catch { /* ignore */ }
   }
   async function parseSettlement(file: File) {
-    setSettlementParsing(true);
-    setSettlementError(null);
-    setSettlementAnalysis(null);
+    setSettlementParsing(true); setSettlementError(null); setSettlementAnalysis(null);
     const buffer = await file.arrayBuffer();
     const base64 = btoa(new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), ""));
     try {
       const res = await fetch("/api/settlements/parse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pdf: base64, filename: file.name }),
       });
       const data = await res.json();
       if (data.success) {
-        setSettlementAnalysis(data.analysis);
-        setSelectedSettlement(data.settlement);
-        setSettlementLines(data.lines || []);
-        await loadSettlements();
-      } else {
-        setSettlementError(data.error || "Failed to parse settlement");
-      }
-    } catch {
-      setSettlementError("Network error — try again");
-    } finally {
-      setSettlementParsing(false);
-    }
+        setSettlementAnalysis(data.analysis); setSelectedSettlement(data.settlement);
+        setSettlementLines(data.lines || []); await loadSettlements();
+      } else { setSettlementError(data.error || "Failed to parse settlement"); }
+    } catch { setSettlementError("Network error — try again"); }
+    finally { setSettlementParsing(false); }
   }
   async function deleteSettlement(id: string) {
     if (!confirm("Delete this settlement?")) return;
     await fetch(`/api/settlements?id=${id}`, { method: "DELETE" });
-    setSelectedSettlement(null);
-    setSettlementLines([]);
-    setSettlementAnalysis(null);
+    setSelectedSettlement(null); setSettlementLines([]); setSettlementAnalysis(null);
     await loadSettlements();
   }
   async function postSettlementToLedger(id: string) {
     if (!confirm("Post this settlement to the ledger? This will create a journal entry.")) return;
     try {
       const res = await fetch(`/api/settlements/${id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "post_to_ledger" }),
       });
       const data = await res.json();
-      if (data.success) {
-        alert(data.message);
-        await loadSettlementDetail(id);
-        await loadSettlements();
-      } else {
-        alert(`Error: ${data.error}`);
-      }
-    } catch {
-      alert("Network error — try again");
-    }
+      if (data.success) { alert(data.message); await loadSettlementDetail(id); await loadSettlements(); }
+      else { alert(`Error: ${data.error}`); }
+    } catch { alert("Network error — try again"); }
   }
+
   async function updateLoad() {
     if (!editingLoad) return;
     const res = await fetch(`/api/grain-loads/${editingLoad.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        date: editingLoad.date,
-        driver_id: editingLoad.driver_id || null,
-        truck_id: editingLoad.truck_id || null,
-        customer_id: editingLoad.customer_id || null,
+        date: editingLoad.date, driver_id: editingLoad.driver_id || null,
+        truck_id: editingLoad.truck_id || null, customer_id: editingLoad.customer_id || null,
         contract_reference: editingLoad.contract_reference || null,
         gross_weight_kg: editingLoad.gross_weight_kg,
         dockage_percent: editingLoad.dockage_percent || null,
@@ -506,10 +488,7 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
       }),
     });
     const data = await res.json();
-    if (data.load) {
-      await loadGrainData();
-      setEditingLoad(null);
-    }
+    if (data.load) { await loadGrainData(); setEditingLoad(null); }
   }
 
   async function deleteLoad(id: string) {
@@ -519,111 +498,65 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
   }
 
   async function addDriver() {
-    const res = await fetch("/api/drivers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newDriver),
-    });
+    const res = await fetch("/api/drivers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newDriver) });
     const data = await res.json();
-    if (data.driver) {
-      setDrivers([...drivers, data.driver]);
-      setNewDriver({ driver_name: "", driver_id: "", phone: "" });
-    }
+    if (data.driver) { setDrivers([...drivers, data.driver]); setNewDriver({ driver_name: "", driver_id: "", phone: "" }); }
   }
-
   async function addTruck() {
-    const res = await fetch("/api/trucks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...newTruck, capacity_mt: parseFloat(newTruck.capacity_mt) || null }),
-    });
+    const res = await fetch("/api/trucks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...newTruck, capacity_mt: parseFloat(newTruck.capacity_mt) || null }) });
     const data = await res.json();
-    if (data.truck) {
-      setTrucks([...trucks, data.truck]);
-      setNewTruck({ truck_name: "", truck_id: "", license_plate: "", capacity_mt: "" });
-    }
+    if (data.truck) { setTrucks([...trucks, data.truck]); setNewTruck({ truck_name: "", truck_id: "", license_plate: "", capacity_mt: "" }); }
   }
-
   async function addCustomer() {
-    const res = await fetch("/api/customers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newCustomer),
-    });
+    const res = await fetch("/api/customers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newCustomer) });
     const data = await res.json();
-    if (data.customer) {
-      setCustomers([...customers, data.customer]);
-      setNewCustomer({ customer_name: "", customer_id: "", location: "" });
-    }
+    if (data.customer) { setCustomers([...customers, data.customer]); setNewCustomer({ customer_name: "", customer_id: "", location: "" }); }
   }
 
   async function handleBulkUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setBulkUploadError("");
-
     const text = await file.text();
     const lines = text.trim().split("\n");
     const headers_row = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/\s+/g, "_"));
-
     const loads = lines.slice(1).map(line => {
       const values = line.split(",").map(v => v.trim());
       const row: Record<string, string> = {};
       headers_row.forEach((h, i) => { row[h] = values[i] || ""; });
-
       const driver = drivers.find(d => d.driver_name.toLowerCase() === (row.driver || "").toLowerCase() || d.driver_id === row.driver_id);
       const truck = trucks.find(t => t.truck_name.toLowerCase() === (row.truck || "").toLowerCase() || t.truck_id === row.truck_id);
       const customer = customers.find(c => c.customer_name.toLowerCase() === (row.customer || "").toLowerCase());
-
       return {
         date: row.date || new Date().toISOString().split("T")[0],
-        driver_id: driver?.id || null,
-        truck_id: truck?.id || null,
-        customer_id: customer?.id || null,
+        driver_id: driver?.id || null, truck_id: truck?.id || null, customer_id: customer?.id || null,
         contract_reference: row.contract_reference || row.contract || null,
         gross_weight_kg: parseFloat(row.gross_weight_kg || row.gross_weight) || null,
         dockage_percent: parseFloat(row.dockage_percent || row.dockage) || null,
-        settlement_id: row.settlement_id || null,
-        notes: row.notes || null,
+        settlement_id: row.settlement_id || null, notes: row.notes || null,
       };
     }).filter(l => l.gross_weight_kg);
-
-    if (loads.length === 0) {
-      setBulkUploadError("No valid loads found. Check your CSV format.");
-      return;
-    }
-
+    if (loads.length === 0) { setBulkUploadError("No valid loads found. Check your CSV format."); return; }
     const res = await fetch("/api/grain-loads/bulk-upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ loads }),
     });
     const data = await res.json();
-    if (data.inserted) {
-      await loadGrainData();
-      setShowBulkUpload(false);
-      alert(`Successfully uploaded ${data.inserted} loads.`);
-    } else {
-      setBulkUploadError("Upload failed. Please try again.");
-    }
+    if (data.inserted) { await loadGrainData(); setShowBulkUpload(false); alert(`Successfully uploaded ${data.inserted} loads.`); }
+    else { setBulkUploadError("Upload failed. Please try again."); }
   }
 
   function downloadTemplate() {
     const template = "date,driver,driver_id,truck,truck_id,customer,contract_reference,gross_weight_kg,dockage_percent,settlement_id,notes\n2026-02-23,John Smith,D01,Truck 1,T01,Viterra Swift Current,C-2026-001,35000,1.5,S-001,\n";
     const blob = new Blob([template], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "ag360-grain-loads-template.csv";
-    a.click();
+    const a = document.createElement("a"); a.href = url; a.download = "ag360-grain-loads-template.csv"; a.click();
     URL.revokeObjectURL(url);
   }
 
-  // Weight conversion
   const toDisplay = (kg: number) => weightUnit === "lb" ? kg * 2.20462 : kg;
   const unitLabel = weightUnit === "kg" ? "kg" : "lb";
 
-  // Date filtered loads
   const filteredLoads = grainLoads.filter(l => {
     const d = l.date?.split("T")[0];
     if (filterFrom && d < filterFrom) return false;
@@ -631,7 +564,6 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
     return true;
   });
 
-  // Summary stats for grain loads
   const totalLoads = grainLoads.length;
   const totalGrossKg = grainLoads.reduce((sum, l) => sum + (parseFloat(String(l.gross_weight_kg)) || 0), 0);
   const totalNetKg = grainLoads.reduce((sum, l) => sum + (parseFloat(String(l.net_weight_kg || l.gross_weight_kg)) || 0), 0);
@@ -663,41 +595,33 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
     }
     const blob = new Blob([rows.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ag360-${tab}-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
+    const a = document.createElement("a"); a.href = url; a.download = `ag360-${tab}-${new Date().toISOString().split("T")[0]}.csv`; a.click();
     URL.revokeObjectURL(url);
   }
 
-  const inputClass = "w-full text-sm border border-[#E4E7E0] rounded-[10px] px-3 py-2 outline-none focus:border-[#4A7C59] bg-white";
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-6 pb-16">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#222527]">Inventory</h1>
-          <p className="text-sm text-[#7A8A7C] mt-1">Holdings, contracts, movements, grain loads, and settlements</p>
+          <h1 className="text-2xl font-bold text-[#F1F5F9]">Inventory</h1>
+          <p className="text-sm text-[#64748B] mt-1">Holdings, contracts, movements, grain loads, and settlements</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={exportCSV} className="flex items-center gap-2 text-sm font-semibold text-[#4A7C59] bg-[#EEF5F0] border border-[#C8DDD0] px-4 py-2.5 rounded-full hover:bg-[#DDE3D6] transition-colors">
-            Export CSV
+          <button onClick={exportCSV} className={btnSecondary}>
+            <Download size={13} /> Export CSV
           </button>
           {activeTab === "grain_loads" ? (
             <>
-              <button onClick={() => setShowBulkUpload(true)} className="flex items-center gap-2 text-sm font-semibold text-[#4A7C59] bg-[#EEF5F0] border border-[#C8DDD0] px-4 py-2.5 rounded-full hover:bg-[#DDE3D6] transition-colors">
-                <Upload size={14} /> Bulk Upload
+              <button onClick={() => setShowBulkUpload(true)} className={btnSecondary}><Upload size={13} /> Bulk Upload</button>
+              <button onClick={() => setShowTicketUpload(true)} className={btnSecondary}><Camera size={13} /> Scan Ticket</button>
+              <button onClick={syncToLedger} disabled={syncing} className={btnSecondary + " disabled:opacity-40"}>
+                {syncing ? <Loader2 size={13} className="animate-spin" /> : <BookOpen size={13} />}
+                {syncing ? "Syncing..." : "Sync to Ledger"}
               </button>
-              <button onClick={() => setShowTicketUpload(true)} className="flex items-center gap-2 text-sm font-semibold text-[#4A7C59] bg-[#EEF5F0] border border-[#C8DDD0] px-4 py-2.5 rounded-full hover:bg-[#DDE3D6] transition-colors">
-                <Camera size={14} /> Scan Ticket
-              </button>
-              <button onClick={syncToLedger} disabled={syncing} className="flex items-center gap-2 text-sm font-semibold text-[#4A7C59] bg-[#EEF5F0] border border-[#C8DDD0] px-4 py-2.5 rounded-full hover:bg-[#DDE3D6] transition-colors disabled:opacity-50">
-                <BookOpen size={14} /> {syncing ? "Syncing..." : "Sync to Ledger"}
-              </button>
-              <button onClick={() => setShowAddLoad(true)} className="flex items-center gap-2 bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-[#3d6b4a] transition-colors">
-                <Plus size={14} /> Add Load
-              </button>
+              <button onClick={() => setShowAddLoad(true)} className={btnPrimary}><Plus size={14} /> Add Load</button>
             </>
           ) : (
             <button
@@ -706,7 +630,7 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
                 if (activeTab === "contracts") setShowAddContract(true);
                 if (activeTab === "movements") setShowAddMovement(true);
               }}
-              className="flex items-center gap-2 bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-[#3d6b4a] transition-colors"
+              className={btnPrimary}
             >
               <Plus size={14} /> Add {activeTab === "holdings" ? "Holding" : activeTab === "contracts" ? "Contract" : "Movement"}
             </button>
@@ -715,188 +639,143 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
       </div>
 
       {/* KPI Strip */}
-      <div>
-{activeTab !== "grain_loads" ? (
-<>
-<div className="flex justify-end mb-2">
-  <div className="flex items-center bg-[#F3F4F6] rounded-full p-0.5 text-xs font-semibold">
-    <button onClick={() => setKpiUnit("bu")} className={`px-3 py-1 rounded-full transition-colors ${kpiUnit === "bu" ? "bg-white text-[#222527] shadow-sm" : "text-[#7A8A7C]"}`}>bu</button>
-    <button onClick={() => setKpiUnit("mt")} className={`px-3 py-1 rounded-full transition-colors ${kpiUnit === "mt" ? "bg-white text-[#222527] shadow-sm" : "text-[#7A8A7C]"}`}>MT</button>
-  </div>
-</div>
-<div className="grid grid-cols-4 gap-4">
-{[
-              { label: "Total On Hand", value: kpiUnit === "bu" ? `${Math.floor(totalBu).toLocaleString()} bu` : `${Math.floor(totalBu * 0.02722).toLocaleString()} MT`, sub: "across all bins" },
-              { label: "Estimated Value", value: fmt(Math.floor(totalValue)), sub: "at target prices" },
-              { label: "Contracted", value: kpiUnit === "bu" ? `${Math.floor(totalContracted).toLocaleString()} bu` : `${Math.floor(totalContracted * 0.02722).toLocaleString()} MT`, sub: "committed sales" },
-              { label: "Unpriced", value: kpiUnit === "bu" ? `${Math.floor(unpriced).toLocaleString()} bu` : `${Math.floor(unpriced * 0.02722).toLocaleString()} MT`, sub: unpriced > 0 ? "needs a home" : "fully contracted", highlight: unpriced > 0 },
-            ].map((k) => (
-<div key={k.label} className={`rounded-[20px] border shadow-sm p-5 ${k.highlight ? "bg-[#FFF8EC] border-[#F5D78E]" : "bg-white border-[#E4E7E0]"}`}>
-<p className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">{k.label}</p>
-<p className={`text-2xl font-bold mt-1 ${k.highlight ? "text-[#D97706]" : "text-[#222527]"}`}>{k.value}</p>
-<p className="text-xs text-[#7A8A7C] mt-1">{k.sub}</p>
-</div>
-            ))}
-</div>
-</>
-        ) : (
-          <>
-<div className="grid grid-cols-4 gap-4">
-{[
-              { label: "Total Loads", value: `${totalLoads}`, sub: "all time" },
-              { label: "Gross Weight", value: `${totalGrossMT.toFixed(1)} MT`, sub: `${totalGrossKg.toLocaleString()} kg` },
-              { label: "Net Weight", value: `${totalNetMT.toFixed(1)} MT`, sub: `${totalNetKg.toLocaleString()} kg` },
-              { label: "Avg Dockage", value: grainLoads.filter(l => l.dockage_percent).length > 0 ? `${(grainLoads.filter(l => l.dockage_percent).reduce((s, l) => s + parseFloat(String(l.dockage_percent)), 0) / grainLoads.filter(l => l.dockage_percent).length).toFixed(2)}%` : "—", sub: "average across loads" },
-            ].map((k) => (
-<div key={k.label} className="rounded-[20px] border border-[#E4E7E0] shadow-sm p-5 bg-white">
-<p className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">{k.label}</p>
-<p className="text-2xl font-bold mt-1 text-[#222527]">{k.value}</p>
-<p className="text-xs text-[#7A8A7C] mt-1">{k.sub}</p>
-</div>
-            ))}
-</div>
-</>
-        )}
-</div>
+      {activeTab !== "grain_loads" && activeTab !== "settlements" ? (
+        <>
+          <div className="flex justify-end mb-2">
+            <div className="flex items-center bg-white/[0.04] rounded-full p-0.5 text-xs font-semibold border border-white/[0.06]">
+              <button onClick={() => setKpiUnit("bu")} className={`px-3 py-1 rounded-full transition-all ${kpiUnit === "bu" ? "bg-[#34D399] text-[#080C15]" : "text-[#64748B]"}`}>bu</button>
+              <button onClick={() => setKpiUnit("mt")} className={`px-3 py-1 rounded-full transition-all ${kpiUnit === "mt" ? "bg-[#34D399] text-[#080C15]" : "text-[#64748B]"}`}>MT</button>
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-4">
+            <KpiCard icon={Package} label="Total On Hand"
+              value={kpiUnit === "bu" ? `${Math.floor(totalBu).toLocaleString()} bu` : `${Math.floor(totalBu * 0.02722).toLocaleString()} MT`}
+              sub="across all bins" />
+            <KpiCard icon={DollarSign} label="Estimated Value" value={fmt(Math.floor(totalValue))} sub="at target prices" accent />
+            <KpiCard icon={TrendingUp} label="Contracted"
+              value={kpiUnit === "bu" ? `${Math.floor(totalContracted).toLocaleString()} bu` : `${Math.floor(totalContracted * 0.02722).toLocaleString()} MT`}
+              sub="committed sales" />
+            <KpiCard icon={AlertTriangle} label="Unpriced"
+              value={kpiUnit === "bu" ? `${Math.floor(unpriced).toLocaleString()} bu` : `${Math.floor(unpriced * 0.02722).toLocaleString()} MT`}
+              sub={unpriced > 0 ? "needs a home" : "fully contracted"}
+              highlight={unpriced > 0} />
+          </div>
+        </>
+      ) : activeTab === "grain_loads" ? (
+        <div className="grid grid-cols-4 gap-4">
+          <KpiCard icon={Truck} label="Total Loads" value={`${totalLoads}`} sub="all time" />
+          <KpiCard icon={Scale} label="Gross Weight" value={`${totalGrossMT.toFixed(1)} MT`} sub={`${totalGrossKg.toLocaleString()} kg`} />
+          <KpiCard icon={BarChart3} label="Net Weight" value={`${totalNetMT.toFixed(1)} MT`} sub={`${totalNetKg.toLocaleString()} kg`} accent />
+          <KpiCard icon={AlertTriangle} label="Avg Dockage"
+            value={grainLoads.filter(l => l.dockage_percent).length > 0 ? `${(grainLoads.filter(l => l.dockage_percent).reduce((s, l) => s + parseFloat(String(l.dockage_percent)), 0) / grainLoads.filter(l => l.dockage_percent).length).toFixed(2)}%` : "—"}
+            sub="average across loads"
+            highlight={grainLoads.filter(l => l.dockage_percent).length > 0 && (grainLoads.filter(l => l.dockage_percent).reduce((s, l) => s + parseFloat(String(l.dockage_percent)), 0) / grainLoads.filter(l => l.dockage_percent).length) > 3}
+          />
+        </div>
+      ) : null}
 
       {/* Tabs */}
-      <div className="bg-white rounded-[20px] border border-[#E4E7E0] shadow-sm overflow-hidden">
-        <div className="flex border-b border-[#E4E7E0]">
+      <div className="bg-[#111827] rounded-xl border border-white/[0.06] overflow-hidden">
+        <div className="flex border-b border-white/[0.06]">
           {([
             { key: "holdings", label: "Holdings", icon: Package },
             { key: "contracts", label: "Contracts", icon: TrendingUp },
             { key: "movements", label: "Movement Log", icon: ArrowRightLeft },
             { key: "grain_loads", label: "Grain Loads", icon: Truck },
-{ key: "settlements", label: "Settlements", icon: FileText },
+            { key: "settlements", label: "Settlements", icon: FileText },
           ] as const).map(({ key, label, icon: Icon }) => (
             <button key={key} onClick={() => setActiveTab(key)}
-              className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold border-b-2 transition-colors ${activeTab === key ? "border-[#4A7C59] text-[#4A7C59]" : "border-transparent text-[#7A8A7C] hover:text-[#222527]"}`}>
+              className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold border-b-2 transition-all ${
+                activeTab === key
+                  ? "border-[#34D399] text-[#34D399]"
+                  : "border-transparent text-[#64748B] hover:text-[#F1F5F9]"
+              }`}>
               <Icon size={14} /> {label}
             </button>
           ))}
         </div>
 
-        {/* HOLDINGS TAB */}
+        {/* ═══════════════ HOLDINGS TAB ═══════════════ */}
         {activeTab === "holdings" && (
           <div className="p-6 space-y-4">
             {showAddHolding && (
-              <div className="p-4 bg-[#F5F5F3] rounded-[16px] space-y-3">
-                <p className="text-sm font-bold text-[#222527]">Add Holding</p>
+              <FormCard title="Add Holding" onClose={() => setShowAddHolding(false)}>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Crop</label>
-                    <select value={newHolding.crop} onChange={e => setNewHolding({...newHolding, crop: e.target.value})} className={inputClass}>
-                      {CROPS.map(c => <option key={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Location / Bin</label>
-                    <input type="text" placeholder="North Bin" value={newHolding.location} onChange={e => setNewHolding({...newHolding, location: e.target.value})} className={inputClass} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Quantity (bu)</label>
-                    <input type="number" value={newHolding.quantity_bu || ""} onChange={e => setNewHolding({...newHolding, quantity_bu: Number(e.target.value)})} className={inputClass} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Grade</label>
-                    <select value={newHolding.grade} onChange={e => setNewHolding({...newHolding, grade: e.target.value})} className={inputClass}>
-                      {GRADES.map(g => <option key={g}>{g}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Moisture (%)</label>
-                    <input type="number" step="0.1" value={newHolding.moisture || ""} onChange={e => setNewHolding({...newHolding, moisture: Number(e.target.value)})} className={inputClass} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Est. Price ($/bu)</label>
-                    <input type="number" step="0.01" value={newHolding.estimated_price || ""} onChange={e => setNewHolding({...newHolding, estimated_price: Number(e.target.value)})} className={inputClass} />
-                  </div>
+                  <div><label className={labelClass}>Crop</label><select value={newHolding.crop} onChange={e => setNewHolding({...newHolding, crop: e.target.value})} className={selectClass}>{CROPS.map(c => <option key={c}>{c}</option>)}</select></div>
+                  <div><label className={labelClass}>Location / Bin</label><input type="text" placeholder="North Bin" value={newHolding.location} onChange={e => setNewHolding({...newHolding, location: e.target.value})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Quantity (bu)</label><input type="number" value={newHolding.quantity_bu || ""} onChange={e => setNewHolding({...newHolding, quantity_bu: Number(e.target.value)})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Grade</label><select value={newHolding.grade} onChange={e => setNewHolding({...newHolding, grade: e.target.value})} className={selectClass}>{GRADES.map(g => <option key={g}>{g}</option>)}</select></div>
+                  <div><label className={labelClass}>Moisture (%)</label><input type="number" step="0.1" value={newHolding.moisture || ""} onChange={e => setNewHolding({...newHolding, moisture: Number(e.target.value)})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Est. Price ($/bu)</label><input type="number" step="0.01" value={newHolding.estimated_price || ""} onChange={e => setNewHolding({...newHolding, estimated_price: Number(e.target.value)})} className={inputClass} /></div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={addHolding} className="bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#3d6b4a]">Save</button>
-                  <button onClick={() => setShowAddHolding(false)} className="text-sm text-[#7A8A7C] px-5 py-2 rounded-full hover:bg-[#F5F5F3]">Cancel</button>
+                  <button onClick={addHolding} className={btnPrimary}>Save</button>
+                  <button onClick={() => setShowAddHolding(false)} className={btnGhost}>Cancel</button>
                 </div>
-              </div>
+              </FormCard>
             )}
             {holdings.length === 0 ? (
-              <p className="text-sm text-[#7A8A7C] text-center py-8">No holdings yet — add a bin or check your Farm Profile inventory.</p>
+              <div className="text-center py-12">
+                <Package size={28} className="mx-auto text-[#475569] mb-2" />
+                <p className="text-sm text-[#64748B]">No holdings yet — add a bin or check your Farm Profile inventory.</p>
+              </div>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide border-b border-[#E4E7E0]">
-                    <th className="text-left pb-3 pr-8">Crop</th>
-                    <th className="text-left pb-3 pr-8">Location</th>
-                    <th className="text-right pb-3 pr-8">Quantity</th>
-                    <th className="text-left pb-3 pr-8">Grade</th>
-                    <th className="text-right pb-3 pr-8">Moisture</th>
-                    <th className="text-right pb-3 pr-8">Est. Price</th>
-                    <th className="text-right pb-3">Value</th>
-                    <th className="pb-3"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#F5F5F3]">
-                  {holdings.map((h, i) => (
-                    <tr key={h.id || i} className="py-3">
-                      <td className="py-3 pr-8 font-semibold text-[#222527]">{h.crop}</td>
-                      <td className="py-3 pr-8 text-[#7A8A7C]">{h.location}</td>
-                      <td className="py-3 pr-8 text-right font-semibold">{Number(h.quantity_bu).toLocaleString()} bu</td>
-                      <td className="py-3 pr-8 text-[#7A8A7C]">{h.grade || "—"}</td>
-                      <td className="py-3 pr-8 text-right text-[#7A8A7C]">{h.moisture ? `${h.moisture}%` : "—"}</td>
-                      <td className="py-3 pr-8 text-right text-[#7A8A7C]">{h.estimated_price ? `$${h.estimated_price}/bu` : "—"}</td>
-                      <td className="py-3 text-right font-semibold text-[#4A7C59]">{fmt(Number(h.quantity_bu) * Number(h.estimated_price || 0))}</td>
-                      <td className="py-3 text-right">
-                        {h.id && <button onClick={() => deleteHolding(h.id!)} className="text-[#D94F3D] hover:text-red-700"><Trash2 size={14} /></button>}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px] border-b border-white/[0.06]">
+                      <th className="text-left pb-3 pr-6">Crop</th>
+                      <th className="text-left pb-3 pr-6">Location</th>
+                      <th className="text-right pb-3 pr-6">Quantity</th>
+                      <th className="text-left pb-3 pr-6">Grade</th>
+                      <th className="text-right pb-3 pr-6">Moisture</th>
+                      <th className="text-right pb-3 pr-6">Est. Price</th>
+                      <th className="text-right pb-3">Value</th>
+                      <th className="pb-3 w-10"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.04]">
+                    {holdings.map((h, i) => (
+                      <tr key={h.id || i} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 pr-6 font-semibold text-[#F1F5F9]">{h.crop}</td>
+                        <td className="py-3 pr-6 text-[#94A3B8]">{h.location}</td>
+                        <td className="py-3 pr-6 text-right font-semibold text-[#F1F5F9] font-mono">{Number(h.quantity_bu).toLocaleString()} bu</td>
+                        <td className="py-3 pr-6"><span className="text-[10px] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded text-[#94A3B8]">{h.grade || "—"}</span></td>
+                        <td className="py-3 pr-6 text-right text-[#64748B]">{h.moisture ? `${h.moisture}%` : "—"}</td>
+                        <td className="py-3 pr-6 text-right text-[#94A3B8]">{h.estimated_price ? `$${h.estimated_price}/bu` : "—"}</td>
+                        <td className="py-3 text-right font-semibold text-[#34D399]">{fmt(Number(h.quantity_bu) * Number(h.estimated_price || 0))}</td>
+                        <td className="py-3 text-right">
+                          {h.id && <button onClick={() => deleteHolding(h.id!)} className="text-[#EF4444]/40 hover:text-[#EF4444] transition-colors"><Trash2 size={14} /></button>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
 
-        {/* CONTRACTS TAB */}
+        {/* ═══════════════ CONTRACTS TAB ═══════════════ */}
         {activeTab === "contracts" && (
           <div className="p-6 space-y-4">
             {showAddContract && (
-              <div className="p-4 bg-[#F5F5F3] rounded-[16px] space-y-3">
-                <p className="text-sm font-bold text-[#222527]">Add Contract</p>
+              <FormCard title="Add Contract" onClose={() => setShowAddContract(false)}>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Crop</label>
-                    <select value={newContract.crop} onChange={e => setNewContract({...newContract, crop: e.target.value})} className={inputClass}>
-                      {CROPS.map(c => <option key={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Contract Type</label>
-                    <select value={newContract.contract_type} onChange={e => setNewContract({...newContract, contract_type: e.target.value})} className={inputClass}>
-                      {CONTRACT_TYPES.map(t => <option key={t}>{t}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Quantity (bu)</label>
-                    <input type="number" value={newContract.quantity_bu || ""} onChange={e => setNewContract({...newContract, quantity_bu: Number(e.target.value)})} className={inputClass} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Price ($/bu)</label>
-                    <input type="number" step="0.01" value={newContract.price_per_bu || ""} onChange={e => setNewContract({...newContract, price_per_bu: Number(e.target.value)})} className={inputClass} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Elevator</label>
-                    <input type="text" placeholder="Viterra Swift Current" value={newContract.elevator || ""} onChange={e => setNewContract({...newContract, elevator: e.target.value})} className={inputClass} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Delivery Date</label>
-                    <input type="date" value={newContract.delivery_date || ""} onChange={e => setNewContract({...newContract, delivery_date: e.target.value})} className={inputClass} />
-                  </div>
+                  <div><label className={labelClass}>Crop</label><select value={newContract.crop} onChange={e => setNewContract({...newContract, crop: e.target.value})} className={selectClass}>{CROPS.map(c => <option key={c}>{c}</option>)}</select></div>
+                  <div><label className={labelClass}>Contract Type</label><select value={newContract.contract_type} onChange={e => setNewContract({...newContract, contract_type: e.target.value})} className={selectClass}>{CONTRACT_TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
+                  <div><label className={labelClass}>Quantity (bu)</label><input type="number" value={newContract.quantity_bu || ""} onChange={e => setNewContract({...newContract, quantity_bu: Number(e.target.value)})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Price ($/bu)</label><input type="number" step="0.01" value={newContract.price_per_bu || ""} onChange={e => setNewContract({...newContract, price_per_bu: Number(e.target.value)})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Elevator</label><input type="text" placeholder="Viterra Swift Current" value={newContract.elevator || ""} onChange={e => setNewContract({...newContract, elevator: e.target.value})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Delivery Date</label><input type="date" value={newContract.delivery_date || ""} onChange={e => setNewContract({...newContract, delivery_date: e.target.value})} className={inputClass} /></div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={addContract} className="bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#3d6b4a]">Save</button>
-                  <button onClick={() => setShowAddContract(false)} className="text-sm text-[#7A8A7C] px-5 py-2 rounded-full hover:bg-[#F5F5F3]">Cancel</button>
+                  <button onClick={addContract} className={btnPrimary}>Save</button>
+                  <button onClick={() => setShowAddContract(false)} className={btnGhost}>Cancel</button>
                 </div>
-              </div>
+              </FormCard>
             )}
+            {/* Crop position cards */}
             {holdings.length > 0 && (
               <div className="grid grid-cols-3 gap-3 mb-4">
                 {[...new Set(holdings.map(h => h.crop))].map(crop => {
@@ -904,214 +783,201 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
                   const totalSold = contracts.filter(c => c.crop === crop).reduce((s, c) => s + Number(c.quantity_bu), 0);
                   const pct = totalHeld > 0 ? Math.min(100, Math.round((totalSold / totalHeld) * 100)) : 0;
                   return (
-                    <div key={crop} className="p-4 bg-[#F5F5F3] rounded-[16px]">
-                      <p className="text-sm font-bold text-[#222527]">{crop}</p>
-                      <div className="flex justify-between text-xs text-[#7A8A7C] mt-1">
+                    <div key={crop} className="p-4 bg-white/[0.02] border border-white/[0.06] rounded-xl">
+                      <p className="text-sm font-bold text-[#F1F5F9]">{crop}</p>
+                      <div className="flex justify-between text-[10px] text-[#64748B] mt-1">
                         <span>{totalSold.toLocaleString()} bu sold</span>
                         <span>{totalHeld.toLocaleString()} bu total</span>
                       </div>
-                      <div className="mt-2 h-2 bg-[#E4E7E0] rounded-full overflow-hidden">
-                        <div className="h-full bg-[#4A7C59] rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      <div className="mt-2 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                        <div className="h-full bg-[#34D399] rounded-full transition-all" style={{ width: `${pct}%` }} />
                       </div>
-                      <p className="text-xs font-semibold text-[#4A7C59] mt-1">{pct}% contracted</p>
+                      <p className="text-[10px] font-semibold text-[#34D399] mt-1">{pct}% contracted</p>
                     </div>
                   );
                 })}
               </div>
             )}
             {contracts.length === 0 ? (
-              <p className="text-sm text-[#7A8A7C] text-center py-8">No contracts yet — add your first sale.</p>
+              <div className="text-center py-12">
+                <TrendingUp size={28} className="mx-auto text-[#475569] mb-2" />
+                <p className="text-sm text-[#64748B]">No contracts yet — add your first sale.</p>
+              </div>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide border-b border-[#E4E7E0]">
-                    <th className="text-left pb-3 pr-8">Crop</th>
-                    <th className="text-left pb-3 pr-8">Type</th>
-                    <th className="text-right pb-3 pr-8">Quantity</th>
-                    <th className="text-right pb-3 pr-8">Price</th>
-                    <th className="text-left pb-3 pr-8">Elevator</th>
-                    <th className="text-left pb-3 pr-8">Delivery</th>
-                    <th className="text-right pb-3">Value</th>
-                    <th className="pb-3"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#F5F5F3]">
-                  {contracts.map((c, i) => (
-                    <tr key={c.id || i}>
-                      <td className="py-3 pr-8 font-semibold text-[#222527]">{c.crop}</td>
-                      <td className="py-3 pr-8"><span className="text-xs bg-[#EEF5F0] text-[#4A7C59] font-semibold px-2 py-1 rounded-full">{c.contract_type}</span></td>
-                      <td className="py-3 pr-8 text-right">{Number(c.quantity_bu).toLocaleString()} bu</td>
-                      <td className="py-3 pr-8 text-right">{c.price_per_bu ? `$${c.price_per_bu}/bu` : "—"}</td>
-                      <td className="py-3 pr-8 text-[#7A8A7C]">{c.elevator || "—"}</td>
-                      <td className="py-3 pr-8 text-[#7A8A7C]">{c.delivery_date || "—"}</td>
-                      <td className="py-3 text-right font-semibold text-[#4A7C59]">{c.price_per_bu ? fmt(Number(c.quantity_bu) * Number(c.price_per_bu)) : "—"}</td>
-                      <td className="py-3 text-right">
-                        {c.id && <button onClick={() => deleteContract(c.id!)} className="text-[#D94F3D] hover:text-red-700"><Trash2 size={14} /></button>}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px] border-b border-white/[0.06]">
+                      <th className="text-left pb-3 pr-6">Crop</th>
+                      <th className="text-left pb-3 pr-6">Type</th>
+                      <th className="text-right pb-3 pr-6">Quantity</th>
+                      <th className="text-right pb-3 pr-6">Price</th>
+                      <th className="text-left pb-3 pr-6">Elevator</th>
+                      <th className="text-left pb-3 pr-6">Delivery</th>
+                      <th className="text-right pb-3">Value</th>
+                      <th className="pb-3 w-10"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.04]">
+                    {contracts.map((c, i) => (
+                      <tr key={c.id || i} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 pr-6 font-semibold text-[#F1F5F9]">{c.crop}</td>
+                        <td className="py-3 pr-6"><span className="text-[10px] bg-[#34D399]/[0.08] text-[#34D399] font-semibold px-2 py-1 rounded-full">{c.contract_type}</span></td>
+                        <td className="py-3 pr-6 text-right font-mono text-[#F1F5F9]">{Number(c.quantity_bu).toLocaleString()} bu</td>
+                        <td className="py-3 pr-6 text-right text-[#94A3B8]">{c.price_per_bu ? `$${c.price_per_bu}/bu` : "—"}</td>
+                        <td className="py-3 pr-6 text-[#64748B]">{c.elevator || "—"}</td>
+                        <td className="py-3 pr-6 text-[#64748B]">{c.delivery_date || "—"}</td>
+                        <td className="py-3 text-right font-semibold text-[#34D399]">{c.price_per_bu ? fmt(Number(c.quantity_bu) * Number(c.price_per_bu)) : "—"}</td>
+                        <td className="py-3 text-right">
+                          {c.id && <button onClick={() => deleteContract(c.id!)} className="text-[#EF4444]/40 hover:text-[#EF4444] transition-colors"><Trash2 size={14} /></button>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
 
-        {/* MOVEMENTS TAB */}
+        {/* ═══════════════ MOVEMENTS TAB ═══════════════ */}
         {activeTab === "movements" && (
           <div className="p-6 space-y-4">
             {showAddMovement && (
-              <div className="p-4 bg-[#F5F5F3] rounded-[16px] space-y-3">
-                <p className="text-sm font-bold text-[#222527]">Log Movement</p>
+              <FormCard title="Log Movement" onClose={() => setShowAddMovement(false)}>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Type</label>
-                    <select value={newMovement.movement_type} onChange={e => setNewMovement({...newMovement, movement_type: e.target.value})} className={inputClass}>
-                      {MOVEMENT_TYPES.map(t => <option key={t}>{t}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Crop</label>
-                    <select value={newMovement.crop} onChange={e => setNewMovement({...newMovement, crop: e.target.value})} className={inputClass}>
-                      {CROPS.map(c => <option key={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Quantity (bu)</label>
-                    <input type="number" value={newMovement.quantity_bu || ""} onChange={e => setNewMovement({...newMovement, quantity_bu: Number(e.target.value)})} className={inputClass} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">From</label>
-                    <select value={newMovement.from_location || ""} onChange={e => setNewMovement({...newMovement, from_location: e.target.value})} className={inputClass}>
+                  <div><label className={labelClass}>Type</label><select value={newMovement.movement_type} onChange={e => setNewMovement({...newMovement, movement_type: e.target.value})} className={selectClass}>{MOVEMENT_TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
+                  <div><label className={labelClass}>Crop</label><select value={newMovement.crop} onChange={e => setNewMovement({...newMovement, crop: e.target.value})} className={selectClass}>{CROPS.map(c => <option key={c}>{c}</option>)}</select></div>
+                  <div><label className={labelClass}>Quantity (bu)</label><input type="number" value={newMovement.quantity_bu || ""} onChange={e => setNewMovement({...newMovement, quantity_bu: Number(e.target.value)})} className={inputClass} /></div>
+                  <div>
+                    <label className={labelClass}>From</label>
+                    <select value={newMovement.from_location || ""} onChange={e => setNewMovement({...newMovement, from_location: e.target.value})} className={selectClass}>
                       <option value="">Select bin...</option>
-                      {[...new Set(holdings.map(h => h.location))].map(loc => (
-                        <option key={loc} value={loc}>{loc}</option>
-                      ))}
+                      {[...new Set(holdings.map(h => h.location))].map(loc => <option key={loc} value={loc}>{loc}</option>)}
                       <option value="other">Other...</option>
                     </select>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">To</label>
-                    <input type="text" placeholder="Viterra Swift Current" value={newMovement.to_location || ""} onChange={e => setNewMovement({...newMovement, to_location: e.target.value})} className={inputClass} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Date</label>
-                    <input type="date" value={newMovement.movement_date} onChange={e => setNewMovement({...newMovement, movement_date: e.target.value})} className={inputClass} />
-                  </div>
+                  <div><label className={labelClass}>To</label><input type="text" placeholder="Viterra Swift Current" value={newMovement.to_location || ""} onChange={e => setNewMovement({...newMovement, to_location: e.target.value})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Date</label><input type="date" value={newMovement.movement_date} onChange={e => setNewMovement({...newMovement, movement_date: e.target.value})} className={inputClass} /></div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={addMovement} className="bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#3d6b4a]">Save</button>
-                  <button onClick={() => setShowAddMovement(false)} className="text-sm text-[#7A8A7C] px-5 py-2 rounded-full hover:bg-[#F5F5F3]">Cancel</button>
+                  <button onClick={addMovement} className={btnPrimary}>Save</button>
+                  <button onClick={() => setShowAddMovement(false)} className={btnGhost}>Cancel</button>
                 </div>
-              </div>
+              </FormCard>
             )}
             {movements.length === 0 ? (
-              <p className="text-sm text-[#7A8A7C] text-center py-8">No movements logged yet.</p>
+              <div className="text-center py-12">
+                <ArrowRightLeft size={28} className="mx-auto text-[#475569] mb-2" />
+                <p className="text-sm text-[#64748B]">No movements logged yet.</p>
+              </div>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide border-b border-[#E4E7E0]">
-                    <th className="text-left pb-3">Date</th>
-                    <th className="text-left pb-3">Type</th>
-                    <th className="text-left pb-3">Crop</th>
-                    <th className="text-right pb-3 pr-8">Quantity</th>
-                    <th className="text-left pb-3 pr-8">From</th>
-                    <th className="text-left pb-3">To</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#F5F5F3]">
-                  {movements.map((m, i) => (
-                    <tr key={m.id || i}>
-                      <td className="py-3 text-[#7A8A7C]">{m.movement_date}</td>
-                      <td className="py-3"><span className="text-xs bg-[#F5F5F3] text-[#222527] font-semibold px-2 py-1 rounded-full">{m.movement_type}</span></td>
-                      <td className="py-3 font-semibold text-[#222527]">{m.crop}</td>
-                      <td className="py-3 text-right pr-8">{Number(m.quantity_bu).toLocaleString()} bu</td>
-                      <td className="py-3 pr-8 text-[#7A8A7C]">{m.from_location || "—"}</td>
-                      <td className="py-3 text-[#7A8A7C]">{m.to_location || "—"}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px] border-b border-white/[0.06]">
+                      <th className="text-left pb-3">Date</th>
+                      <th className="text-left pb-3">Type</th>
+                      <th className="text-left pb-3">Crop</th>
+                      <th className="text-right pb-3 pr-6">Quantity</th>
+                      <th className="text-left pb-3 pr-6">From</th>
+                      <th className="text-left pb-3">To</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.04]">
+                    {movements.map((m, i) => (
+                      <tr key={m.id || i} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 text-[#64748B] font-mono text-[11px]">{m.movement_date}</td>
+                        <td className="py-3"><span className="text-[10px] bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] font-semibold px-2 py-1 rounded-full">{m.movement_type}</span></td>
+                        <td className="py-3 font-semibold text-[#F1F5F9]">{m.crop}</td>
+                        <td className="py-3 text-right pr-6 font-mono text-[#F1F5F9]">{Number(m.quantity_bu).toLocaleString()} bu</td>
+                        <td className="py-3 pr-6 text-[#64748B]">{m.from_location || "—"}</td>
+                        <td className="py-3 text-[#64748B]">{m.to_location || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
 
-        {/* GRAIN LOADS TAB */}
+        {/* ═══════════════ GRAIN LOADS TAB ═══════════════ */}
         {activeTab === "grain_loads" && (
           <div className="p-6 space-y-4">
-{/* Controls bar — unit toggle + date filter */}
-            <div className="flex items-center gap-4 mb-4 flex-wrap">
+            {/* Controls bar */}
+            <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Unit:</span>
-                <div className="flex rounded-lg border border-gray-300 overflow-hidden">
-                  <button onClick={() => setWeightUnit("kg")} className={`px-3 py-1 text-xs font-semibold transition-colors ${weightUnit === "kg" ? "bg-[#4A7C59] text-white" : "bg-white text-gray-600"}`}>KG</button>
-                  <button onClick={() => setWeightUnit("lb")} className={`px-3 py-1 text-xs font-semibold transition-colors ${weightUnit === "lb" ? "bg-[#4A7C59] text-white" : "bg-white text-gray-600"}`}>LB</button>
+                <span className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">Unit:</span>
+                <div className="flex rounded-lg border border-white/[0.10] overflow-hidden">
+                  <button onClick={() => setWeightUnit("kg")} className={`px-3 py-1 text-xs font-semibold transition-all ${weightUnit === "kg" ? "bg-[#34D399] text-[#080C15]" : "bg-transparent text-[#64748B]"}`}>KG</button>
+                  <button onClick={() => setWeightUnit("lb")} className={`px-3 py-1 text-xs font-semibold transition-all ${weightUnit === "lb" ? "bg-[#34D399] text-[#080C15]" : "bg-transparent text-[#64748B]"}`}>LB</button>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">From:</span>
-                <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} className="text-sm border border-[#E4E7E0] rounded-lg px-3 py-1 focus:outline-none focus:border-[#4A7C59]" />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">To:</span>
-                <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} className="text-sm border border-[#E4E7E0] rounded-lg px-3 py-1 focus:outline-none focus:border-[#4A7C59]" />
+                <Filter size={12} className="text-[#475569]" />
+                <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} className="text-sm border border-white/[0.10] rounded-lg px-3 py-1 bg-white/[0.04] text-[#F1F5F9] focus:outline-none focus:border-[#34D399]/50" />
+                <span className="text-[10px] text-[#475569]">to</span>
+                <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} className="text-sm border border-white/[0.10] rounded-lg px-3 py-1 bg-white/[0.04] text-[#F1F5F9] focus:outline-none focus:border-[#34D399]/50" />
               </div>
               {(filterFrom || filterTo) && (
-                <button onClick={() => { setFilterFrom(""); setFilterTo(""); }} className="text-xs text-red-500 font-semibold hover:underline">Clear Filter</button>
+                <button onClick={() => { setFilterFrom(""); setFilterTo(""); }} className="text-[10px] text-[#EF4444] font-semibold flex items-center gap-1 hover:text-[#EF4444]/80">
+                  <RotateCcw size={10} /> Clear
+                </button>
               )}
             </div>
 
-            {/* Manage dropdowns bar */}
-            <div className="flex items-center gap-3 pb-2 border-b border-[#E4E7E0]">
-              <span className="text-xs text-[#7A8A7C] font-semibold uppercase tracking-wide">Manage:</span>
-              <button onClick={() => setShowManageDrivers(!showManageDrivers)} className="text-xs bg-[#F5F5F3] text-[#222527] font-semibold px-3 py-1.5 rounded-full hover:bg-[#E4E7E0]">
-                Drivers ({drivers.length})
-              </button>
-              <button onClick={() => setShowManageTrucks(!showManageTrucks)} className="text-xs bg-[#F5F5F3] text-[#222527] font-semibold px-3 py-1.5 rounded-full hover:bg-[#E4E7E0]">
-                Trucks ({trucks.length})
-              </button>
-              <button onClick={() => setShowManageCustomers(!showManageCustomers)} className="text-xs bg-[#F5F5F3] text-[#222527] font-semibold px-3 py-1.5 rounded-full hover:bg-[#E4E7E0]">
-                Customers ({customers.length})
-              </button>
+            {/* Manage bar */}
+            <div className="flex items-center gap-3 pb-3 border-b border-white/[0.06]">
+              <span className="font-mono text-[10px] text-[#475569] font-semibold uppercase tracking-[1.5px]">Manage:</span>
+              {[
+                { label: "Drivers", count: drivers.length, show: showManageDrivers, toggle: () => setShowManageDrivers(!showManageDrivers) },
+                { label: "Trucks", count: trucks.length, show: showManageTrucks, toggle: () => setShowManageTrucks(!showManageTrucks) },
+                { label: "Customers", count: customers.length, show: showManageCustomers, toggle: () => setShowManageCustomers(!showManageCustomers) },
+              ].map(({ label, count, show, toggle }) => (
+                <button key={label} onClick={toggle}
+                  className={`text-[10px] font-semibold px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 ${
+                    show ? "bg-[#34D399]/[0.10] text-[#34D399] border border-[#34D399]/20" : "bg-white/[0.04] border border-white/[0.06] text-[#94A3B8] hover:text-[#F1F5F9]"
+                  }`}>
+                  <Settings2 size={10} /> {label} ({count})
+                </button>
+              ))}
             </div>
 
             {/* Manage Drivers */}
             {showManageDrivers && (
-              <div className="p-4 bg-[#F5F5F3] rounded-[16px] space-y-3">
-                <p className="text-sm font-bold text-[#222527]">Drivers</p>
+              <FormCard title="Drivers" onClose={() => setShowManageDrivers(false)}>
                 {drivers.length > 0 && (
-                  <div className="space-y-1 mb-3">
-                    {drivers.map(d => (
-                      <div key={d.id} className="flex items-center gap-3 text-sm text-[#222527]">
-                        <span className="font-medium">{d.driver_name}</span>
-                        {d.driver_id && <span className="text-[#7A8A7C]">ID: {d.driver_id}</span>}
-                        {d.phone && <span className="text-[#7A8A7C]">{d.phone}</span>}
-                      </div>
-                    ))}
-                  </div>
+                  <div className="space-y-1 mb-3">{drivers.map(d => (
+                    <div key={d.id} className="flex items-center gap-3 text-sm text-[#94A3B8]">
+                      <Users size={12} className="text-[#475569]" />
+                      <span className="font-medium text-[#F1F5F9]">{d.driver_name}</span>
+                      {d.driver_id && <span className="text-[#64748B]">ID: {d.driver_id}</span>}
+                      {d.phone && <span className="text-[#64748B]">{d.phone}</span>}
+                    </div>
+                  ))}</div>
                 )}
                 <div className="grid grid-cols-3 gap-3">
                   <input type="text" placeholder="Driver Name *" value={newDriver.driver_name} onChange={e => setNewDriver({...newDriver, driver_name: e.target.value})} className={inputClass} />
                   <input type="text" placeholder="Driver ID (e.g. D01)" value={newDriver.driver_id} onChange={e => setNewDriver({...newDriver, driver_id: e.target.value})} className={inputClass} />
                   <input type="text" placeholder="Phone" value={newDriver.phone} onChange={e => setNewDriver({...newDriver, phone: e.target.value})} className={inputClass} />
                 </div>
-                <button onClick={addDriver} disabled={!newDriver.driver_name} className="bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#3d6b4a] disabled:opacity-50">Add Driver</button>
-              </div>
+                <button onClick={addDriver} disabled={!newDriver.driver_name} className={btnPrimary}>Add Driver</button>
+              </FormCard>
             )}
 
             {/* Manage Trucks */}
             {showManageTrucks && (
-              <div className="p-4 bg-[#F5F5F3] rounded-[16px] space-y-3">
-                <p className="text-sm font-bold text-[#222527]">Trucks</p>
+              <FormCard title="Trucks" onClose={() => setShowManageTrucks(false)}>
                 {trucks.length > 0 && (
-                  <div className="space-y-1 mb-3">
-                    {trucks.map(t => (
-                      <div key={t.id} className="flex items-center gap-3 text-sm text-[#222527]">
-                        <span className="font-medium">{t.truck_name}</span>
-                        {t.truck_id && <span className="text-[#7A8A7C]">ID: {t.truck_id}</span>}
-                        {t.license_plate && <span className="text-[#7A8A7C]">{t.license_plate}</span>}
-                      </div>
-                    ))}
-                  </div>
+                  <div className="space-y-1 mb-3">{trucks.map(t => (
+                    <div key={t.id} className="flex items-center gap-3 text-sm text-[#94A3B8]">
+                      <Truck size={12} className="text-[#475569]" />
+                      <span className="font-medium text-[#F1F5F9]">{t.truck_name}</span>
+                      {t.truck_id && <span className="text-[#64748B]">ID: {t.truck_id}</span>}
+                      {t.license_plate && <span className="text-[#64748B]">{t.license_plate}</span>}
+                    </div>
+                  ))}</div>
                 )}
                 <div className="grid grid-cols-4 gap-3">
                   <input type="text" placeholder="Truck Name *" value={newTruck.truck_name} onChange={e => setNewTruck({...newTruck, truck_name: e.target.value})} className={inputClass} />
@@ -1119,70 +985,63 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
                   <input type="text" placeholder="License Plate" value={newTruck.license_plate} onChange={e => setNewTruck({...newTruck, license_plate: e.target.value})} className={inputClass} />
                   <input type="number" placeholder="Capacity (MT)" value={newTruck.capacity_mt} onChange={e => setNewTruck({...newTruck, capacity_mt: e.target.value})} className={inputClass} />
                 </div>
-                <button onClick={addTruck} disabled={!newTruck.truck_name} className="bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#3d6b4a] disabled:opacity-50">Add Truck</button>
-              </div>
+                <button onClick={addTruck} disabled={!newTruck.truck_name} className={btnPrimary}>Add Truck</button>
+              </FormCard>
             )}
 
             {/* Manage Customers */}
             {showManageCustomers && (
-              <div className="p-4 bg-[#F5F5F3] rounded-[16px] space-y-3">
-                <p className="text-sm font-bold text-[#222527]">Customers</p>
+              <FormCard title="Customers" onClose={() => setShowManageCustomers(false)}>
                 {customers.length > 0 && (
-                  <div className="space-y-1 mb-3">
-                    {customers.map(c => (
-                      <div key={c.id} className="flex items-center gap-3 text-sm text-[#222527]">
-                        <span className="font-medium">{c.customer_name}</span>
-                        {c.location && <span className="text-[#7A8A7C]">{c.location}</span>}
-                      </div>
-                    ))}
-                  </div>
+                  <div className="space-y-1 mb-3">{customers.map(c => (
+                    <div key={c.id} className="flex items-center gap-3 text-sm text-[#94A3B8]">
+                      <Users size={12} className="text-[#475569]" />
+                      <span className="font-medium text-[#F1F5F9]">{c.customer_name}</span>
+                      {c.location && <span className="text-[#64748B]">{c.location}</span>}
+                    </div>
+                  ))}</div>
                 )}
                 <div className="grid grid-cols-3 gap-3">
                   <input type="text" placeholder="Customer Name *" value={newCustomer.customer_name} onChange={e => setNewCustomer({...newCustomer, customer_name: e.target.value})} className={inputClass} />
                   <input type="text" placeholder="Customer ID" value={newCustomer.customer_id} onChange={e => setNewCustomer({...newCustomer, customer_id: e.target.value})} className={inputClass} />
                   <input type="text" placeholder="Location (e.g. Swift Current)" value={newCustomer.location} onChange={e => setNewCustomer({...newCustomer, location: e.target.value})} className={inputClass} />
                 </div>
-                <button onClick={addCustomer} disabled={!newCustomer.customer_name} className="bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#3d6b4a] disabled:opacity-50">Add Customer</button>
-              </div>
+                <button onClick={addCustomer} disabled={!newCustomer.customer_name} className={btnPrimary}>Add Customer</button>
+              </FormCard>
             )}
 
-            {/* Add Load Form */}
             {/* Scale Ticket Upload */}
             {showTicketUpload && (
-              <div className="p-4 bg-[#F5F5F3] rounded-[16px] space-y-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold text-[#222527]">Scan Scale Ticket</p>
-                  <button onClick={() => { setShowTicketUpload(false); setParsedTicket(null); setTicketPreview(null); setTicketError(null); }} className="text-sm text-[#7A8A7C] hover:text-[#222527]">✕</button>
-                </div>
+              <FormCard title="Scan Scale Ticket" onClose={() => { setShowTicketUpload(false); setParsedTicket(null); setTicketPreview(null); setTicketError(null); }}>
                 {!parsedTicket && (
                   <div>
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[#C8DDD0] rounded-[12px] cursor-pointer hover:bg-[#EEF5F0] transition-colors">
-                      <Camera size={24} className="text-[#7A8A7C] mb-2" />
-                      <span className="text-sm text-[#7A8A7C]">{ticketParsing ? "Parsing ticket..." : "Take photo or upload scale ticket"}</span>
-                      <span className="text-xs text-[#7A8A7C] mt-1">JPG, PNG, or PDF</span>
+                    <label className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-[#34D399]/30 rounded-xl cursor-pointer hover:bg-[#34D399]/[0.02] transition-colors">
+                      {ticketParsing ? <Loader2 size={24} className="text-[#34D399] animate-spin mb-2" /> : <Camera size={24} className="text-[#475569] mb-2" />}
+                      <span className="text-sm text-[#64748B]">{ticketParsing ? "Parsing ticket..." : "Take photo or upload scale ticket"}</span>
+                      <span className="text-[10px] text-[#475569] mt-1">JPG, PNG, or PDF</span>
                       <input type="file" accept="image/*,application/pdf" capture="environment" className="hidden" disabled={ticketParsing} onChange={(e) => { const file = e.target.files?.[0]; if (file) parseScaleTicket(file); }} />
                     </label>
-                    {ticketError && <p className="text-sm text-red-500 mt-2">{ticketError}</p>}
+                    {ticketError && <p className="text-sm text-[#EF4444] mt-2 flex items-center gap-1"><XCircle size={13} /> {ticketError}</p>}
                   </div>
                 )}
                 {parsedTicket && (
                   <div className="space-y-3">
                     <div className="flex gap-4">
-                      {ticketPreview && <img src={ticketPreview} alt="Scale ticket" className="w-48 h-auto rounded-[8px] border border-[#E4E7E0]" />}
+                      {ticketPreview && <img src={ticketPreview} alt="Scale ticket" className="w-48 h-auto rounded-lg border border-white/[0.10]" />}
                       <div className="flex-1 grid grid-cols-2 gap-2 text-sm">
                         {(() => {
                           const uf = parsedTicket.uncertain_fields || [];
                           const f = (field: string, label: string, value: any, suffix?: string) => (
-                            <div className={uf.includes(field) ? "bg-[#FFF8EC] border border-[#F5D78E] rounded px-1.5 py-0.5" : ""}>
-                              <span className="text-[#7A8A7C]">{label}:</span>{" "}
-                              <strong className={uf.includes(field) ? "text-[#D97706]" : ""}>{value}{suffix || ""}</strong>
-                              {uf.includes(field) && <span className="text-[10px] text-[#D97706] ml-1">⚠ verify</span>}
+                            <div className={uf.includes(field) ? "bg-[#F59E0B]/[0.06] border border-[#F59E0B]/15 rounded px-1.5 py-0.5" : ""}>
+                              <span className="text-[#64748B]">{label}:</span>{" "}
+                              <strong className={uf.includes(field) ? "text-[#F59E0B]" : "text-[#F1F5F9]"}>{value}{suffix || ""}</strong>
+                              {uf.includes(field) && <span className="text-[9px] text-[#F59E0B] ml-1 flex items-center gap-0.5 inline-flex"><AlertTriangle size={8} /> verify</span>}
                             </div>
                           );
                           return (<>
                             {f("date", "Date", parsedTicket.date)}
                             {f("receipt_number", "Receipt #", parsedTicket.receipt_number)}
-                            <div><span className="text-[#7A8A7C]">Elevator:</span> <strong>{parsedTicket.elevator_name} — {parsedTicket.station_name}</strong></div>
+                            <div><span className="text-[#64748B]">Elevator:</span> <strong className="text-[#F1F5F9]">{parsedTicket.elevator_name} — {parsedTicket.station_name}</strong></div>
                             {f("shipper_name", "Shipper", parsedTicket.shipper_name)}
                             {f("crop", "Crop", parsedTicket.crop)}
                             {f("grade", "Grade", parsedTicket.grade)}
@@ -1191,241 +1050,189 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
                             {f("net_weight_kg", "Net", parsedTicket.net_weight_kg?.toLocaleString(), " kg")}
                             {f("net_bushels", "Bushels", parsedTicket.net_bushels ? parsedTicket.net_bushels.toLocaleString() : parsedTicket.net_weight_kg && parsedTicket.crop ? `${Math.round(parsedTicket.net_weight_kg / (KG_PER_BUSHEL[parsedTicket.crop] || 27.22)).toLocaleString()} (calc)` : "—")}
                             {f("moisture_percent", "Moisture", parsedTicket.moisture_percent ? `${parsedTicket.moisture_percent}%` : "—")}
-                            <div><span className="text-[#7A8A7C]">Protein:</span> <strong>{parsedTicket.protein_percent ? `${parsedTicket.protein_percent}%` : "—"}</strong></div>
-                            <div className="col-span-2"><span className="text-[#7A8A7C]">Confidence:</span> <strong className={parsedTicket.confidence === "high" ? "text-[#4A7C59]" : "text-[#D97706]"}>{parsedTicket.confidence}</strong>
-                              {uf.length > 0 && <span className="text-xs text-[#D97706] ml-2">({uf.length} field{uf.length > 1 ? "s" : ""} need review)</span>}
+                            <div><span className="text-[#64748B]">Protein:</span> <strong className="text-[#F1F5F9]">{parsedTicket.protein_percent ? `${parsedTicket.protein_percent}%` : "—"}</strong></div>
+                            <div className="col-span-2"><span className="text-[#64748B]">Confidence:</span> <strong className={parsedTicket.confidence === "high" ? "text-[#34D399]" : "text-[#F59E0B]"}>{parsedTicket.confidence}</strong>
+                              {uf.length > 0 && <span className="text-[10px] text-[#F59E0B] ml-2">({uf.length} field{uf.length > 1 ? "s" : ""} need review)</span>}
                             </div>
                           </>);
                         })()}
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={applyTicketToForm} className="bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#3d6b4a]">Use This Data → Add Load</button>
-                      <button onClick={() => { setParsedTicket(null); setTicketPreview(null); }} className="text-sm text-[#7A8A7C] px-5 py-2 rounded-full hover:bg-white">Retry</button>
-                      <button onClick={() => { setShowTicketUpload(false); setParsedTicket(null); setTicketPreview(null); }} className="text-sm text-[#7A8A7C] px-5 py-2 rounded-full hover:bg-white">Cancel</button>
+                      <button onClick={applyTicketToForm} className={btnPrimary}>Use This Data → Add Load</button>
+                      <button onClick={() => { setParsedTicket(null); setTicketPreview(null); }} className={btnGhost}>Retry</button>
+                      <button onClick={() => { setShowTicketUpload(false); setParsedTicket(null); setTicketPreview(null); }} className={btnGhost}>Cancel</button>
                     </div>
                   </div>
                 )}
-              </div>
+              </FormCard>
             )}
+
+            {/* Sync result */}
             {syncResult && (
-              <div className={`p-3 rounded-[12px] text-sm font-medium ${syncResult.type === "success" ? "bg-[#EEF5F0] text-[#4A7C59]" : "bg-red-50 text-red-600"}`}>
+              <div className={`flex items-center gap-2 p-3 rounded-xl text-sm font-medium ${
+                syncResult.type === "success"
+                  ? "bg-[#34D399]/[0.06] border border-[#34D399]/15 text-[#34D399]"
+                  : "bg-[#EF4444]/[0.06] border border-[#EF4444]/15 text-[#EF4444]"
+              }`}>
+                {syncResult.type === "success" ? <CheckCircle size={14} /> : <XCircle size={14} />}
                 {syncResult.message}
               </div>
             )}
+
+            {/* Add Load Form */}
             {showAddLoad && (
-              <div className="p-4 bg-[#F5F5F3] rounded-[16px] space-y-3">
-                <p className="text-sm font-bold text-[#222527]">Add Grain Load</p>
+              <FormCard title="Add Grain Load" onClose={() => setShowAddLoad(false)}>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Date *</label>
-                    <input type="date" value={newLoad.date} onChange={e => setNewLoad({...newLoad, date: e.target.value})} className={inputClass} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Driver</label>
-                    <select value={newLoad.driver_id} onChange={e => setNewLoad({...newLoad, driver_id: e.target.value})} className={inputClass}>
+                  <div><label className={labelClass}>Date *</label><input type="date" value={newLoad.date} onChange={e => setNewLoad({...newLoad, date: e.target.value})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Driver</label>
+                    <select value={newLoad.driver_id} onChange={e => setNewLoad({...newLoad, driver_id: e.target.value})} className={selectClass}>
                       <option value="">Select driver...</option>
                       {drivers.map(d => <option key={d.id} value={d.id}>{d.driver_name}{d.driver_id ? ` (${d.driver_id})` : ""}</option>)}
                     </select>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Truck</label>
-                    <select value={newLoad.truck_id} onChange={e => setNewLoad({...newLoad, truck_id: e.target.value})} className={inputClass}>
+                  <div><label className={labelClass}>Truck</label>
+                    <select value={newLoad.truck_id} onChange={e => setNewLoad({...newLoad, truck_id: e.target.value})} className={selectClass}>
                       <option value="">Select truck...</option>
                       {trucks.map(t => <option key={t.id} value={t.id}>{t.truck_name}{t.license_plate ? ` — ${t.license_plate}` : ""}</option>)}
                     </select>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Customer</label>
-                    <select value={newLoad.customer_id} onChange={e => setNewLoad({...newLoad, customer_id: e.target.value})} className={inputClass}>
+                  <div><label className={labelClass}>Customer</label>
+                    <select value={newLoad.customer_id} onChange={e => setNewLoad({...newLoad, customer_id: e.target.value})} className={selectClass}>
                       <option value="">Select customer...</option>
                       {customers.map(c => <option key={c.id} value={c.id}>{c.customer_name}{c.location ? ` — ${c.location}` : ""}</option>)}
                     </select>
                   </div>
-                  <div className="space-y-1">
-                  <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">From (Bin / Storage)</label>
-                  <select value={newLoad.from} onChange={e => setNewLoad({...newLoad, from: e.target.value})} className={inputClass}>
-                    <option value="">Select bin...</option>
-                    {[...new Set(holdings.map(h => h.location))].map(loc => (
-                      <option key={loc} value={loc}>{loc}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Contract Reference</label>
-                  <input type="text" placeholder="e.g. C-2026-001" value={newLoad.contract_reference} onChange={e => setNewLoad({...newLoad, contract_reference: e.target.value})} className={inputClass} />
-                </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Settlement ID</label>
-                    <input type="text" placeholder="e.g. S-001" value={newLoad.settlement_id} onChange={e => setNewLoad({...newLoad, settlement_id: e.target.value})} className={inputClass} />
+                  <div><label className={labelClass}>From (Bin / Storage)</label>
+                    <select value={newLoad.from} onChange={e => setNewLoad({...newLoad, from: e.target.value})} className={selectClass}>
+                      <option value="">Select bin...</option>
+                      {[...new Set(holdings.map(h => h.location))].map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                    </select>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Crop *</label>
-                    <select value={newLoad.crop} onChange={e => setNewLoad({...newLoad, crop: e.target.value})} className={inputClass}>
+                  <div><label className={labelClass}>Contract Reference</label><input type="text" placeholder="e.g. C-2026-001" value={newLoad.contract_reference} onChange={e => setNewLoad({...newLoad, contract_reference: e.target.value})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Settlement ID</label><input type="text" placeholder="e.g. S-001" value={newLoad.settlement_id} onChange={e => setNewLoad({...newLoad, settlement_id: e.target.value})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Crop *</label>
+                    <select value={newLoad.crop} onChange={e => setNewLoad({...newLoad, crop: e.target.value})} className={selectClass}>
                       <option value="">Select crop...</option>
-                      <option value="Canola">Canola</option>
-                      <option value="HRS Wheat">HRS Wheat</option>
-                      <option value="HRW Wheat">HRW Wheat</option>
-                      <option value="Durum">Durum</option>
-                      <option value="Barley">Barley</option>
-                      <option value="Oats">Oats</option>
-                      <option value="Peas">Peas</option>
-                      <option value="Lentils">Lentils</option>
-                      <option value="Flax">Flax</option>
-                      <option value="Soybeans">Soybeans</option>
+                      {["Canola", "HRS Wheat", "HRW Wheat", "Durum", "Barley", "Oats", "Peas", "Lentils", "Flax", "Soybeans"].map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Price ($/bu)</label>
-                    <input type="number" step="0.01" placeholder="e.g. 14.50" value={newLoad.price_per_bushel} onChange={e => setNewLoad({...newLoad, price_per_bushel: e.target.value})} className={inputClass} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Ticket #</label>
-                    <input type="text" placeholder="e.g. 84521" value={newLoad.ticket_number} onChange={e => setNewLoad({...newLoad, ticket_number: e.target.value})} className={inputClass} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Crop Year</label>
-                    <select value={newLoad.crop_year} onChange={e => setNewLoad({...newLoad, crop_year: e.target.value})} className={inputClass}>
-                      <option value="2024">2024</option>
-                      <option value="2025">2025</option>
-                      <option value="2026">2026</option>
+                  <div><label className={labelClass}>Price ($/bu)</label><input type="number" step="0.01" placeholder="e.g. 14.50" value={newLoad.price_per_bushel} onChange={e => setNewLoad({...newLoad, price_per_bushel: e.target.value})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Ticket #</label><input type="text" placeholder="e.g. 84521" value={newLoad.ticket_number} onChange={e => setNewLoad({...newLoad, ticket_number: e.target.value})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Crop Year</label>
+                    <select value={newLoad.crop_year} onChange={e => setNewLoad({...newLoad, crop_year: e.target.value})} className={selectClass}>
+                      <option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
                     </select>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Gross Weight (kg) *</label>
-                    <input type="number" placeholder="e.g. 35000" value={newLoad.gross_weight_kg} onChange={e => setNewLoad({...newLoad, gross_weight_kg: e.target.value})} className={inputClass} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Dockage (%)</label>
-                    <input type="number" step="0.01" placeholder="e.g. 1.5" value={newLoad.dockage_percent} onChange={e => setNewLoad({...newLoad, dockage_percent: e.target.value})} className={inputClass} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Net Weight (kg)</label>
-                    <input
-                      type="number"
-                      readOnly
-                      value={
-                        newLoad.gross_weight_kg && newLoad.dockage_percent
-                          ? (parseFloat(newLoad.gross_weight_kg) - (parseFloat(newLoad.gross_weight_kg) * parseFloat(newLoad.dockage_percent) / 100)).toFixed(0)
-                          : newLoad.gross_weight_kg || ""
+                  <div><label className={labelClass}>Gross Weight (kg) *</label><input type="number" placeholder="e.g. 35000" value={newLoad.gross_weight_kg} onChange={e => setNewLoad({...newLoad, gross_weight_kg: e.target.value})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Dockage (%)</label><input type="number" step="0.01" placeholder="e.g. 1.5" value={newLoad.dockage_percent} onChange={e => setNewLoad({...newLoad, dockage_percent: e.target.value})} className={inputClass} /></div>
+                  <div>
+                    <label className={labelClass}>Net Weight (kg)</label>
+                    <input type="number" readOnly
+                      value={newLoad.gross_weight_kg && newLoad.dockage_percent
+                        ? (parseFloat(newLoad.gross_weight_kg) - (parseFloat(newLoad.gross_weight_kg) * parseFloat(newLoad.dockage_percent) / 100)).toFixed(0)
+                        : newLoad.gross_weight_kg || ""
                       }
-                      className={`${inputClass} bg-gray-50 text-[#7A8A7C]`}
+                      className={inputClass + " opacity-60 cursor-not-allowed"}
                     />
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Notes</label>
-                  <input type="text" placeholder="Any additional notes" value={newLoad.notes} onChange={e => setNewLoad({...newLoad, notes: e.target.value})} className={inputClass} />
-                </div>
+                <div><label className={labelClass}>Notes</label><input type="text" placeholder="Any additional notes" value={newLoad.notes} onChange={e => setNewLoad({...newLoad, notes: e.target.value})} className={inputClass} /></div>
                 <div className="flex gap-2">
-                  <button onClick={addLoad} disabled={!newLoad.date || !newLoad.gross_weight_kg} className="bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#3d6b4a] disabled:opacity-50">Save Load</button>
-                  <button onClick={() => setShowAddLoad(false)} className="text-sm text-[#7A8A7C] px-5 py-2 rounded-full hover:bg-[#F5F5F3]">Cancel</button>
+                  <button onClick={addLoad} disabled={!newLoad.date || !newLoad.gross_weight_kg} className={btnPrimary}>Save Load</button>
+                  <button onClick={() => setShowAddLoad(false)} className={btnGhost}>Cancel</button>
                 </div>
-              </div>
+              </FormCard>
             )}
 
             {/* Edit Load Form */}
             {editingLoad && (
-              <div className="p-4 bg-[#FFF8EC] border border-[#F5D78E] rounded-[16px] space-y-3">
-                <p className="text-sm font-bold text-[#222527]">Edit Load</p>
+              <FormCard title="Edit Load" onClose={() => setEditingLoad(null)} accent>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Date</label>
-                    <input type="date" value={editingLoad.date} onChange={e => setEditingLoad({...editingLoad, date: e.target.value})} className={inputClass} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Driver</label>
-                    <select value={editingLoad.driver_id || ""} onChange={e => setEditingLoad({...editingLoad, driver_id: e.target.value})} className={inputClass}>
+                  <div><label className={labelClass}>Date</label><input type="date" value={editingLoad.date} onChange={e => setEditingLoad({...editingLoad, date: e.target.value})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Driver</label>
+                    <select value={editingLoad.driver_id || ""} onChange={e => setEditingLoad({...editingLoad, driver_id: e.target.value})} className={selectClass}>
                       <option value="">Select driver...</option>
                       {drivers.map(d => <option key={d.id} value={d.id}>{d.driver_name}</option>)}
                     </select>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Truck</label>
-                    <select value={editingLoad.truck_id || ""} onChange={e => setEditingLoad({...editingLoad, truck_id: e.target.value})} className={inputClass}>
+                  <div><label className={labelClass}>Truck</label>
+                    <select value={editingLoad.truck_id || ""} onChange={e => setEditingLoad({...editingLoad, truck_id: e.target.value})} className={selectClass}>
                       <option value="">Select truck...</option>
                       {trucks.map(t => <option key={t.id} value={t.id}>{t.truck_name}</option>)}
                     </select>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Customer</label>
-                    <select value={editingLoad.customer_id || ""} onChange={e => setEditingLoad({...editingLoad, customer_id: e.target.value})} className={inputClass}>
+                  <div><label className={labelClass}>Customer</label>
+                    <select value={editingLoad.customer_id || ""} onChange={e => setEditingLoad({...editingLoad, customer_id: e.target.value})} className={selectClass}>
                       <option value="">Select customer...</option>
                       {customers.map(c => <option key={c.id} value={c.id}>{c.customer_name}</option>)}
                     </select>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Gross Weight (kg)</label>
-                    <input type="number" value={editingLoad.gross_weight_kg || ""} onChange={e => setEditingLoad({...editingLoad, gross_weight_kg: parseFloat(e.target.value)})} className={inputClass} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Dockage (%)</label>
-                    <input type="number" step="0.01" value={editingLoad.dockage_percent || ""} onChange={e => setEditingLoad({...editingLoad, dockage_percent: parseFloat(e.target.value)})} className={inputClass} />
-                  </div>
+                  <div><label className={labelClass}>Gross Weight (kg)</label><input type="number" value={editingLoad.gross_weight_kg || ""} onChange={e => setEditingLoad({...editingLoad, gross_weight_kg: parseFloat(e.target.value)})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Dockage (%)</label><input type="number" step="0.01" value={editingLoad.dockage_percent || ""} onChange={e => setEditingLoad({...editingLoad, dockage_percent: parseFloat(e.target.value)})} className={inputClass} /></div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={updateLoad} className="bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#3d6b4a]">Save Changes</button>
-                  <button onClick={() => setEditingLoad(null)} className="text-sm text-[#7A8A7C] px-5 py-2 rounded-full hover:bg-[#F5F5F3]">Cancel</button>
+                  <button onClick={updateLoad} className={btnPrimary}>Save Changes</button>
+                  <button onClick={() => setEditingLoad(null)} className={btnGhost}>Cancel</button>
                 </div>
-              </div>
+              </FormCard>
             )}
 
             {/* Bulk Upload */}
             {showBulkUpload && (
-              <div className="p-4 bg-[#F5F5F3] rounded-[16px] space-y-3">
-                <p className="text-sm font-bold text-[#222527]">Bulk Upload Loads</p>
-                <p className="text-xs text-[#7A8A7C]">Upload a CSV file with your load data. Driver, truck, and customer names must match your pre-populated lists exactly.</p>
-                <div className="flex items-center gap-3">
-                  <button onClick={downloadTemplate} className="text-xs text-[#4A7C59] font-semibold underline">Download Template CSV</button>
-                </div>
-                <input type="file" accept=".csv" onChange={handleBulkUpload} className="text-sm text-[#222527]" />
-                {bulkUploadError && <p className="text-xs text-red-500">{bulkUploadError}</p>}
-                <button onClick={() => setShowBulkUpload(false)} className="text-sm text-[#7A8A7C] px-5 py-2 rounded-full hover:bg-[#E4E7E0]">Cancel</button>
-              </div>
+              <FormCard title="Bulk Upload Loads" onClose={() => setShowBulkUpload(false)}>
+                <p className="text-xs text-[#64748B]">Upload a CSV file with your load data. Driver, truck, and customer names must match your pre-populated lists exactly.</p>
+                <button onClick={downloadTemplate} className="text-xs text-[#34D399] font-semibold hover:text-[#6EE7B7] flex items-center gap-1"><Download size={11} /> Download Template CSV</button>
+                <input type="file" accept=".csv" onChange={handleBulkUpload} className="text-sm text-[#94A3B8]" />
+                {bulkUploadError && <p className="text-xs text-[#EF4444] flex items-center gap-1"><XCircle size={12} /> {bulkUploadError}</p>}
+              </FormCard>
             )}
 
             {/* Loads Table */}
             {grainLoads.length === 0 ? (
-              <p className="text-sm text-[#7A8A7C] text-center py-8">No loads recorded yet — add your first load or bulk upload.</p>
+              <div className="text-center py-12">
+                <Truck size={28} className="mx-auto text-[#475569] mb-2" />
+                <p className="text-sm text-[#64748B]">No loads recorded yet — add your first load or bulk upload.</p>
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide border-b border-[#E4E7E0]">
-                      <th className="text-left pb-3 pr-4">Date</th>
-                      <th className="text-left pb-3 pr-4">Driver</th>
-                      <th className="text-left pb-3 pr-4">Truck</th>
-                      <th className="text-left pb-3 pr-4">Customer</th>
-                      <th className="text-left pb-3 pr-4">Contract</th>
-                      <th className="text-left pb-3 pr-4">From</th>
-                      <th className="text-left pb-3 pr-4">Crop</th>
-                      <th className="text-right pb-3 pr-4">$/bu</th>
-                      <th className="text-right pb-3 pr-4">Gross ({unitLabel})</th>
-                      <th className="text-right pb-3 pr-4">Dockage</th>
-                      <th className="text-right pb-3 pr-4">Net ({unitLabel})</th>
-                      <th className="text-left pb-3 pr-4">Settlement</th>
-                      <th className="pb-3"></th>
+                    <tr className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px] border-b border-white/[0.06]">
+                      <th className="text-left pb-3 pr-3">Date</th>
+                      <th className="text-left pb-3 pr-3">Driver</th>
+                      <th className="text-left pb-3 pr-3">Truck</th>
+                      <th className="text-left pb-3 pr-3">Customer</th>
+                      <th className="text-left pb-3 pr-3">Contract</th>
+                      <th className="text-left pb-3 pr-3">From</th>
+                      <th className="text-left pb-3 pr-3">Crop</th>
+                      <th className="text-right pb-3 pr-3">$/bu</th>
+                      <th className="text-right pb-3 pr-3">Gross ({unitLabel})</th>
+                      <th className="text-right pb-3 pr-3">Dockage</th>
+                      <th className="text-right pb-3 pr-3">Net ({unitLabel})</th>
+                      <th className="text-left pb-3 pr-3">Settlement</th>
+                      <th className="pb-3 w-16"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F5F5F3]">
+                  <tbody className="divide-y divide-white/[0.04]">
                     {filteredLoads.map(load => (
-                      <tr key={load.id}>
-                        <td className="py-3 pr-4 text-[#7A8A7C]">{load.date?.split("T")[0]}</td>
-                        <td className="py-3 pr-4 font-medium text-[#222527]">{load.driver_name || "—"}</td>
-                        <td className="py-3 pr-4 text-[#7A8A7C]">{load.truck_name || "—"}</td>
-                        <td className="py-3 pr-4 text-[#7A8A7C]">{load.customer_name || "—"}</td>
-                        <td className="py-3 pr-4 text-[#7A8A7C]">{load.contract_reference || "—"}</td>
-                        <td className="py-3 pr-4 text-[#7A8A7C]">{load.from || "—"}</td>
-                        <td className="py-3 pr-4 font-medium text-[#222527]">{load.crop || "—"}</td>
-                        <td className="py-3 pr-4 text-right text-[#7A8A7C]">{load.price_per_bushel ? `$${Number(load.price_per_bushel).toFixed(2)}` : "—"}</td>
-                        <td className="py-3 pr-4 text-right font-medium">{load.gross_weight_kg ? toDisplay(Number(load.gross_weight_kg)).toLocaleString("en-CA", { maximumFractionDigits: 0 }) : "—"}</td>
-                        <td className="py-3 pr-4 text-right text-[#7A8A7C]">{load.dockage_percent ? `${load.dockage_percent}%` : "—"}</td>
-                        <td className="py-3 pr-4 text-right font-semibold text-[#4A7C59]">{load.net_weight_kg ? toDisplay(Number(load.net_weight_kg)).toLocaleString("en-CA", { maximumFractionDigits: 0 }) : "—"}</td>
-                        <td className="py-3 pr-4 text-[#7A8A7C]">{load.settlement_id || "—"}</td>
+                      <tr key={load.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 pr-3 text-[#64748B] font-mono text-[11px]">{load.date?.split("T")[0]}</td>
+                        <td className="py-3 pr-3 font-medium text-[#F1F5F9]">{load.driver_name || "—"}</td>
+                        <td className="py-3 pr-3 text-[#94A3B8]">{load.truck_name || "—"}</td>
+                        <td className="py-3 pr-3 text-[#94A3B8]">{load.customer_name || "—"}</td>
+                        <td className="py-3 pr-3 text-[#64748B]">{load.contract_reference || "—"}</td>
+                        <td className="py-3 pr-3 text-[#64748B]">{load.from || "—"}</td>
+                        <td className="py-3 pr-3 font-medium text-[#F1F5F9]">{load.crop || "—"}</td>
+                        <td className="py-3 pr-3 text-right text-[#94A3B8]">{load.price_per_bushel ? `$${Number(load.price_per_bushel).toFixed(2)}` : "—"}</td>
+                        <td className="py-3 pr-3 text-right font-mono font-medium text-[#F1F5F9]">{load.gross_weight_kg ? toDisplay(Number(load.gross_weight_kg)).toLocaleString("en-CA", { maximumFractionDigits: 0 }) : "—"}</td>
+                        <td className="py-3 pr-3 text-right text-[#64748B]">{load.dockage_percent ? `${load.dockage_percent}%` : "—"}</td>
+                        <td className="py-3 pr-3 text-right font-mono font-semibold text-[#34D399]">{load.net_weight_kg ? toDisplay(Number(load.net_weight_kg)).toLocaleString("en-CA", { maximumFractionDigits: 0 }) : "—"}</td>
+                        <td className="py-3 pr-3 text-[#64748B]">{load.settlement_id || "—"}</td>
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <button onClick={() => setEditingLoad(load)} className="text-gray-400 hover:text-[#4A7C59]"><Pencil size={13} /></button>
-                            <button onClick={() => deleteLoad(load.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={13} /></button>
+                            <button onClick={() => setEditingLoad(load)} className="text-[#475569] hover:text-[#34D399] transition-colors"><Pencil size={13} /></button>
+                            <button onClick={() => deleteLoad(load.id)} className="text-[#475569] hover:text-[#EF4444] transition-colors"><Trash2 size={13} /></button>
                           </div>
                         </td>
                       </tr>
@@ -1433,113 +1240,112 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
                   </tbody>
                 </table>
                 {/* Summary ribbon */}
-                <div className="mt-3 flex items-center justify-end gap-8 bg-[#F5F5F3] rounded-xl px-4 py-3 text-sm">
+                <div className="mt-3 flex items-center justify-end gap-8 bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3 text-sm">
                   {(filterFrom || filterTo) && (
-                    <span className="text-xs text-[#7A8A7C] mr-auto">
+                    <span className="text-[10px] text-[#475569] mr-auto">
                       Showing {filteredLoads.length} of {grainLoads.length} loads
                     </span>
                   )}
                   <div className="flex items-center gap-2">
-                    <span className="text-[#7A8A7C] font-medium">Total Gross:</span>
-                    <span className="font-bold text-[#222527]">
-                      {toDisplay(filteredGrossKg).toLocaleString("en-CA", { maximumFractionDigits: 0 })} {unitLabel}
-                    </span>
+                    <span className="text-[#64748B] font-medium">Total Gross:</span>
+                    <span className="font-bold font-mono text-[#F1F5F9]">{toDisplay(filteredGrossKg).toLocaleString("en-CA", { maximumFractionDigits: 0 })} {unitLabel}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[#7A8A7C] font-medium">Total Net:</span>
-                    <span className="font-bold text-[#4A7C59]">
-                      {toDisplay(filteredNetKg).toLocaleString("en-CA", { maximumFractionDigits: 0 })} {unitLabel}
-                    </span>
+                    <span className="text-[#64748B] font-medium">Total Net:</span>
+                    <span className="font-bold font-mono text-[#34D399]">{toDisplay(filteredNetKg).toLocaleString("en-CA", { maximumFractionDigits: 0 })} {unitLabel}</span>
                   </div>
                 </div>
               </div>
             )}
           </div>
         )}
-        {/* SETTLEMENTS TAB */}
+
+        {/* ═══════════════ SETTLEMENTS TAB ═══════════════ */}
         {activeTab === "settlements" && (
           <div className="p-6 space-y-4">
-            {/* Back button when viewing detail */}
             {selectedSettlement && (
-              <button onClick={() => { setSelectedSettlement(null); setSettlementLines([]); setSettlementAnalysis(null); }} className="flex items-center gap-1 text-sm text-[#7A8A7C] hover:text-[#222527] mb-2">
+              <button onClick={() => { setSelectedSettlement(null); setSettlementLines([]); setSettlementAnalysis(null); }} className="flex items-center gap-1 text-sm text-[#64748B] hover:text-[#F1F5F9] mb-2 transition-colors">
                 <ChevronLeft size={14} /> Back to all settlements
               </button>
             )}
 
-            {/* Upload area */}
             {!selectedSettlement && (
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 bg-[#4A7C59] text-white text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-[#3d6b4a] cursor-pointer transition-colors">
+                  <label className={btnPrimary + " cursor-pointer"}>
                     <Upload size={14} /> Upload Settlement PDF
-                    <input type="file" accept=".pdf" className="hidden" onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) parseSettlement(file);
-                      e.target.value = "";
-                    }} />
+                    <input type="file" accept=".pdf" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) parseSettlement(file); e.target.value = ""; }} />
                   </label>
-                  {settlementParsing && <span className="text-sm text-[#7A8A7C] animate-pulse">Parsing with AI... this may take 30-60 seconds</span>}
+                  {settlementParsing && (
+                    <span className="text-sm text-[#64748B] flex items-center gap-2">
+                      <Loader2 size={14} className="animate-spin text-[#34D399]" /> Parsing with AI... this may take 30-60 seconds
+                    </span>
+                  )}
                 </div>
                 {settlementError && (
-                  <div className="p-3 rounded-[12px] bg-red-50 text-red-600 text-sm font-medium">{settlementError}</div>
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-[#EF4444]/[0.06] border border-[#EF4444]/15 text-[#EF4444] text-sm font-medium">
+                    <XCircle size={14} /> {settlementError}
+                  </div>
                 )}
 
-                {/* Settlements list */}
                 {settlements.length === 0 && !settlementParsing ? (
-                  <p className="text-sm text-[#7A8A7C] py-8 text-center">No settlements yet — upload a PDF to get started.</p>
+                  <div className="text-center py-12">
+                    <FileText size={28} className="mx-auto text-[#475569] mb-2" />
+                    <p className="text-sm text-[#64748B]">No settlements yet — upload a PDF to get started.</p>
+                  </div>
                 ) : (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide border-b border-[#E4E7E0]">
-                        <th className="text-left pb-3 pr-4">Settlement #</th>
-                        <th className="text-left pb-3 pr-4">Terminal</th>
-                        <th className="text-left pb-3 pr-4">Date</th>
-                        <th className="text-left pb-3 pr-4">Crop</th>
-                        <th className="text-right pb-3 pr-4">Loads</th>
-                        <th className="text-right pb-3 pr-4">Net (MT)</th>
-                        <th className="text-right pb-3 pr-4">Net Payable</th>
-                        <th className="text-left pb-3 pr-4">Status</th>
-                        <th className="text-left pb-3 pr-4">Flags</th>
-                        <th className="pb-3"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#F5F5F3]">
-                      {settlements.map((s) => {
-                        const flags = typeof s.flags === "string" ? JSON.parse(s.flags) : s.flags || {};
-                        const totalFlags = (flags.dockage_outliers || 0) + (flags.price_mismatches || 0) + (flags.math_errors || 0);
-                        return (
-                          <tr key={s.id} className="cursor-pointer hover:bg-[#F9FAF8]" onClick={() => loadSettlementDetail(s.id)}>
-                            <td className="py-3 pr-4 font-semibold text-[#222527]">{s.settlement_number || "—"}</td>
-                            <td className="py-3 pr-4 text-[#7A8A7C]">{s.terminal_name} {s.terminal_location ? `— ${s.terminal_location}` : ""}</td>
-                            <td className="py-3 pr-4 text-[#7A8A7C]">{s.issue_date?.split("T")[0]}</td>
-                            <td className="py-3 pr-4"><span className="text-xs bg-[#EEF5F0] text-[#4A7C59] font-semibold px-2 py-0.5 rounded-full">{s.crop}</span></td>
-                            <td className="py-3 pr-4 text-right">{s.total_loads}</td>
-                            <td className="py-3 pr-4 text-right">{Number(s.total_net_weight_mt).toLocaleString("en-CA", { maximumFractionDigits: 1 })}</td>
-                            <td className="py-3 pr-4 text-right font-semibold text-[#4A7C59]">${Number(s.net_payable).toLocaleString("en-CA", { maximumFractionDigits: 2 })}</td>
-                            <td className="py-3 pr-4">
-                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${s.status === "posted" ? "bg-[#EEF5F0] text-[#4A7C59]" : s.status === "reviewed" ? "bg-blue-50 text-blue-600" : "bg-[#FFF8EC] text-[#D97706]"}`}>
-                                {s.status}
-                              </span>
-                            </td>
-                            <td className="py-3 pr-4">
-                              {totalFlags > 0 ? (
-                                <span className="flex items-center gap-1 text-xs font-semibold text-[#D97706]">
-                                  <AlertTriangle size={12} /> {totalFlags}
-                                </span>
-                              ) : (
-                                <span className="text-xs text-[#4A7C59]">✓</span>
-                              )}
-                            </td>
-                            <td className="py-3">
-                              <button onClick={(e) => { e.stopPropagation(); deleteSettlement(s.id); }} className="text-gray-400 hover:text-red-500">
-                                <Trash2 size={13} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px] border-b border-white/[0.06]">
+                          <th className="text-left pb-3 pr-3">Settlement #</th>
+                          <th className="text-left pb-3 pr-3">Terminal</th>
+                          <th className="text-left pb-3 pr-3">Date</th>
+                          <th className="text-left pb-3 pr-3">Crop</th>
+                          <th className="text-right pb-3 pr-3">Loads</th>
+                          <th className="text-right pb-3 pr-3">Net (MT)</th>
+                          <th className="text-right pb-3 pr-3">Net Payable</th>
+                          <th className="text-left pb-3 pr-3">Status</th>
+                          <th className="text-left pb-3 pr-3">Flags</th>
+                          <th className="pb-3 w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/[0.04]">
+                        {settlements.map((s) => {
+                          const flags = typeof s.flags === "string" ? JSON.parse(s.flags) : s.flags || {};
+                          const totalFlags = (flags.dockage_outliers || 0) + (flags.price_mismatches || 0) + (flags.math_errors || 0);
+                          return (
+                            <tr key={s.id} className="cursor-pointer hover:bg-white/[0.02] transition-colors" onClick={() => loadSettlementDetail(s.id)}>
+                              <td className="py-3 pr-3 font-semibold text-[#F1F5F9]">{s.settlement_number || "—"}</td>
+                              <td className="py-3 pr-3 text-[#94A3B8]">{s.terminal_name} {s.terminal_location ? `— ${s.terminal_location}` : ""}</td>
+                              <td className="py-3 pr-3 text-[#64748B] font-mono text-[11px]">{s.issue_date?.split("T")[0]}</td>
+                              <td className="py-3 pr-3"><span className="text-[10px] bg-[#34D399]/[0.08] text-[#34D399] font-semibold px-2 py-0.5 rounded-full">{s.crop}</span></td>
+                              <td className="py-3 pr-3 text-right text-[#F1F5F9]">{s.total_loads}</td>
+                              <td className="py-3 pr-3 text-right font-mono text-[#94A3B8]">{Number(s.total_net_weight_mt).toLocaleString("en-CA", { maximumFractionDigits: 1 })}</td>
+                              <td className="py-3 pr-3 text-right font-semibold text-[#34D399]">${Number(s.net_payable).toLocaleString("en-CA", { maximumFractionDigits: 2 })}</td>
+                              <td className="py-3 pr-3">
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                  s.status === "posted" ? "bg-[#34D399]/[0.08] text-[#34D399]"
+                                    : s.status === "reviewed" ? "bg-[#38BDF8]/[0.08] text-[#38BDF8]"
+                                    : "bg-[#F59E0B]/[0.08] text-[#F59E0B]"
+                                }`}>{s.status}</span>
+                              </td>
+                              <td className="py-3 pr-3">
+                                {totalFlags > 0 ? (
+                                  <span className="flex items-center gap-1 text-[10px] font-semibold text-[#F59E0B]"><AlertTriangle size={12} /> {totalFlags}</span>
+                                ) : (
+                                  <CheckCircle size={13} className="text-[#34D399]" />
+                                )}
+                              </td>
+                              <td className="py-3">
+                                <button onClick={(e) => { e.stopPropagation(); deleteSettlement(s.id); }} className="text-[#475569] hover:text-[#EF4444] transition-colors"><Trash2 size={13} /></button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             )}
@@ -1547,53 +1353,53 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
             {/* Settlement Detail View */}
             {selectedSettlement && (
               <div className="space-y-4">
-                {/* Header */}
                 <div className="flex items-start justify-between">
                   <div>
-                    <h2 className="text-lg font-bold text-[#222527]">
+                    <h2 className="text-lg font-bold text-[#F1F5F9]">
                       {selectedSettlement.terminal_name} — Settlement #{selectedSettlement.settlement_number}
                     </h2>
-                    <p className="text-sm text-[#7A8A7C]">
+                    <p className="text-sm text-[#64748B]">
                       {selectedSettlement.terminal_location} • {selectedSettlement.issue_date?.split("T")[0]} • {selectedSettlement.crop} • {selectedSettlement.grade || ""}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     {selectedSettlement.status !== "posted" && (
-                      <button onClick={() => postSettlementToLedger(selectedSettlement.id)} className="flex items-center gap-2 bg-[#4A7C59] text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#3d6b4a] transition-colors">
+                      <button onClick={() => postSettlementToLedger(selectedSettlement.id)} className={btnPrimary}>
                         <BookOpen size={14} /> Post to Ledger
                       </button>
                     )}
-                    <span className={`text-xs font-semibold px-3 py-1 rounded-full ${selectedSettlement.status === "posted" ? "bg-[#EEF5F0] text-[#4A7C59]" : "bg-[#FFF8EC] text-[#D97706]"}`}>
-                      {selectedSettlement.status}
-                    </span>
+                    <span className={`text-[10px] font-semibold px-3 py-1 rounded-full ${
+                      selectedSettlement.status === "posted" ? "bg-[#34D399]/[0.08] text-[#34D399]" : "bg-[#F59E0B]/[0.08] text-[#F59E0B]"
+                    }`}>{selectedSettlement.status}</span>
                   </div>
                 </div>
 
-                {/* Summary Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {[
-                    { label: "Net Payable", value: `$${Number(selectedSettlement.net_payable).toLocaleString("en-CA", { maximumFractionDigits: 2 })}`, sub: `Gross: $${Number(selectedSettlement.gross_payable).toLocaleString("en-CA", { maximumFractionDigits: 2 })}` },
-                    { label: "Total Loads", value: selectedSettlement.total_loads, sub: `${Number(selectedSettlement.total_net_weight_mt).toLocaleString("en-CA", { maximumFractionDigits: 1 })} MT net` },
-                    { label: "Avg Dockage", value: `${Number(selectedSettlement.avg_dockage_pct).toFixed(2)}%`, sub: `${Number(selectedSettlement.total_dockage_mt).toLocaleString("en-CA", { maximumFractionDigits: 1 })} MT total`, highlight: Number(selectedSettlement.avg_dockage_pct) > 4 },
-                    { label: "Price / MT", value: `$${Number(selectedSettlement.price_per_mt).toLocaleString("en-CA", { maximumFractionDigits: 2 })}`, sub: `${Number(selectedSettlement.total_bushels).toLocaleString()} bu total` },
-                  ].map(k => (
-                    <div key={k.label} className={`rounded-[16px] border shadow-sm p-4 ${k.highlight ? "bg-[#FFF8EC] border-[#F5D78E]" : "bg-white border-[#E4E7E0]"}`}>
-                      <p className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">{k.label}</p>
-                      <p className={`text-xl font-bold mt-1 ${k.highlight ? "text-[#D97706]" : "text-[#222527]"}`}>{k.value}</p>
-                      <p className="text-xs text-[#7A8A7C] mt-1">{k.sub}</p>
-                    </div>
-                  ))}
+                  <KpiCard icon={DollarSign} label="Net Payable"
+                    value={`$${Number(selectedSettlement.net_payable).toLocaleString("en-CA", { maximumFractionDigits: 2 })}`}
+                    sub={`Gross: $${Number(selectedSettlement.gross_payable).toLocaleString("en-CA", { maximumFractionDigits: 2 })}`}
+                    accent />
+                  <KpiCard icon={Truck} label="Total Loads"
+                    value={selectedSettlement.total_loads}
+                    sub={`${Number(selectedSettlement.total_net_weight_mt).toLocaleString("en-CA", { maximumFractionDigits: 1 })} MT net`} />
+                  <KpiCard icon={AlertTriangle} label="Avg Dockage"
+                    value={`${Number(selectedSettlement.avg_dockage_pct).toFixed(2)}%`}
+                    sub={`${Number(selectedSettlement.total_dockage_mt).toLocaleString("en-CA", { maximumFractionDigits: 1 })} MT total`}
+                    highlight={Number(selectedSettlement.avg_dockage_pct) > 4} />
+                  <KpiCard icon={BarChart3} label="Price / MT"
+                    value={`$${Number(selectedSettlement.price_per_mt).toLocaleString("en-CA", { maximumFractionDigits: 2 })}`}
+                    sub={`${Number(selectedSettlement.total_bushels).toLocaleString()} bu total`} />
                 </div>
 
                 {/* Adjustment Details */}
                 {settlementAnalysis?.adjustment_details && settlementAnalysis.adjustment_details.length > 0 && (
-                  <div className="rounded-[16px] border border-[#E4E7E0] bg-white p-4">
-                    <p className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide mb-2">Adjustments / Deductions</p>
-                    <div className="space-y-1">
+                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                    <p className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[1.5px] mb-3">Adjustments / Deductions</p>
+                    <div className="space-y-1.5">
                       {settlementAnalysis.adjustment_details.map((adj: any, i: number) => (
                         <div key={i} className="flex justify-between text-sm">
-                          <span className="text-[#7A8A7C]">{adj.name}</span>
-                          <span className={`font-medium ${adj.amount < 0 ? "text-red-500" : "text-[#222527]"}`}>${adj.amount.toLocaleString("en-CA", { maximumFractionDigits: 2 })}</span>
+                          <span className="text-[#94A3B8]">{adj.name}</span>
+                          <span className={`font-medium font-mono ${adj.amount < 0 ? "text-[#EF4444]" : "text-[#F1F5F9]"}`}>${adj.amount.toLocaleString("en-CA", { maximumFractionDigits: 2 })}</span>
                         </div>
                       ))}
                     </div>
@@ -1605,17 +1411,17 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
                   const flags = typeof selectedSettlement.flags === "string" ? JSON.parse(selectedSettlement.flags) : selectedSettlement.flags || {};
                   const totalFlags = (flags.dockage_outliers || 0) + (flags.price_mismatches || 0) + (flags.math_errors || 0) + (flags.partial_loads || 0);
                   if (totalFlags === 0) return (
-                    <div className="p-3 rounded-[12px] bg-[#EEF5F0] text-[#4A7C59] text-sm font-medium">
-                      ✓ No irregularities found — all loads look clean
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-[#34D399]/[0.06] border border-[#34D399]/15 text-[#34D399] text-sm font-medium">
+                      <ShieldCheck size={14} /> No irregularities found — all loads look clean
                     </div>
                   );
                   return (
-                    <div className="p-3 rounded-[12px] bg-[#FFF8EC] border border-[#F5D78E] text-sm space-y-1">
-                      <p className="font-semibold text-[#D97706] flex items-center gap-1"><AlertTriangle size={14} /> {totalFlags} flag{totalFlags > 1 ? "s" : ""} detected</p>
-                      {flags.dockage_outliers > 0 && <p className="text-[#7A8A7C]">• {flags.dockage_outliers} dockage outlier{flags.dockage_outliers > 1 ? "s" : ""} (above 1.5× average)</p>}
-                      {flags.price_mismatches > 0 && <p className="text-[#7A8A7C]">• {flags.price_mismatches} price mismatch{flags.price_mismatches > 1 ? "es" : ""}</p>}
-                      {flags.math_errors > 0 && <p className="text-[#7A8A7C]">• {flags.math_errors} math discrepanc{flags.math_errors > 1 ? "ies" : "y"}</p>}
-                      {flags.partial_loads > 0 && <p className="text-[#7A8A7C]">• {flags.partial_loads} partial load{flags.partial_loads > 1 ? "s" : ""} (&lt;50% avg weight)</p>}
+                    <div className="p-3 rounded-xl bg-[#F59E0B]/[0.04] border border-[#F59E0B]/15 text-sm space-y-1">
+                      <p className="font-semibold text-[#F59E0B] flex items-center gap-1"><AlertTriangle size={14} /> {totalFlags} flag{totalFlags > 1 ? "s" : ""} detected</p>
+                      {flags.dockage_outliers > 0 && <p className="text-[#94A3B8]">• {flags.dockage_outliers} dockage outlier{flags.dockage_outliers > 1 ? "s" : ""} (above 1.5x average)</p>}
+                      {flags.price_mismatches > 0 && <p className="text-[#94A3B8]">• {flags.price_mismatches} price mismatch{flags.price_mismatches > 1 ? "es" : ""}</p>}
+                      {flags.math_errors > 0 && <p className="text-[#94A3B8]">• {flags.math_errors} math discrepanc{flags.math_errors > 1 ? "ies" : "y"}</p>}
+                      {flags.partial_loads > 0 && <p className="text-[#94A3B8]">• {flags.partial_loads} partial load{flags.partial_loads > 1 ? "s" : ""} (&lt;50% avg weight)</p>}
                     </div>
                   );
                 })()}
@@ -1624,7 +1430,7 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide border-b border-[#E4E7E0]">
+                      <tr className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px] border-b border-white/[0.06]">
                         <th className="text-left pb-3 pr-3">#</th>
                         <th className="text-left pb-3 pr-3">Date</th>
                         <th className="text-left pb-3 pr-3">Receipt/CPER</th>
@@ -1637,30 +1443,30 @@ const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
                         <th className="text-right pb-3">Gross $</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#F5F5F3]">
+                    <tbody className="divide-y divide-white/[0.04]">
                       {settlementLines.map((line) => {
                         const flags = typeof line.flags === "string" ? JSON.parse(line.flags) : line.flags || {};
                         const hasFlag = flags.dockage_outlier || flags.dockage_high || flags.price_mismatch || flags.math_error || flags.partial_load;
                         const isRed = flags.dockage_outlier === "red";
                         const isAmber = flags.dockage_high === "amber" || flags.price_mismatch || flags.partial_load;
-                        const rowBg = isRed ? "bg-red-50" : isAmber ? "bg-[#FFF8EC]" : "";
+                        const rowBg = isRed ? "bg-[#EF4444]/[0.04]" : isAmber ? "bg-[#F59E0B]/[0.04]" : "hover:bg-white/[0.02]";
                         return (
-                          <tr key={line.id} className={rowBg}>
-                            <td className="py-2.5 pr-3 text-[#7A8A7C]">
+                          <tr key={line.id} className={rowBg + " transition-colors"}>
+                            <td className="py-2.5 pr-3 text-[#64748B]">
                               {line.line_number}
-                              {hasFlag && <AlertTriangle size={11} className={`inline ml-1 ${isRed ? "text-red-500" : "text-[#D97706]"}`} />}
+                              {hasFlag && <AlertTriangle size={11} className={`inline ml-1 ${isRed ? "text-[#EF4444]" : "text-[#F59E0B]"}`} />}
                             </td>
-                            <td className="py-2.5 pr-3 text-[#7A8A7C]">{line.delivery_date?.split("T")[0]}</td>
-                            <td className="py-2.5 pr-3 font-medium text-[#222527]">{line.receipt_number || line.cper_number || "—"}</td>
-                            <td className="py-2.5 pr-3 text-right">{line.unload_weight_mt ? Number(line.unload_weight_mt).toFixed(3) : "—"}</td>
-                            <td className={`py-2.5 pr-3 text-right font-medium ${isRed ? "text-red-600 font-bold" : isAmber && flags.dockage_high ? "text-[#D97706] font-bold" : ""}`}>
+                            <td className="py-2.5 pr-3 text-[#64748B] font-mono text-[11px]">{line.delivery_date?.split("T")[0]}</td>
+                            <td className="py-2.5 pr-3 font-medium text-[#F1F5F9]">{line.receipt_number || line.cper_number || "—"}</td>
+                            <td className="py-2.5 pr-3 text-right font-mono text-[#94A3B8]">{line.unload_weight_mt ? Number(line.unload_weight_mt).toFixed(3) : "—"}</td>
+                            <td className={`py-2.5 pr-3 text-right font-mono font-medium ${isRed ? "text-[#EF4444] font-bold" : isAmber && flags.dockage_high ? "text-[#F59E0B] font-bold" : "text-[#94A3B8]"}`}>
                               {line.dockage_pct ? `${Number(line.dockage_pct).toFixed(2)}%` : "—"}
                             </td>
-                            <td className="py-2.5 pr-3 text-right text-[#7A8A7C]">{line.dockage_mt ? Number(line.dockage_mt).toFixed(3) : "—"}</td>
-                            <td className="py-2.5 pr-3 text-right font-semibold text-[#4A7C59]">{line.net_weight_mt ? Number(line.net_weight_mt).toFixed(3) : "—"}</td>
-                            <td className="py-2.5 pr-3 text-right text-[#7A8A7C]">{line.moisture_pct ? `${Number(line.moisture_pct).toFixed(1)}%` : "—"}</td>
-                            <td className="py-2.5 pr-3 text-right text-[#7A8A7C]">${line.price_per_mt ? Number(line.price_per_mt).toFixed(2) : "—"}</td>
-                            <td className="py-2.5 text-right font-medium">${line.gross_amount ? Number(line.gross_amount).toLocaleString("en-CA", { maximumFractionDigits: 2 }) : "—"}</td>
+                            <td className="py-2.5 pr-3 text-right font-mono text-[#64748B]">{line.dockage_mt ? Number(line.dockage_mt).toFixed(3) : "—"}</td>
+                            <td className="py-2.5 pr-3 text-right font-mono font-semibold text-[#34D399]">{line.net_weight_mt ? Number(line.net_weight_mt).toFixed(3) : "—"}</td>
+                            <td className="py-2.5 pr-3 text-right font-mono text-[#64748B]">{line.moisture_pct ? `${Number(line.moisture_pct).toFixed(1)}%` : "—"}</td>
+                            <td className="py-2.5 pr-3 text-right font-mono text-[#94A3B8]">${line.price_per_mt ? Number(line.price_per_mt).toFixed(2) : "—"}</td>
+                            <td className="py-2.5 text-right font-mono font-medium text-[#F1F5F9]">${line.gross_amount ? Number(line.gross_amount).toLocaleString("en-CA", { maximumFractionDigits: 2 }) : "—"}</td>
                           </tr>
                         );
                       })}

@@ -9,6 +9,7 @@ import {
   CloudDrizzle, CloudSun, CloudFog, Bot,
 } from "lucide-react";
 import Link from "next/link";
+import LilyIcon from "@/components/LilyIcon";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -607,7 +608,7 @@ export default function Grain360Page() {
       <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-8 h-8 rounded-full bg-[#34D399]/[0.12] border border-[#34D399]/20 flex items-center justify-center">
-            <Bot size={16} className="text-[#34D399]" />
+            <LilyIcon size={20} />
           </div>
           <div>
             <p className="text-sm font-bold text-[#F1F5F9]">Ask Lily</p>

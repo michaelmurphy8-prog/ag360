@@ -1,19 +1,24 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, User, Sparkles } from "lucide-react";
+import { Send, User, Sparkles, AlertTriangle, CheckCircle, Wheat, Tractor, DollarSign, Sprout, Bug, Users, TrendingUp, Scale } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
+import LilyIcon from "@/components/LilyIcon";
+
+// ─── Prompt Chips with Icons ──────────────────────────────────
 
 const PROMPT_CHIPS = [
-  "Build me a sell plan for my canola crop",
-  "What's the best contract type for wheat right now?",
-  "Explain basis and how I should use it",
-  "Give me a pre-harvest machinery checklist",
-  "How do I calculate my break-even price per bushel?",
-  "What should I watch for in my canola at swathing?",
-  "Help me think through hiring LMIA workers",
-  "What are the biggest margin leaks on most farms?",
+  { text: "Build me a sell plan for my canola crop", icon: TrendingUp },
+  { text: "What's the best contract type for wheat right now?", icon: Scale },
+  { text: "Explain basis and how I should use it", icon: DollarSign },
+  { text: "Give me a pre-harvest machinery checklist", icon: Tractor },
+  { text: "How do I calculate my break-even price per bushel?", icon: Wheat },
+  { text: "What should I watch for in my canola at swathing?", icon: Sprout },
+  { text: "Help me think through hiring LMIA workers", icon: Users },
+  { text: "What are the biggest margin leaks on most farms?", icon: Bug },
 ];
+
+// ─── Types ────────────────────────────────────────────────────
 
 type FarmProfile = {
   farmName: string;
@@ -53,6 +58,8 @@ type Message = {
   content: string;
 };
 
+// ─── Farm Context Builder ─────────────────────────────────────
+
 function buildFarmContext(profile: FarmProfile): string {
   if (!profile.farmName) return "";
 
@@ -90,17 +97,73 @@ ${inventoryLines || "  No crops entered yet"}
 Tailor ALL advice specifically to this farm. Use their actual acres, bushels, break-even prices, and risk profile in every recommendation. Reference ${profile.farmName} by name.`.trim();
 }
 
-function MessageContent({ content }: { content: string }) {
-  const formatted = content
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\n\n/g, "</p><p>")
-    .replace(/\n(\d+)\./g, "</p><p><strong>$1.</strong>")
-    .replace(/\n-/g, "</p><p>");
+// ─── AI Message Renderer ──────────────────────────────────────
 
-  return (
-    <p className="text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: `<p>${formatted}</p>` }} />
-  );
+function LilyMessage({ content }: { content: string }) {
+  const lines = content.split("\n");
+  const elements: React.ReactNode[] = [];
+  let key = 0;
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (line.trim() === "") {
+      elements.push(<div key={key++} className="h-2" />);
+      i++;
+      continue;
+    }
+
+    const boldMatch = line.match(/^\*\*(.+?)\*\*$/);
+    if (boldMatch) {
+      elements.push(
+        <p key={key++} className="text-[13px] font-semibold text-[#F1F5F9] mt-3 mb-1 tracking-tight">
+          {boldMatch[1]}
+        </p>
+      );
+      i++;
+      continue;
+    }
+
+    const numMatch = line.match(/^(\d+)\.\s*\*?\*?(.+?)(?:\*\*)?$/);
+    if (numMatch) {
+      const text = numMatch[2].replace(/\*\*(.+?)\*\*/g, '<strong class="text-[#F1F5F9] font-medium">$1</strong>');
+      elements.push(
+        <div key={key++} className="flex gap-3 mt-1.5">
+          <span className="font-mono text-[11px] text-[#34D399] font-semibold mt-[2px] w-4 flex-shrink-0 text-right">{numMatch[1]}.</span>
+          <p className="text-[13px] text-[#CBD5E1] leading-[1.7]" dangerouslySetInnerHTML={{ __html: text }} />
+        </div>
+      );
+      i++;
+      continue;
+    }
+
+    const bulletMatch = line.match(/^[-•]\s+(.+)$/);
+    if (bulletMatch) {
+      const text = bulletMatch[1].replace(/\*\*(.+?)\*\*/g, '<strong class="text-[#F1F5F9] font-medium">$1</strong>');
+      elements.push(
+        <div key={key++} className="flex gap-3 mt-1">
+          <span className="w-1 h-1 rounded-full bg-[#34D399] mt-[8px] flex-shrink-0" />
+          <p className="text-[13px] text-[#CBD5E1] leading-[1.7]" dangerouslySetInnerHTML={{ __html: text }} />
+        </div>
+      );
+      i++;
+      continue;
+    }
+
+    const text = line.replace(/\*\*(.+?)\*\*/g, '<strong class="text-[#F1F5F9] font-medium">$1</strong>');
+    elements.push(
+      <p key={key++} className="text-[13px] text-[#CBD5E1] leading-[1.7]" dangerouslySetInnerHTML={{ __html: text }} />
+    );
+    i++;
+  }
+
+  return <div className="space-y-0">{elements}</div>;
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  ADVISOR PAGE
+// ═══════════════════════════════════════════════════════════════
 
 export default function AdvisorPage() {
   const { user } = useUser();
@@ -110,6 +173,7 @@ export default function AdvisorPage() {
   const [streamingText, setStreamingText] = useState("");
   const [profile, setProfile] = useState<FarmProfile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -131,9 +195,9 @@ export default function AdvisorPage() {
 
     const farmContext = profile ? buildFarmContext(profile) : "";
 
-const userMessage: Message = { role: "user", content: text };
-const updatedMessages = [...messages, userMessage];
-const apiMessages = [...messages, userMessage];
+    const userMessage: Message = { role: "user", content: text };
+    const updatedMessages = [...messages, userMessage];
+    const apiMessages = [...messages, userMessage];
 
     setMessages(updatedMessages);
     setInput("");
@@ -143,10 +207,10 @@ const apiMessages = [...messages, userMessage];
     try {
       const res = await fetch("/api/advisor", {
         method: "POST",
-        headers: { 
-  "Content-Type": "application/json",
-  "x-user-id": user?.id || "",
-},
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || "",
+        },
         body: JSON.stringify({ messages: apiMessages, farmContext }),
       });
 
@@ -172,131 +236,213 @@ const apiMessages = [...messages, userMessage];
     }
   }
 
+  const hasMessages = messages.length > 0 || loading;
+
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
+
+      {/* ── Header ────────────────────────────────────────── */}
       <div className="mb-4 flex-shrink-0">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#DDE3D6] flex items-center justify-center text-2xl">
-              👩‍🌾
+          <div className="flex items-center gap-4">
+            {/* Lily Avatar with glow */}
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-[#34D399]/20 blur-md" />
+              <div className="relative w-11 h-11 rounded-full flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))", border: "1px solid rgba(52,211,153,0.25)" }}>
+                <LilyIcon size={24} />
+              </div>
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-[#222527]">Lily</h1>
-                <span className="flex items-center gap-1 text-xs font-semibold text-[#4A7C59] bg-[#EEF5F0] px-2 py-0.5 rounded-full">
-                  <Sparkles size={10} /> AG360 Advisor
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-[24px] font-bold text-[#F1F5F9] tracking-tight">Lily</h1>
+                <span className="flex items-center gap-1 font-mono text-[9px] font-semibold text-[#34D399] bg-[#34D399]/[0.06] border border-[#34D399]/15 px-2 py-0.5 rounded-full uppercase tracking-[1.5px]">
+                  <Sparkles size={9} /> AG360 Advisor
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34D399] opacity-40" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#34D399]" />
+                  </span>
+                  <span className="font-mono text-[9px] text-[#64748B] uppercase tracking-[1px]">Online</span>
                 </span>
               </div>
-              <p className="text-xs text-[#7A8A7C]">
+              <p className="text-[12px] text-[#64748B] mt-0.5">
                 {profileLoaded && profile
-                  ? `${profile.farmName} · ${profile.province} · ${profile.riskProfile} risk profile`
-                  : "Grain marketing · Agronomy · Farm business · Available 24/7"}
+                  ? `Connected to ${profile.farmName} · ${profile.province} · ${profile.riskProfile} risk`
+                  : "Grain marketing · Agronomy · Farm business"}
               </p>
             </div>
           </div>
           {profileLoaded && !profile && (
-            <a href="/farm-profile" className="text-xs font-semibold text-[#4A7C59] bg-[#EEF5F0] border border-[#C8DDD0] px-4 py-2 rounded-full hover:bg-[#DDE3D6] transition-colors">
+            <a href="/farm-profile" className="text-[11px] font-semibold text-[#34D399] bg-[#34D399]/[0.06] border border-[#34D399]/15 px-4 py-2 rounded-full hover:bg-[#34D399]/[0.12] transition-colors">
               Set Up Farm Profile →
             </a>
           )}
           {profileLoaded && profile && (
-            <a href="/farm-profile" className="text-xs font-semibold text-[#4A7C59] bg-[#EEF5F0] border border-[#C8DDD0] px-4 py-2 rounded-full hover:bg-[#DDE3D6] transition-colors">
-              ✓ {profile.farmName} Profile
+            <a href="/farm-profile" className="flex items-center gap-1.5 text-[11px] font-semibold text-[#34D399] bg-[#34D399]/[0.06] border border-[#34D399]/15 px-4 py-2 rounded-full hover:bg-[#34D399]/[0.12] transition-colors">
+              <CheckCircle size={11} /> {profile.farmName}
             </a>
           )}
         </div>
-        <div className="mt-3 p-3 bg-[#FFF8EC] border border-[#F5D78E] rounded-[12px]">
-          <p className="text-xs text-[#7A8A7C]">⚠️ Lily provides operational guidance — not legal, financial, or medical advice. Verify crop protection rates against the registered product label.</p>
+
+        <div className="mt-3 px-3 py-2 rounded-lg flex items-center gap-2" style={{ background: "rgba(245,158,11,0.04)", border: "1px solid rgba(245,158,11,0.08)" }}>
+          <AlertTriangle size={11} className="text-[#F59E0B]/60 flex-shrink-0" />
+          <p className="text-[10px] text-[#64748B]">Operational guidance only — not legal, financial, or medical advice. Verify crop protection rates against registered labels.</p>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-1">
-        {messages.length === 0 && !loading && (
-          <div className="space-y-6">
-            <div className="text-center space-y-1">
-              <p className="text-sm font-semibold text-[#222527]">What do you need to win today?</p>
-              <p className="text-xs text-[#7A8A7C]">
-                {profile
-                  ? `Lily knows ${profile.farmName} — every answer is tailored to your operation.`
-                  : "Lily thinks like your best agronomist and sharpest grain marketer — combined."}
-              </p>
+      {/* ── Chat Area ─────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto mb-4 pr-1 scrollbar-thin">
+
+        {/* Empty State */}
+        {!hasMessages && (
+          <div className="flex flex-col items-center justify-center h-full -mt-8">
+            <div className="relative mb-8">
+              <div className="absolute inset-0 rounded-full bg-[#34D399]/10 blur-2xl scale-150 animate-pulse" style={{ animationDuration: "3s" }} />
+              <div className="relative w-20 h-20 rounded-full flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.12), rgba(52,211,153,0.04))", border: "1px solid rgba(52,211,153,0.20)" }}>
+                <LilyIcon size={44} />
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {PROMPT_CHIPS.map((chip) => (
-                <button key={chip} onClick={() => sendMessage(chip)}
-                  className="text-xs bg-white border border-[#E4E7E0] text-[#222527] px-4 py-2 rounded-full hover:bg-[#DDE3D6] hover:border-[#4A7C59] transition-colors">
-                  {chip}
+
+            <h2 className="text-[20px] font-semibold text-[#F1F5F9] tracking-tight mb-1">
+              What do you need to win today?
+            </h2>
+            <p className="text-[13px] text-[#64748B] mb-8 max-w-md text-center">
+              {profile
+                ? `Every answer is tailored to ${profile.farmName} — your acres, costs, and risk profile.`
+                : "Your agronomist and grain marketer — combined into one advisor, available 24/7."}
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 max-w-xl w-full">
+              {PROMPT_CHIPS.map(({ text, icon: Icon }) => (
+                <button key={text} onClick={() => sendMessage(text)}
+                  className="group flex items-start gap-3 text-left px-4 py-3 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+                  style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(52,211,153,0.04)";
+                    e.currentTarget.style.borderColor = "rgba(52,211,153,0.15)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.02)";
+                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
+                  }}>
+                  <Icon size={14} className="text-[#64748B] group-hover:text-[#34D399] mt-0.5 flex-shrink-0 transition-colors" />
+                  <span className="text-[12px] text-[#94A3B8] group-hover:text-[#F1F5F9] leading-snug transition-colors">{text}</span>
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            {msg.role === "assistant" && (
-              <div className="w-8 h-8 rounded-full bg-[#DDE3D6] flex items-center justify-center shrink-0 mt-1 text-lg">
-                👩‍🌾
+        {/* Messages */}
+        {hasMessages && (
+          <div className="space-y-5">
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                {msg.role === "assistant" && (
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-1"
+                    style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))", border: "1px solid rgba(52,211,153,0.20)" }}>
+                    <LilyIcon size={16} />
+                  </div>
+                )}
+                <div className={`max-w-2xl ${
+                  msg.role === "user"
+                    ? "rounded-2xl rounded-br-md px-5 py-3"
+                    : "rounded-2xl rounded-bl-md px-5 py-4"
+                }`}
+                  style={msg.role === "user"
+                    ? { background: "linear-gradient(135deg, #34D399, #2DD4A8)" }
+                    : { background: "rgba(17,24,39,0.8)", border: "1px solid rgba(255,255,255,0.06)" }
+                  }>
+                  {msg.role === "assistant"
+                    ? <LilyMessage content={msg.content} />
+                    : <p className="text-[13px] text-[#080C15] font-medium leading-relaxed">{msg.content}</p>
+                  }
+                </div>
+                {msg.role === "user" && (
+                  <div className="w-7 h-7 rounded-full bg-white/[0.06] border border-white/[0.08] flex items-center justify-center shrink-0 mt-1">
+                    <User size={12} className="text-[#94A3B8]" />
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {streamingText && (
+              <div className="flex gap-3 justify-start">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-1"
+                  style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))", border: "1px solid rgba(52,211,153,0.20)" }}>
+                  <LilyIcon size={16} />
+                </div>
+                <div className="max-w-2xl rounded-2xl rounded-bl-md px-5 py-4"
+                  style={{ background: "rgba(17,24,39,0.8)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <LilyMessage content={streamingText} />
+                  <span className="inline-block w-[3px] h-[16px] bg-[#34D399] ml-1 animate-pulse rounded-full" style={{ animationDuration: "0.8s" }} />
+                </div>
               </div>
             )}
-            <div className={`max-w-2xl rounded-[16px] px-5 py-4 ${
-              msg.role === "user"
-                ? "bg-[#4A7C59] text-white text-sm leading-relaxed"
-                : "bg-white border border-[#E4E7E0] text-[#222527]"
-            }`}>
-              {msg.role === "assistant" ? <MessageContent content={msg.content} /> : msg.content}
-            </div>
-            {msg.role === "user" && (
-              <div className="w-8 h-8 rounded-full bg-[#DDE3D6] flex items-center justify-center shrink-0 mt-1">
-                <User size={14} className="text-[#4A7C59]" />
+
+            {loading && !streamingText && (
+              <div className="flex gap-3 justify-start">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-1"
+                  style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))", border: "1px solid rgba(52,211,153,0.20)" }}>
+                  <LilyIcon size={16} />
+                </div>
+                <div className="rounded-2xl rounded-bl-md px-5 py-4"
+                  style={{ background: "rgba(17,24,39,0.8)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      {[0, 150, 300].map(d => (
+                        <div key={d} className="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                      ))}
+                    </div>
+                    <span className="text-[11px] text-[#475569] font-mono">thinking</span>
+                  </div>
+                </div>
               </div>
             )}
-          </div>
-        ))}
 
-        {streamingText && (
-          <div className="flex gap-3 justify-start">
-            <div className="w-8 h-8 rounded-full bg-[#DDE3D6] flex items-center justify-center shrink-0 mt-1 text-lg">
-              👩‍🌾
-            </div>
-            <div className="max-w-2xl bg-white border border-[#E4E7E0] rounded-[16px] px-5 py-4 text-[#222527]">
-              <MessageContent content={streamingText} />
-              <span className="inline-block w-1.5 h-3.5 bg-[#4A7C59] ml-0.5 animate-pulse rounded-sm" />
-            </div>
+            <div ref={bottomRef} />
           </div>
         )}
-
-        {loading && !streamingText && (
-          <div className="flex gap-3 justify-start">
-            <div className="w-8 h-8 rounded-full bg-[#DDE3D6] flex items-center justify-center shrink-0 mt-1 text-lg">
-              👩‍🌾
-            </div>
-            <div className="bg-white border border-[#E4E7E0] rounded-[16px] px-5 py-4">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 rounded-full bg-[#4A7C59] animate-bounce" style={{ animationDelay: "0ms" }} />
-                <div className="w-2 h-2 rounded-full bg-[#4A7C59] animate-bounce" style={{ animationDelay: "150ms" }} />
-                <div className="w-2 h-2 rounded-full bg-[#4A7C59] animate-bounce" style={{ animationDelay: "300ms" }} />
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div ref={bottomRef} />
       </div>
 
-      <div className="flex gap-3 items-center bg-white border border-[#E4E7E0] rounded-[20px] px-4 py-3 flex-shrink-0">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
-          placeholder="Ask Lily anything about your farm operation..."
-          className="flex-1 text-sm text-[#222527] placeholder:text-[#7A8A7C] outline-none bg-transparent"
-        />
-        <button onClick={() => sendMessage(input)} disabled={loading || !input.trim()}
-          className="w-8 h-8 rounded-full bg-[#4A7C59] flex items-center justify-center hover:bg-[#3d6b4a] transition-colors disabled:opacity-40">
-          <Send size={14} className="text-white" />
-        </button>
+      {/* ── Input Bar (glass) ─────────────────────────────── */}
+      <div
+        className="flex-shrink-0 rounded-xl px-4 py-3 transition-all duration-300"
+        style={{
+          background: inputFocused
+            ? "linear-gradient(135deg, rgba(17,24,39,0.95), rgba(17,24,39,0.90))"
+            : "rgba(17,24,39,0.8)",
+          border: inputFocused
+            ? "1px solid rgba(52,211,153,0.25)"
+            : "1px solid rgba(255,255,255,0.06)",
+          boxShadow: inputFocused
+            ? "0 0 20px rgba(52,211,153,0.06), inset 0 1px 0 rgba(255,255,255,0.03)"
+            : "inset 0 1px 0 rgba(255,255,255,0.02)",
+        }}
+      >
+        <div className="flex gap-3 items-center">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
+            onFocus={() => setInputFocused(true)}
+            onBlur={() => setInputFocused(false)}
+            placeholder="Ask Lily anything about your farm operation..."
+            className="flex-1 text-[13px] text-[#F1F5F9] placeholder:text-[#475569] outline-none bg-transparent"
+          />
+          <button onClick={() => sendMessage(input)} disabled={loading || !input.trim()}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 disabled:opacity-30"
+            style={{
+              background: !input.trim() || loading ? "rgba(255,255,255,0.04)" : "linear-gradient(135deg, #34D399, #2DD4A8)",
+              boxShadow: input.trim() && !loading ? "0 2px 8px rgba(52,211,153,0.25)" : "none",
+            }}>
+            <Send size={14} className={input.trim() && !loading ? "text-[#080C15]" : "text-[#475569]"} />
+          </button>
+        </div>
       </div>
     </div>
   );

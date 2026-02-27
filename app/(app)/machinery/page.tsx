@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from "react";
-import { Tractor } from "lucide-react";
+import { Tractor, Upload, Plus } from "lucide-react";
 import BulkUploadModal from "@/components/machinery/BulkUploadModal";
 import AddAssetModal from "@/components/machinery/AddAssetModal";
 import FleetFilters from "@/components/machinery/FleetFilters";
@@ -24,12 +24,12 @@ interface Asset {
 }
 
 function statusStyle(status: string) {
-  if (status === 'ACTIVE')  return 'bg-[#EEF5F0] text-[#4A7C59]';
-  if (status === 'WATCH')   return 'bg-[#FFF8EC] text-[#E8A838]';
-  if (status === 'DOWN')    return 'bg-[#FDEEED] text-[#D94F3D]';
-  if (status === 'SOLD')    return 'bg-[#F0F0F0] text-[#888]';
-  if (status === 'RETIRED') return 'bg-[#F0F0F0] text-[#888]';
-  return 'bg-[#EEF5F0] text-[#4A7C59]';
+  if (status === 'ACTIVE')  return 'bg-[#34D399]/[0.08] text-[#34D399]';
+  if (status === 'WATCH')   return 'bg-[#F59E0B]/[0.08] text-[#F59E0B]';
+  if (status === 'DOWN')    return 'bg-[#EF4444]/[0.08] text-[#EF4444]';
+  if (status === 'SOLD')    return 'bg-white/[0.04] text-[#64748B]';
+  if (status === 'RETIRED') return 'bg-white/[0.04] text-[#64748B]';
+  return 'bg-[#34D399]/[0.08] text-[#34D399]';
 }
 
 export default function MachineryPage() {
@@ -80,42 +80,42 @@ export default function MachineryPage() {
 
   const kpis = [
     { label: "Total Fleet Value", value: totalValue >= 1000000 ? `$${(totalValue / 1000000).toFixed(2)}M` : `$${(totalValue / 1000).toFixed(0)}K`, unit: "CAD" },
-    { label: "Total Assets",      value: String(assets.length),                  unit: "units" },
-    { label: "Active",            value: String(active),                          unit: "units" },
-    { label: "Needs Attention",   value: String(watch),                           unit: "watch" },
-    { label: "Down / In Shop",    value: String(down),                            unit: "units" },
+    { label: "Total Assets",      value: String(assets.length),  unit: "units" },
+    { label: "Active",            value: String(active),         unit: "units" },
+    { label: "Needs Attention",   value: String(watch),          unit: "watch" },
+    { label: "Down / In Shop",    value: String(down),           unit: "units" },
   ];
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-[#222527]">Machinery</h1>
-        <p className="text-[#7A8A7C] text-sm mt-1">Murphy Farms · {assets.length} assets tracked</p>
+        <h1 className="text-[28px] font-bold text-[#F1F5F9] tracking-tight">Machinery</h1>
+        <p className="text-[13px] text-[#64748B] mt-1">Murphy Farms · {assets.length} assets tracked</p>
       </div>
 
       <div className="grid grid-cols-5 gap-4">
         {kpis.map((kpi) => (
-          <div key={kpi.label} className="bg-white rounded-[20px] border border-[#E4E7E0] shadow-sm p-5">
-            <p className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">{kpi.label}</p>
-            <p className="text-2xl font-bold text-[#222527] mt-1">{kpi.value}</p>
-            <p className="text-xs text-[#7A8A7C] mt-1">{kpi.unit}</p>
+          <div key={kpi.label} className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
+            <p className="font-mono text-[11px] font-bold text-[#F1F5F9] uppercase tracking-[1.5px]">{kpi.label}</p>
+            <p className="text-2xl font-bold text-[#F1F5F9] mt-1">{kpi.value}</p>
+            <p className="text-xs text-[#64748B] mt-1">{kpi.unit}</p>
           </div>
         ))}
       </div>
 
-      <div className="bg-white rounded-[20px] border border-[#E4E7E0] shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#E4E7E0] flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-[#222527]">Fleet Assets</h2>
+      <div className="bg-[#111827] rounded-xl border border-white/[0.06] overflow-hidden">
+        <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
+          <h2 className="font-mono text-[11px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">Fleet Assets</h2>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowBulkUpload(true)}
-              className="text-xs font-semibold text-[#4A7C59] border border-[#4A7C59] px-4 py-2 rounded-full hover:bg-[#EEF5F0] transition-colors"
+              className="flex items-center gap-1.5 text-xs font-semibold text-[#34D399] border border-[#34D399]/30 px-4 py-2 rounded-full hover:bg-[#34D399]/[0.06] transition-colors"
             >
-              ↑ Bulk Upload
+              <Upload size={12} /> Bulk Upload
             </button>
-            <button onClick={() => setShowAddAsset(true)} className="text-xs font-semibold text-white bg-[#4A7C59] px-4 py-2 rounded-full hover:bg-[#3d6b4a] transition-colors">
-  + Add Asset
-</button>
+            <button onClick={() => setShowAddAsset(true)} className="flex items-center gap-1.5 text-xs font-semibold text-[#080C15] bg-[#34D399] px-4 py-2 rounded-full hover:bg-[#6EE7B7] transition-colors">
+              <Plus size={12} /> Add Asset
+            </button>
           </div>
         </div>
 
@@ -130,27 +130,27 @@ export default function MachineryPage() {
           />
         </div>
 
-        <div className="divide-y divide-[#E4E7E0]">
+        <div className="divide-y divide-white/[0.04]">
           {loading ? (
-            <div className="px-6 py-12 text-center text-sm text-[#7A8A7C]">
+            <div className="px-6 py-12 text-center text-sm text-[#64748B]">
               Loading fleet...
             </div>
           ) : filtered.length === 0 ? (
-            <div className="px-6 py-12 text-center text-sm text-[#7A8A7C]">
+            <div className="px-6 py-12 text-center text-sm text-[#64748B]">
               {assets.length === 0
                 ? 'No assets yet — add one or use bulk upload.'
                 : 'No assets match your current filters.'}
             </div>
           ) : (
             filtered.map((asset) => (
-              <div key={asset.id} className="px-6 py-4 flex items-center justify-between hover:bg-[#F5F5F3] transition-colors">
+              <div key={asset.id} className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className="w-9 h-9 rounded-[10px] bg-[#DDE3D6] flex items-center justify-center">
-                    <Tractor size={16} className="text-[#4A7C59]" />
+                  <div className="w-9 h-9 rounded-[10px] bg-[#34D399]/[0.08] border border-[#34D399]/[0.15] flex items-center justify-center">
+                    <Tractor size={16} className="text-[#34D399]" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-[#222527]">{asset.name}</p>
-                    <p className="text-xs text-[#7A8A7C] capitalize">
+                    <p className="text-sm font-semibold text-[#F1F5F9]">{asset.name}</p>
+                    <p className="text-xs text-[#64748B] capitalize">
                       {asset.assetClass || asset.model} · {asset.year}
                       {asset.serialNumber ? ` · #${asset.serialNumber}` : ''}
                     </p>
@@ -158,20 +158,20 @@ export default function MachineryPage() {
                 </div>
                 <div className="flex items-center gap-8">
                   <div className="text-right">
-                    <p className="text-xs text-[#7A8A7C]">Hours / KM</p>
-                    <p className="text-sm font-semibold text-[#222527]">
+                    <p className="text-xs text-[#64748B]">Hours / KM</p>
+                    <p className="text-sm font-semibold text-[#F1F5F9]">
                       {asset.hoursTotal ? asset.hoursTotal.toLocaleString() : '—'}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-[#7A8A7C]">Est. Value</p>
-                    <p className="text-sm font-semibold text-[#222527]">
+                    <p className="text-xs text-[#64748B]">Est. Value</p>
+                    <p className="text-sm font-semibold text-[#F1F5F9]">
                       {asset.currentValue ? `$${Math.round(Number(asset.currentValue)).toLocaleString()}` : '—'}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-[#7A8A7C]">Next Service</p>
-                    <p className="text-sm font-semibold text-[#222527]">
+                    <p className="text-xs text-[#64748B]">Next Service</p>
+                    <p className="text-sm font-semibold text-[#F1F5F9]">
                       {asset.nextService ? (isNaN(Number(asset.nextService)) ? asset.nextService : `${Number(asset.nextService).toLocaleString()} hrs`) : '—'}
                     </p>
                   </div>
@@ -185,12 +185,12 @@ export default function MachineryPage() {
         </div>
       </div>
 
-{showAddAsset && (
-  <AddAssetModal
-    onClose={() => setShowAddAsset(false)}
-    onSuccess={() => { fetchAssets(); setShowAddAsset(false); }}
-  />
-)}
+      {showAddAsset && (
+        <AddAssetModal
+          onClose={() => setShowAddAsset(false)}
+          onSuccess={() => { fetchAssets(); setShowAddAsset(false); }}
+        />
+      )}
       {showBulkUpload && (
         <BulkUploadModal
           onClose={() => setShowBulkUpload(false)}

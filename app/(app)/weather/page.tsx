@@ -1,50 +1,56 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Droplets, Wind, Thermometer, CloudRain } from "lucide-react";
+import {
+  Droplets, Wind, Thermometer, CloudRain,
+  Sun, CloudSun, Cloud, CloudDrizzle, CloudSnow,
+  CloudLightning, CloudFog, Snowflake, MapPin,
+  ArrowUpRight, ArrowDownRight, Minus,
+} from "lucide-react";
+
+// ─── Config ──────────────────────────────────────────────────
 
 const GDD_CROPS = [
-  { name: "Canola", base: 5, target: 1500, color: "#4A7C59" },
-  { name: "Spring Wheat", base: 5, target: 1200, color: "#D97706" },
-  { name: "Barley", base: 5, target: 1100, color: "#7C3AED" },
-  { name: "Peas", base: 4.5, target: 1000, color: "#0891B2" },
+  { name: "Canola", base: 5, target: 1500, color: "#34D399", gradient: "from-[#34D399]/20 to-[#34D399]/5" },
+  { name: "Spring Wheat", base: 5, target: 1200, color: "#F59E0B", gradient: "from-[#F59E0B]/20 to-[#F59E0B]/5" },
+  { name: "Barley", base: 5, target: 1100, color: "#818CF8", gradient: "from-[#818CF8]/20 to-[#818CF8]/5" },
+  { name: "Peas", base: 4.5, target: 1000, color: "#38BDF8", gradient: "from-[#38BDF8]/20 to-[#38BDF8]/5" },
 ];
 
-const WMO_CODES: Record<number, { label: string; icon: string }> = {
-  0: { label: "Clear Sky", icon: "☀️" },
-  1: { label: "Mainly Clear", icon: "🌤️" },
-  2: { label: "Partly Cloudy", icon: "⛅" },
-  3: { label: "Overcast", icon: "☁️" },
-  45: { label: "Foggy", icon: "🌫️" },
-  48: { label: "Icy Fog", icon: "🌫️" },
-  51: { label: "Light Drizzle", icon: "🌦️" },
-  61: { label: "Light Rain", icon: "🌧️" },
-  63: { label: "Moderate Rain", icon: "🌧️" },
-  65: { label: "Heavy Rain", icon: "🌧️" },
-  71: { label: "Light Snow", icon: "🌨️" },
-  73: { label: "Moderate Snow", icon: "❄️" },
-  75: { label: "Heavy Snow", icon: "❄️" },
-  80: { label: "Rain Showers", icon: "🌦️" },
-  95: { label: "Thunderstorm", icon: "⛈️" },
+const WMO_ICONS: Record<number, { label: string; Icon: React.ElementType; color: string }> = {
+  0:  { label: "Clear Sky", Icon: Sun, color: "#F59E0B" },
+  1:  { label: "Mainly Clear", Icon: CloudSun, color: "#F59E0B" },
+  2:  { label: "Partly Cloudy", Icon: CloudSun, color: "#94A3B8" },
+  3:  { label: "Overcast", Icon: Cloud, color: "#64748B" },
+  45: { label: "Foggy", Icon: CloudFog, color: "#64748B" },
+  48: { label: "Icy Fog", Icon: CloudFog, color: "#64748B" },
+  51: { label: "Light Drizzle", Icon: CloudDrizzle, color: "#38BDF8" },
+  61: { label: "Light Rain", Icon: CloudRain, color: "#38BDF8" },
+  63: { label: "Moderate Rain", Icon: CloudRain, color: "#3B82F6" },
+  65: { label: "Heavy Rain", Icon: CloudRain, color: "#2563EB" },
+  71: { label: "Light Snow", Icon: CloudSnow, color: "#CBD5E1" },
+  73: { label: "Moderate Snow", Icon: Snowflake, color: "#E2E8F0" },
+  75: { label: "Heavy Snow", Icon: Snowflake, color: "#F1F5F9" },
+  80: { label: "Rain Showers", Icon: CloudDrizzle, color: "#38BDF8" },
+  95: { label: "Thunderstorm", Icon: CloudLightning, color: "#818CF8" },
 };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function getWeatherInfo(code: number) {
-  return WMO_CODES[code] || { label: "Unknown", icon: "🌡️" };
+  return WMO_ICONS[code] || { label: "Unknown", Icon: Cloud, color: "#64748B" };
 }
 
 function getFieldCondition(precipProb: number, windSpeed: number, temp: number) {
-  if (temp < 5) return { label: "Too Cold", color: "#6B7280", bg: "#F3F4F6" };
-  if (precipProb > 70) return { label: "Poor", color: "#D94F3D", bg: "#FDEEED" };
-  if (precipProb > 40 || windSpeed > 40) return { label: "Marginal", color: "#D97706", bg: "#FFF8EC" };
-  return { label: "Good", color: "#4A7C59", bg: "#EEF5F0" };
+  if (temp < 5) return { label: "Too Cold", color: "#64748B", bg: "rgba(100,116,139,0.10)", border: "rgba(100,116,139,0.15)" };
+  if (precipProb > 70) return { label: "Poor", color: "#EF4444", bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.12)" };
+  if (precipProb > 40 || windSpeed > 40) return { label: "Marginal", color: "#F59E0B", bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.12)" };
+  return { label: "Good", color: "#34D399", bg: "rgba(52,211,153,0.08)", border: "rgba(52,211,153,0.12)" };
 }
 
 function calcGDD(maxTemp: number, minTemp: number, base: number) {
-  const avg = (maxTemp + minTemp) / 2;
-  return Math.max(0, avg - base);
+  return Math.max(0, (maxTemp + minTemp) / 2 - base);
 }
 
 type WeatherData = {
@@ -69,6 +75,10 @@ type WeatherData = {
   };
 };
 
+// ═══════════════════════════════════════════════════════════════
+//  WEATHER PAGE
+// ═══════════════════════════════════════════════════════════════
+
 export default function WeatherPage() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [location, setLocation] = useState("Swift Current, SK");
@@ -91,28 +101,25 @@ export default function WeatherPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="flex gap-1">
-          <div className="w-2 h-2 rounded-full bg-[#4A7C59] animate-bounce" style={{ animationDelay: "0ms" }} />
-          <div className="w-2 h-2 rounded-full bg-[#4A7C59] animate-bounce" style={{ animationDelay: "150ms" }} />
-          <div className="w-2 h-2 rounded-full bg-[#4A7C59] animate-bounce" style={{ animationDelay: "300ms" }} />
+        <div className="flex gap-1.5">
+          {[0, 150, 300].map(d => (
+            <div key={d} className="w-2 h-2 rounded-full bg-[#34D399] animate-bounce" style={{ animationDelay: `${d}ms` }} />
+          ))}
         </div>
       </div>
     );
   }
 
   if (!weather || !weather.daily || !weather.current) {
-    return <p className="text-sm text-[#7A8A7C]">Failed to load weather data.</p>;
+    return <p className="text-sm text-[#64748B]">Failed to load weather data.</p>;
   }
 
   const current = weather.current;
   const daily = weather.daily;
   const activeCrop = GDD_CROPS.find(c => c.name === activeGDD)!;
-
   const now = new Date();
-const daysSinceStart = Math.max(0, Math.floor((now.getTime() - gddStart.getTime()) / (1000 * 60 * 60 * 24)));
-  const estimatedGDD = daily.time.reduce((sum, _, i) => {
-    return sum + calcGDD(daily.temperature_2m_max[i], daily.temperature_2m_min[i], activeCrop.base);
-  }, 0);
+  const daysSinceStart = Math.max(0, Math.floor((now.getTime() - gddStart.getTime()) / (1000 * 60 * 60 * 24)));
+  const estimatedGDD = daily.time.reduce((sum, _, i) => sum + calcGDD(daily.temperature_2m_max[i], daily.temperature_2m_min[i], activeCrop.base), 0);
   const totalEstimatedGDD = daysSinceStart * (estimatedGDD / daily.time.length) + estimatedGDD;
   const gddPct = Math.min(100, Math.round((totalEstimatedGDD / activeCrop.target) * 100));
 
@@ -121,117 +128,242 @@ const daysSinceStart = Math.max(0, Math.floor((now.getTime() - gddStart.getTime(
     return dirs[Math.round(deg / 45) % 8];
   };
 
+  const { Icon: HeroIcon, label: heroLabel, color: heroColor } = getWeatherInfo(current.weather_code);
+
+  // Today vs yesterday temp trend (use first 2 days of forecast as proxy)
+  const todayHigh = daily.temperature_2m_max[0];
+  const tomorrowHigh = daily.temperature_2m_max[1];
+  const tempTrend = tomorrowHigh > todayHigh + 2 ? "warming" : tomorrowHigh < todayHigh - 2 ? "cooling" : "steady";
+
   return (
     <div className="space-y-6 pb-16">
+
+      {/* ── Header ────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#222527]">Weather</h1>
-          <p className="text-sm text-[#7A8A7C] mt-1">{location} · Updated live</p>
+          <h1 className="text-[28px] font-bold text-[#F1F5F9] tracking-tight">Weather</h1>
+          <div className="flex items-center gap-1.5 mt-1">
+            <MapPin size={12} className="text-[#34D399]" />
+            <p className="text-[13px] text-[#64748B]">{location}</p>
+            <span className="text-[11px] text-[#34D399] font-mono ml-2">LIVE</span>
+          </div>
         </div>
-        <div className="text-3xl">{getWeatherInfo(current.weather_code).icon}</div>
       </div>
 
-      <div className="bg-white rounded-[20px] border border-[#E4E7E0] shadow-sm p-6">
-        <div className="flex items-center justify-between mb-6">
+      {/* ── Hero: Current Conditions ──────────────────────── */}
+      <div
+        className="relative rounded-2xl border border-white/[0.06] p-8 overflow-hidden"
+        style={{ background: "linear-gradient(135deg, #111827 0%, #0F172A 50%, #111827 100%)" }}
+      >
+        {/* Subtle gradient glow behind icon */}
+        <div
+          className="absolute top-4 right-8 w-40 h-40 rounded-full blur-3xl opacity-20"
+          style={{ backgroundColor: heroColor }}
+        />
+
+        <div className="relative flex items-start justify-between">
+          {/* Left: temperature + info */}
           <div>
-            <p className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Current Conditions</p>
-            <p className="text-5xl font-bold text-[#222527] mt-1">{Math.round(current.temperature_2m)}°C</p>
-            <p className="text-sm text-[#7A8A7C] mt-1">Feels like {Math.round(current.apparent_temperature)}°C · {getWeatherInfo(current.weather_code).label}</p>
+            <p className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[2px] mb-3">
+              Current Conditions
+            </p>
+            <div className="flex items-baseline gap-1">
+              <p className="text-[72px] font-bold text-[#F1F5F9] leading-none tracking-tight">
+                {Math.round(current.temperature_2m)}
+              </p>
+              <span className="text-[28px] font-light text-[#64748B]">°C</span>
+            </div>
+            <p className="text-[15px] text-[#94A3B8] mt-2">{heroLabel}</p>
+            <p className="text-[13px] text-[#64748B] mt-0.5">
+              Feels like {Math.round(current.apparent_temperature)}°C
+            </p>
+
+            {/* Trend indicator */}
+            <div className="flex items-center gap-1.5 mt-4">
+              {tempTrend === "warming" && <ArrowUpRight size={14} className="text-[#F59E0B]" />}
+              {tempTrend === "cooling" && <ArrowDownRight size={14} className="text-[#38BDF8]" />}
+              {tempTrend === "steady" && <Minus size={14} className="text-[#64748B]" />}
+              <span className="text-[12px] text-[#64748B] font-medium capitalize">{tempTrend} trend</span>
+            </div>
           </div>
-          <div className="text-7xl">{getWeatherInfo(current.weather_code).icon}</div>
+
+          {/* Right: large weather icon */}
+          <div className="relative">
+            <HeroIcon size={96} className="opacity-90" style={{ color: heroColor }} strokeWidth={1.2} />
+          </div>
         </div>
-        <div className="grid grid-cols-4 gap-4">
+
+        {/* Stat pills */}
+        <div className="grid grid-cols-4 gap-3 mt-8">
           {[
-            { icon: Droplets, label: "Humidity", value: `${current.relative_humidity_2m}%` },
-            { icon: Wind, label: "Wind", value: `${Math.round(current.wind_speed_10m)} km/h ${windDir(current.wind_direction_10m)}` },
-            { icon: CloudRain, label: "Precip", value: `${current.precipitation} mm` },
-            { icon: Thermometer, label: "Soil Temp", value: `${Math.round(current.soil_temperature_0cm)}°C` },
+            { icon: Droplets, label: "Humidity", value: `${current.relative_humidity_2m}%`, color: "#38BDF8" },
+            { icon: Wind, label: "Wind", value: `${Math.round(current.wind_speed_10m)} km/h ${windDir(current.wind_direction_10m)}`, color: "#94A3B8" },
+            { icon: CloudRain, label: "Precipitation", value: `${current.precipitation} mm`, color: "#818CF8" },
+            { icon: Thermometer, label: "Soil Temp", value: `${Math.round(current.soil_temperature_0cm)}°C`, color: "#F59E0B" },
           ].map((stat) => (
-            <div key={stat.label} className="bg-[#F5F5F3] rounded-[12px] p-4">
-              <stat.icon size={16} className="text-[#4A7C59] mb-2" />
-              <p className="text-xs text-[#7A8A7C] font-semibold uppercase tracking-wide">{stat.label}</p>
-              <p className="text-lg font-bold text-[#222527] mt-0.5">{stat.value}</p>
+            <div
+              key={stat.label}
+              className="rounded-xl p-4 border border-white/[0.04]"
+              style={{ background: `${stat.color}06` }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <stat.icon size={14} style={{ color: stat.color }} />
+                <p className="font-mono text-[10px] text-[#64748B] uppercase tracking-[1px]">{stat.label}</p>
+              </div>
+              <p className="text-[18px] font-semibold text-[#F1F5F9]">{stat.value}</p>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="bg-white rounded-[20px] border border-[#E4E7E0] shadow-sm p-6">
-        <p className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide mb-4">7-Day Forecast</p>
+      {/* ── 7-Day Forecast ─────────────────────────────────── */}
+      <div className="bg-[#111827] rounded-2xl border border-white/[0.06] p-6">
+        <div className="flex items-center justify-between mb-5">
+          <p className="font-mono text-[11px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">7-Day Forecast</p>
+          <div className="flex items-center gap-3 text-[10px] text-[#64748B]">
+            {[
+              { label: "Good", color: "#34D399" },
+              { label: "Marginal", color: "#F59E0B" },
+              { label: "Poor", color: "#EF4444" },
+              { label: "Too Cold", color: "#64748B" },
+            ].map(c => (
+              <div key={c.label} className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: c.color }} />
+                <span>{c.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="grid grid-cols-7 gap-2">
           {daily.time.map((dateStr, i) => {
             const date = new Date(dateStr);
             const condition = getFieldCondition(daily.precipitation_probability_max[i], daily.wind_speed_10m_max[i], daily.temperature_2m_max[i]);
-            const info = getWeatherInfo(daily.weather_code[i]);
+            const { Icon, color } = getWeatherInfo(daily.weather_code[i]);
+            const isToday = i === 0;
+
             return (
-              <div key={i} className="flex flex-col items-center p-3 rounded-[12px] bg-[#F5F5F3] gap-1">
-                <p className="text-xs font-bold text-[#222527]">{i === 0 ? "Today" : DAYS[date.getDay()]}</p>
-                <p className="text-xs text-[#7A8A7C]">{MONTHS[date.getMonth()]} {date.getDate()}</p>
-                <div className="text-2xl my-1">{info.icon}</div>
-                <p className="text-sm font-bold text-[#222527]">{Math.round(daily.temperature_2m_max[i])}°</p>
-                <p className="text-xs text-[#7A8A7C]">{Math.round(daily.temperature_2m_min[i])}°</p>
-                <p className="text-xs text-blue-500 font-semibold">{daily.precipitation_probability_max[i]}%</p>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full mt-1" style={{ color: condition.color, backgroundColor: condition.bg }}>
-                  {condition.label}
-                </span>
+              <div
+                key={i}
+                className={`flex flex-col items-center py-4 px-2 rounded-xl transition-all ${
+                  isToday
+                    ? "bg-white/[0.06] border border-white/[0.08]"
+                    : "bg-white/[0.02] border border-transparent hover:bg-white/[0.04] hover:border-white/[0.06]"
+                }`}
+              >
+                <p className={`text-[11px] font-semibold mb-0.5 ${isToday ? "text-[#34D399]" : "text-[#F1F5F9]"}`}>
+                  {isToday ? "Today" : DAYS[date.getDay()]}
+                </p>
+                <p className="text-[10px] text-[#475569] mb-3">
+                  {MONTHS[date.getMonth()]} {date.getDate()}
+                </p>
+
+                <Icon size={22} style={{ color }} className="mb-3" />
+
+                <p className="text-[15px] font-bold text-[#F1F5F9]">
+                  {Math.round(daily.temperature_2m_max[i])}°
+                </p>
+                <p className="text-[12px] text-[#475569] mb-2">
+                  {Math.round(daily.temperature_2m_min[i])}°
+                </p>
+
+                <div className="flex items-center gap-0.5 mb-2">
+                  <Droplets size={9} className="text-[#38BDF8]" />
+                  <p className="text-[10px] font-medium text-[#38BDF8]">{daily.precipitation_probability_max[i]}%</p>
+                </div>
+
+                {/* Field condition dot */}
+                <div
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: condition.color }}
+                  title={condition.label}
+                />
               </div>
             );
           })}
         </div>
-        <div className="flex items-center gap-4 mt-4 text-xs text-[#7A8A7C]">
-          <span>Field conditions:</span>
-          {[
-            { label: "Good", color: "#4A7C59", bg: "#EEF5F0" },
-            { label: "Marginal", color: "#D97706", bg: "#FFF8EC" },
-            { label: "Poor", color: "#D94F3D", bg: "#FDEEED" },
-            { label: "Too Cold", color: "#6B7280", bg: "#F3F4F6" },
-          ].map(c => (
-            <span key={c.label} className="font-semibold px-2 py-0.5 rounded-full" style={{ color: c.color, backgroundColor: c.bg }}>{c.label}</span>
-          ))}
-        </div>
       </div>
 
-      <div className="bg-white rounded-[20px] border border-[#E4E7E0] shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-xs font-semibold text-[#7A8A7C] uppercase tracking-wide">Growing Degree Days (GDD)</p>
-          <div className="flex gap-2">
+      {/* ── Growing Degree Days ─────────────────────────────── */}
+      <div className="bg-[#111827] rounded-2xl border border-white/[0.06] p-6">
+        <div className="flex items-center justify-between mb-6">
+          <p className="font-mono text-[11px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">
+            Growing Degree Days
+          </p>
+          <div className="flex gap-1.5">
             {GDD_CROPS.map(c => (
-              <button key={c.name} onClick={() => setActiveGDD(c.name)}
-                className="text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors"
+              <button
+                key={c.name}
+                onClick={() => setActiveGDD(c.name)}
+                className="text-[11px] font-semibold px-3 py-1.5 rounded-full transition-all duration-200"
                 style={activeGDD === c.name
-                  ? { backgroundColor: c.color, color: "white", borderColor: c.color }
-                  : { backgroundColor: "white", color: "#7A8A7C", borderColor: "#E4E7E0" }}>
+                  ? { backgroundColor: c.color, color: "#080C15", boxShadow: `0 0 12px ${c.color}30` }
+                  : { backgroundColor: "transparent", color: "#64748B", border: "1px solid rgba(255,255,255,0.08)" }}
+              >
                 {c.name}
               </button>
             ))}
           </div>
         </div>
-        <div className="space-y-4">
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-3xl font-bold text-[#222527]">{Math.round(totalEstimatedGDD)}</p>
-              <p className="text-xs text-[#7A8A7C] mt-1">GDD accumulated · Base {activeCrop.base}°C · Target {activeCrop.target} GDD</p>
+
+        {/* GDD Summary */}
+        <div className="flex items-end justify-between mb-4">
+          <div>
+            <div className="flex items-baseline gap-1">
+              <p className="text-[40px] font-bold text-[#F1F5F9] leading-none tracking-tight">
+                {Math.round(totalEstimatedGDD)}
+              </p>
+              <span className="text-[14px] font-medium text-[#64748B] ml-1">GDD</span>
             </div>
-            <p className="text-sm font-semibold" style={{ color: activeCrop.color }}>{gddPct}% to maturity</p>
+            <p className="text-[12px] text-[#64748B] mt-1.5">
+              Base {activeCrop.base}°C · Target {activeCrop.target} GDD
+            </p>
           </div>
-          <div className="h-3 bg-[#F5F5F3] rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all" style={{ width: `${gddPct}%`, backgroundColor: activeCrop.color }} />
+          <div className="text-right">
+            <p className="text-[24px] font-bold" style={{ color: activeCrop.color }}>{gddPct}%</p>
+            <p className="text-[11px] text-[#64748B]">to maturity</p>
           </div>
-          <div className="grid grid-cols-7 gap-2 mt-4">
-            {daily.time.map((_, i) => {
-              const gdd = calcGDD(daily.temperature_2m_max[i], daily.temperature_2m_min[i], activeCrop.base);
-              const date = new Date(daily.time[i]);
-              return (
-                <div key={i} className="flex flex-col items-center gap-1">
-                  <p className="text-xs text-[#7A8A7C]">{i === 0 ? "Today" : DAYS[date.getDay()]}</p>
-                  <div className="w-full bg-[#F5F5F3] rounded-full overflow-hidden h-16 flex items-end">
-                    <div className="w-full rounded-full transition-all" style={{ height: `${Math.min(100, (gdd / 20) * 100)}%`, backgroundColor: activeCrop.color, opacity: 0.8 }} />
-                  </div>
-                  <p className="text-xs font-semibold text-[#222527]">{gdd.toFixed(1)}</p>
+        </div>
+
+        {/* Progress bar with gradient */}
+        <div className="h-3 bg-white/[0.04] rounded-full overflow-hidden mb-6">
+          <div
+            className="h-full rounded-full transition-all duration-500 relative"
+            style={{
+              width: `${gddPct}%`,
+              background: `linear-gradient(90deg, ${activeCrop.color}80, ${activeCrop.color})`,
+              boxShadow: `0 0 8px ${activeCrop.color}40`,
+            }}
+          />
+        </div>
+
+        {/* Daily GDD bars */}
+        <div className="grid grid-cols-7 gap-3">
+          {daily.time.map((_, i) => {
+            const gdd = calcGDD(daily.temperature_2m_max[i], daily.temperature_2m_min[i], activeCrop.base);
+            const date = new Date(daily.time[i]);
+            const barHeight = Math.min(100, (gdd / 18) * 100);
+            const isToday = i === 0;
+
+            return (
+              <div key={i} className="flex flex-col items-center gap-2">
+                <p className={`text-[11px] ${isToday ? "text-[#F1F5F9] font-semibold" : "text-[#64748B]"}`}>
+                  {isToday ? "Today" : DAYS[date.getDay()]}
+                </p>
+                <div className="w-full h-20 bg-white/[0.03] rounded-lg overflow-hidden flex items-end p-0.5">
+                  <div
+                    className="w-full rounded-md transition-all duration-500"
+                    style={{
+                      height: `${barHeight}%`,
+                      background: `linear-gradient(to top, ${activeCrop.color}90, ${activeCrop.color}40)`,
+                      minHeight: gdd > 0 ? "4px" : "0px",
+                    }}
+                  />
                 </div>
-              );
-            })}
-          </div>
+                <p className="text-[12px] font-semibold text-[#F1F5F9]">{gdd.toFixed(1)}</p>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
