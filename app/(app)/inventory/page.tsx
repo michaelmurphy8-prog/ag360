@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from "@clerk/nextjs";
 import {
-  Plus, Trash2, Package, TrendingUp, ArrowRightLeft, Truck, Pencil, Upload,
+  Plus, Trash2, Package, TrendingUp, ArrowRightLeft, Truck, Pencil, Upload, MapPin,
   BookOpen, Camera, FileText, AlertTriangle, ChevronLeft, ChevronDown, ChevronUp,
   X, Loader2, CheckCircle, DollarSign, BarChart3, Scale, Wheat, Users, Settings2,
   Download, Filter, RotateCcw, ShieldCheck, XCircle, Eye,
 } from "lucide-react";
+import BinMap from "@/components/BinMap";
 
 const CROPS = ["Canola", "CWRS Wheat", "Durum", "Barley", "Oats", "Peas", "Lentils", "Flax", "Soybeans", "Corn"];
 const CONTRACT_TYPES = ["Cash Sale", "HTA (Basis Contract)", "Deferred Delivery", "Futures-First", "Target Order", "PRO/Pool"];
@@ -167,7 +168,7 @@ function FormCard({ title, onClose, children, accent }: {
 export default function InventoryPage() {
   const { user, isLoaded } = useUser();
   const [kpiUnit, setKpiUnit] = useState<"bu" | "mt">("bu");
-  const [activeTab, setActiveTab] = useState<"holdings" | "contracts" | "movements" | "grain_loads" | "settlements">("holdings");
+  const [activeTab, setActiveTab] = useState<"holdings" | "contracts" | "movements" | "grain_loads" | "settlements" | "bin_map">("holdings");
 
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -683,6 +684,7 @@ export default function InventoryPage() {
             { key: "movements", label: "Movement Log", icon: ArrowRightLeft },
             { key: "grain_loads", label: "Grain Loads", icon: Truck },
             { key: "settlements", label: "Settlements", icon: FileText },
+            { key: "bin_map", label: "Bin Map", icon: MapPin },
           ] as const).map(({ key, label, icon: Icon }) => (
             <button key={key} onClick={() => setActiveTab(key)}
               className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold border-b-2 transition-all ${
@@ -1475,6 +1477,11 @@ export default function InventoryPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+        {activeTab === "bin_map" && (
+          <div className="p-6">
+            <BinMap />
           </div>
         )}
       </div>
