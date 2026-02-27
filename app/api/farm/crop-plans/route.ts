@@ -123,22 +123,24 @@ export async function POST(req: NextRequest) {
     const results = [];
     for (const entry of entries) {
       const rows = await sql`
-        INSERT INTO crop_plans (user_id, crop_year, crop, acres, target_yield_bu, notes)
+        INSERT INTO crop_plans (user_id, crop_year, crop, acres, target_yield_bu, actual_yield_bu, notes)
         VALUES (
           ${userId},
           ${parseInt(entry.crop_year)},
           ${entry.crop},
           ${entry.acres},
           ${entry.target_yield_bu},
+          ${entry.actual_yield_bu || null},
           ${entry.notes || null}
         )
         ON CONFLICT (user_id, crop_year, crop)
         DO UPDATE SET
           acres = EXCLUDED.acres,
           target_yield_bu = EXCLUDED.target_yield_bu,
+          actual_yield_bu = EXCLUDED.actual_yield_bu,
           notes = EXCLUDED.notes,
           updated_at = NOW()
-        RETURNING id, crop, acres, target_yield_bu, notes, crop_year,
+        RETURNING id, crop, acres, target_yield_bu, actual_yield_bu, notes, crop_year,
           (acres * target_yield_bu) AS total_production_bu
       `;
       results.push(rows[0]);

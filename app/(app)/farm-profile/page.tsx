@@ -49,6 +49,7 @@ type CropEntry = {
   trucking: number;
   elevation: number;
   cropInsurance: number;
+  actualYield: number;
 };
 
 type FarmProfile = {
@@ -85,6 +86,7 @@ const defaultCrop = (): CropEntry => ({
   trucking: 0,
   elevation: 0,
   cropInsurance: 0,
+  actualYield: 0,
 });
 
 function calcCrop(c: CropEntry) {
@@ -208,7 +210,8 @@ export default function FarmProfilePage() {
         crop: c.crop,
         crop_year: profile.cropYear,
         acres: c.mode === "forecast" ? c.acres : 0,
-        target_yield_bu: c.mode === "forecast" ? c.aph : c.bushels, // on_hand: store total bu as yield with 1 acre
+        target_yield_bu: c.mode === "forecast" ? c.aph : c.bushels,
+        actual_yield_bu: c.actualYield > 0 ? c.actualYield : null, // on_hand: store total bu as yield with 1 acre
         notes:
           c.mode === "on_hand"
             ? `On-hand inventory: ${c.bushels.toLocaleString()} bu`
@@ -664,6 +667,20 @@ export default function FarmProfilePage() {
                       <div className="text-sm font-bold text-[#34D399] px-3 py-2">
                         {(crop.acres * crop.aph).toLocaleString()} bu
                       </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">
+                        Actual Yield (bu/ac)
+                      </label>
+                      <input
+                        type="number"
+                        value={crop.actualYield || ""}
+                        onChange={(e) =>
+                          updateCrop(index, "actualYield", Number(e.target.value))
+                        }
+                        placeholder="Post-harvest"
+                        className={inputClass}
+                      />
                     </div>
                   </>
                 )}

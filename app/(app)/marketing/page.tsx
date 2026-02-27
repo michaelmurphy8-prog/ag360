@@ -92,6 +92,7 @@ export default function MarketingPage() {
   const [loading, setLoading] = useState(true);
   const [cropYear, setCropYear] = useState(String(new Date().getFullYear()));
   const [unit, setUnit] = useState<"bu" | "mt">("bu");
+const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
   const [tab, setTab] = useState<"overview" | "contracts" | "price" | "hedge">("overview");
 
   // Contracts
@@ -125,12 +126,12 @@ export default function MarketingPage() {
   useEffect(() => {
     if (!user?.id) return;
     setLoading(true);
-    fetch(`/api/marketing/positions?cropYear=${cropYear}`, { headers: { "x-user-id": user.id } })
+    fetch(`/api/marketing/positions?cropYear=${cropYear}&view=${prodView}`, { headers: { "x-user-id": user.id } })
       .then((r) => r.json())
       .then((d) => { if (d.success) setData(d); else setData(null); })
       .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, [cropYear, user?.id]);
+  }, [cropYear, prodView, user?.id]);
 
   // ── Fetch contracts ───────────────────────────────────
   const fetchContracts = useCallback(() => {
@@ -183,14 +184,14 @@ export default function MarketingPage() {
     const body = { ...(editingId ? { id: editingId } : {}), crop: formCrop, contract_type: formType || null, quantity_bu: Number(formQty), price_per_bu: Number(formPrice) || 0, basis: Number(formBasis) || 0, elevator: formElevator || null, delivery_date: formDelivery || null, notes: formNotes || null };
     try {
       const res = await fetch("/api/marketing/contracts", { method: editingId ? "PUT" : "POST", headers: { "Content-Type": "application/json", "x-user-id": user.id }, body: JSON.stringify(body) });
-      if (res.ok) { setShowModal(false); resetForm(); fetchContracts(); fetch(`/api/marketing/positions?cropYear=${cropYear}`, { headers: { "x-user-id": user.id } }).then((r) => r.json()).then((d) => { if (d.success) setData(d); }); }
+      if (res.ok) { setShowModal(false); resetForm(); fetchContracts(); fetch(`/api/marketing/positions?cropYear=${cropYear}&view=${prodView}`, { headers: { "x-user-id": user.id } }).then((r) => r.json()).then((d) => { if (d.success) setData(d); }); }
     } catch {}
     setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
     if (!user?.id || !confirm("Delete this contract? This cannot be undone.")) return;
-    try { await fetch(`/api/marketing/contracts?id=${id}`, { method: "DELETE", headers: { "x-user-id": user.id } }); fetchContracts(); fetch(`/api/marketing/positions?cropYear=${cropYear}`, { headers: { "x-user-id": user.id } }).then((r) => r.json()).then((d) => { if (d.success) setData(d); }); } catch {}
+    try { await fetch(`/api/marketing/contracts?id=${id}`, { method: "DELETE", headers: { "x-user-id": user.id } }); fetchContracts(); fetch(`/api/marketing/positions?cropYear=${cropYear}&view=${prodView}`, { headers: { "x-user-id": user.id } }).then((r) => r.json()).then((d) => { if (d.success) setData(d); }); } catch {}
   };
 
   // ── Computed ───────────────────────────────────────────
@@ -253,6 +254,9 @@ export default function MarketingPage() {
           <p style={{ fontSize: 13, color: T.text3, marginTop: 4 }}>Grain sales strategy &amp; position management — crop year {cropYear}</p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", borderRadius: 8, border: `1px solid ${T.border}`, overflow: "hidden" }}>
+            {(["forecast", "actual"] as const).map((v) => (<button key={v} onClick={() => setProdView(v)} style={{ padding: "6px 14px", fontSize: 12, fontWeight: 600, background: prodView === v ? T.purple : "transparent", color: prodView === v ? "#fff" : T.text3, border: "none", cursor: "pointer", textTransform: "capitalize", letterSpacing: 0.3 }}>{v}</button>))}
+          </div>
           <div style={{ display: "flex", borderRadius: 8, border: `1px solid ${T.border}`, overflow: "hidden" }}>
             {(["bu", "mt"] as const).map((u) => (<button key={u} onClick={() => setUnit(u)} style={{ padding: "6px 14px", fontSize: 12, fontWeight: 600, background: unit === u ? T.green : "transparent", color: unit === u ? T.bg : T.text3, border: "none", cursor: "pointer", textTransform: "uppercase", letterSpacing: 0.5 }}>{u}</button>))}
           </div>
