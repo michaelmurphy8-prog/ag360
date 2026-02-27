@@ -1,811 +1,991 @@
 "use client";
-
 import { useState, useEffect, useMemo } from "react";
+import { useUser } from "@clerk/nextjs";
 import {
-  Plus, X, Edit2, Trash2, CheckCircle, Clock, AlertTriangle,
-  Loader2, Package, DollarSign, Filter, RotateCcw, ChevronDown,
-  Wheat, TrendingUp, BarChart3, Target, Truck, Calendar,
+  Wheat, TrendingUp, DollarSign, Percent, BarChart3, Truck,
+  Loader2, Plus, ChevronDown, Lock, ArrowUpRight, ArrowDownRight,
+  AlertTriangle, Calendar, ScatterChart,
 } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  Cell, PieChart, Pie, Sector,
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
+  ScatterChart as RechartsScatter, Scatter, ZAxis,
+  AreaChart, Area,
 } from "recharts";
+import { getCropColor, buToMt, CROP_COLORS } from "@/lib/crop-colors";
 
-// ─── Design Tokens ───────────────────────────────────────────
+// ─── Theme ──────────────────────────────────────────────
 const T = {
-  bg: "#080C15",
-  card: "#0F1729",
-  cardAlt: "#111827",
+  bg: "#0B1120",
+  card: "#111827",
+  cardAlt: "#151F32",
   border: "rgba(255,255,255,0.06)",
   borderHover: "rgba(255,255,255,0.12)",
-  text1: "#F1F5F9",
-  text2: "#94A3B8",
+  text: "#F1F5F9",
+  text2: "#CBD5E1",
   text3: "#64748B",
   text4: "#475569",
   green: "#34D399",
-  greenDim: "rgba(52,211,153,0.12)",
+  greenBg: "rgba(52,211,153,0.08)",
   red: "#F87171",
-  redDim: "rgba(248,113,113,0.12)",
-  amber: "#FBBF24",
-  amberDim: "rgba(251,191,36,0.12)",
-  sky: "#38BDF8",
-  skyDim: "rgba(56,189,248,0.12)",
-  purple: "#A78BFA",
-  purpleDim: "rgba(167,139,250,0.12)",
-  gridLine: "rgba(255,255,255,0.04)",
-  tooltipBg: "#1E293B",
-  tooltipBorder: "rgba(255,255,255,0.10)",
+  redBg: "rgba(248,113,113,0.08)",
+  blue: "#60A5FA",
+  blueBg: "rgba(96,165,250,0.08)",
+  gold: "#F5A623",
+  goldBg: "rgba(245,166,35,0.08)",
 };
 
-const CROP_COLORS: Record<string, string> = {
-  "HRW Wheat": "#D4A843", "HRS Wheat": "#C49B3D", "Durum": "#E8C547",
-  Canola: "#E8B931", Barley: "#9B8B6E", Oats: "#BFB599",
-  Peas: "#7BAE6E", Lentils: "#A67B5B", Flax: "#6B8FA3",
-  Soybeans: "#8FA86E", Corn: "#D4A843", Mustard: "#E8D547",
-  Canaryseed: "#8B9DC3",
-};
-
-const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
-  open: { color: T.sky, bg: T.skyDim, label: "Open" },
-  partial: { color: T.amber, bg: T.amberDim, label: "Partial" },
-  delivered: { color: T.green, bg: T.greenDim, label: "Delivered" },
-  cancelled: { color: T.red, bg: T.redDim, label: "Cancelled" },
-  rolled: { color: T.purple, bg: T.purpleDim, label: "Rolled" },
-};
-
-// ─── Shared Styles ───────────────────────────────────────────
-const inputClass =
-  "w-full bg-white/[0.04] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] placeholder-[#475569] focus:outline-none focus:border-[#34D399]/50 transition-colors";
-const selectClass =
-  "bg-[#111827] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] focus:outline-none focus:border-[#34D399]/50 transition-colors";
-const labelClass = "block text-[10px] uppercase tracking-[2px] font-mono font-semibold text-[#64748B] mb-1.5";
-const btnPrimary = "flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl transition-all";
-const btnSecondary = "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border border-white/[0.10] text-[#94A3B8] hover:text-[#F1F5F9] hover:border-white/[0.16] transition-all";
-
-// ─── Interfaces ──────────────────────────────────────────────
-interface Contract {
-  id: string;
-  crop: string;
-  buyer: string;
-  contract_type: string;
-  tonnes: number;
-  price_per_tonne: number;
-  delivery_start: string;
-  delivery_end: string;
-  status: string;
-  delivered_tonnes: number;
-  notes?: string;
-}
-
-interface CropPosition {
+// ─── Interfaces ─────────────────────────────────────────
+interface Position {
   crop: string;
   estimated_production: number;
   contracted: number;
+  contracted_value: number;
   delivered: number;
+  avg_price: number;
+  unpriced: number;
+  percent_contracted: number;
+  percent_delivered: number;
+  contracts: Contract[];
 }
 
-// ─── KPI Card ────────────────────────────────────────────────
-function KpiCard({
-  label, value, sub, icon: Icon, iconColor, bgColor, highlight,
+interface Contract {
+  quantity_bu: number;
+  price_per_bu: number;
+  basis: number;
+  contract_type: string;
+  elevator: string;
+  delivery_date: string;
+  status: string;
+  created_at: string;
+}
+
+interface Totals {
+  production: number;
+  contracted: number;
+  contracted_value: number;
+  unpriced: number;
+  delivered: number;
+  avg_price: number;
+  percent_contracted: number;
+}
+
+interface MarketingData {
+  success: boolean;
+  cropYear: number;
+  totals: Totals;
+  positions: Position[];
+}
+
+// ─── Formatters ─────────────────────────────────────────
+const fmtNum = (n: number) => n.toLocaleString("en-CA", { maximumFractionDigits: 0 });
+const fmtDollar = (n: number) =>
+  n >= 1_000_000
+    ? `$${(n / 1_000_000).toFixed(1)}M`
+    : n >= 1_000
+    ? `$${(n / 1_000).toFixed(0)}K`
+    : `$${n.toFixed(0)}`;
+const fmtPrice = (n: number) => `$${n.toFixed(2)}`;
+
+// ─── Mini Donut Component ───────────────────────────────
+function MiniDonut({
+  data,
+  size = 56,
 }: {
-  label: string; value: string; sub?: string; icon: React.ElementType;
-  iconColor: string; bgColor: string; highlight?: boolean;
+  data: { name: string; value: number }[];
+  size?: number;
+}) {
+  const filtered = data.filter((d) => d.value > 0);
+  if (filtered.length === 0) {
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          border: `2px solid ${T.border}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <span style={{ color: T.text4, fontSize: 10 }}>—</span>
+      </div>
+    );
+  }
+  return (
+    <ResponsiveContainer width={size} height={size}>
+      <PieChart>
+        <Pie
+          data={filtered}
+          cx="50%"
+          cy="50%"
+          innerRadius={size * 0.3}
+          outerRadius={size * 0.48}
+          dataKey="value"
+          stroke="none"
+        >
+          {filtered.map((entry) => (
+            <Cell key={entry.name} fill={getCropColor(entry.name)} />
+          ))}
+        </Pie>
+        <Tooltip
+          content={({ payload }) => {
+            if (!payload?.length) return null;
+            const d = payload[0].payload;
+            return (
+              <div
+                style={{
+                  background: T.card,
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 8,
+                  padding: "6px 10px",
+                  fontSize: 11,
+                  color: T.text,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: getCropColor(d.name),
+                    }}
+                  />
+                  <span style={{ textTransform: "capitalize" }}>{d.name}</span>
+                </div>
+                <div style={{ color: T.text2, marginTop: 2 }}>{fmtNum(d.value)}</div>
+              </div>
+            );
+          }}
+        />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ─── Progress Ring (for % Contracted) ───────────────────
+function ProgressRing({
+  percent,
+  size = 56,
+}: {
+  percent: number;
+  size?: number;
+}) {
+  const r = size * 0.4;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (Math.min(percent, 100) / 100) * circ;
+  const color = percent >= 80 ? T.green : percent >= 50 ? T.gold : T.red;
+
+  return (
+    <svg width={size} height={size}>
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke={T.border}
+        strokeWidth={4}
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke={color}
+        strokeWidth={4}
+        strokeLinecap="round"
+        strokeDasharray={circ}
+        strokeDashoffset={offset}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        style={{ transition: "stroke-dashoffset 0.6s ease" }}
+      />
+      <text
+        x={size / 2}
+        y={size / 2}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fill={color}
+        fontSize={size * 0.22}
+        fontWeight={700}
+      >
+        {percent}%
+      </text>
+    </svg>
+  );
+}
+
+// ─── KPI Card ───────────────────────────────────────────
+function KpiCard({
+  label,
+  value,
+  icon: Icon,
+  iconColor,
+  iconBg,
+  donut,
+  sub,
+}: {
+  label: string;
+  value: string;
+  icon: any;
+  iconColor: string;
+  iconBg: string;
+  donut?: React.ReactNode;
+  sub?: string;
 }) {
   return (
     <div
-      className={`bg-[#0F1729] rounded-xl p-5 transition-all hover:border-white/[0.12] ${
-        highlight ? "border-2" : "border"
-      }`}
-      style={{ borderColor: highlight ? `${iconColor}30` : T.border }}
+      style={{
+        background: T.card,
+        border: `1px solid ${T.border}`,
+        borderRadius: 14,
+        padding: "18px 20px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        minWidth: 0,
+        flex: 1,
+      }}
     >
-      <div className="flex items-center gap-2.5 mb-3">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: bgColor }}>
-          <Icon size={15} style={{ color: iconColor }} />
-        </div>
-        <span className="text-[10px] uppercase tracking-[2px] font-mono font-semibold" style={{ color: T.text3 }}>
-          {label}
-        </span>
-      </div>
-      <div className="text-2xl font-bold font-mono" style={{ color: T.text1 }}>{value}</div>
-      {sub && <p className="text-xs mt-1 font-mono" style={{ color: T.text3 }}>{sub}</p>}
-    </div>
-  );
-}
-
-// ─── Position Gauge (THE killer visual) ──────────────────────
-function PositionGauge({ positions }: { positions: CropPosition[] }) {
-  if (positions.length === 0) return null;
-
-  return (
-    <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-6 hover:border-white/[0.10] transition-colors">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h3 className="text-sm font-bold text-[#F1F5F9]">Contract Position by Crop</h3>
-          <p className="text-xs text-[#475569] mt-0.5">Contracted vs estimated production</p>
-        </div>
-        <div className="flex items-center gap-4 text-[10px] font-mono uppercase tracking-wider">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: T.green }} />
-            <span style={{ color: T.text3 }}>Delivered</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: T.sky }} />
-            <span style={{ color: T.text3 }}>Contracted</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: "rgba(255,255,255,0.06)" }} />
-            <span style={{ color: T.text3 }}>Uncontracted</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        {positions.map((pos) => {
-          const total = pos.estimated_production || 1;
-          const contractedPct = Math.min((pos.contracted / total) * 100, 100);
-          const deliveredPct = Math.min((pos.delivered / total) * 100, 100);
-          const openPct = contractedPct - deliveredPct;
-          const color = CROP_COLORS[pos.crop] || T.sky;
-
-          // Risk indicator
-          const riskLevel =
-            contractedPct > 90 ? { label: "Fully Committed", color: T.amber, icon: AlertTriangle }
-            : contractedPct > 60 ? { label: "Well Positioned", color: T.green, icon: CheckCircle }
-            : contractedPct > 30 ? { label: "Moderate", color: T.sky, icon: Target }
-            : { label: "Unhedged", color: T.red, icon: AlertTriangle };
-
-          return (
-            <div key={pos.crop} className="group">
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: color }} />
-                  <span className="text-sm font-medium" style={{ color: T.text1 }}>{pos.crop}</span>
-                  <div
-                    className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ background: `${riskLevel.color}15`, color: riskLevel.color }}
-                  >
-                    <riskLevel.icon size={9} />
-                    {riskLevel.label}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 text-xs font-mono">
-                  <span style={{ color: T.text3 }}>
-                    {pos.contracted.toLocaleString()}
-                    <span style={{ color: T.text4 }}> / {pos.estimated_production.toLocaleString()} MT</span>
-                  </span>
-                  <span className="font-semibold" style={{ color: contractedPct > 80 ? T.amber : T.green }}>
-                    {contractedPct.toFixed(0)}%
-                  </span>
-                </div>
-              </div>
-
-              {/* Multi-layer progress bar */}
-              <div className="relative h-4 rounded-full overflow-hidden bg-white/[0.04]">
-                {/* Delivered (solid green) */}
-                <div
-                  className="absolute inset-y-0 left-0 rounded-full transition-all duration-700"
-                  style={{ width: `${deliveredPct}%`, backgroundColor: T.green }}
-                />
-                {/* Contracted but not delivered (striped pattern) */}
-                <div
-                  className="absolute inset-y-0 rounded-r-full transition-all duration-700"
-                  style={{
-                    left: `${deliveredPct}%`,
-                    width: `${openPct}%`,
-                    backgroundColor: T.sky,
-                    opacity: 0.6,
-                  }}
-                />
-                {/* Hover tooltip zone */}
-                <div
-                  className="absolute inset-0 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                  title={`${pos.delivered.toLocaleString()} MT delivered · ${(pos.contracted - pos.delivered).toLocaleString()} MT open · ${(pos.estimated_production - pos.contracted).toLocaleString()} MT uncontracted`}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Contract Value Donut ────────────────────────────────────
-function ContractValueDonut({ contracts }: { contracts: Contract[] }) {
-  const [activeIdx, setActiveIdx] = useState<number | null>(null);
-
-  const byCrop = useMemo(() => {
-    const map: Record<string, number> = {};
-    contracts
-      .filter((c) => c.status !== "cancelled")
-      .forEach((c) => {
-        map[c.crop] = (map[c.crop] || 0) + c.tonnes * c.price_per_tonne;
-      });
-    return Object.entries(map)
-      .map(([crop, value]) => ({ crop, value, fill: CROP_COLORS[crop] || T.sky }))
-      .sort((a, b) => b.value - a.value);
-  }, [contracts]);
-
-  if (byCrop.length === 0) return null;
-
-  const total = byCrop.reduce((s, d) => s + d.value, 0);
-
-  const renderActive = (props: any) => {
-    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
-    return (
-      <g>
-        <Sector
-          cx={cx} cy={cy}
-          innerRadius={innerRadius - 2} outerRadius={outerRadius + 6}
-          startAngle={startAngle} endAngle={endAngle}
-          fill={fill}
-          style={{ filter: "drop-shadow(0 0 8px rgba(0,0,0,0.3))" }}
-        />
-        <text x={cx} y={cy - 12} textAnchor="middle" fill={T.text1} fontSize={13} fontWeight={700} fontFamily="monospace">
-          ${(value / 1000).toFixed(0)}K
-        </text>
-        <text x={cx} y={cy + 4} textAnchor="middle" fill={T.text2} fontSize={10}>
-          {payload.crop}
-        </text>
-        <text x={cx} y={cy + 18} textAnchor="middle" fill={fill} fontSize={10} fontWeight={600} fontFamily="monospace">
-          {(percent * 100).toFixed(1)}%
-        </text>
-      </g>
-    );
-  };
-
-  return (
-    <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-6 hover:border-white/[0.10] transition-colors">
-      <div className="flex items-center justify-between mb-1">
-        <h3 className="text-sm font-bold text-[#F1F5F9]">Value by Crop</h3>
-        <span className="text-xs font-mono font-semibold" style={{ color: T.green }}>
-          ${total.toLocaleString("en-CA", { minimumFractionDigits: 0 })}
-        </span>
-      </div>
-      <p className="text-xs text-[#475569] mb-3">Hover for breakdown</p>
-      <ResponsiveContainer width="100%" height={200}>
-        <PieChart>
-          <Pie
-  {...{ activeIndex: activeIdx !== null ? activeIdx : undefined } as any}
-            activeShape={renderActive}
-            data={byCrop}
-            cx="50%"
-            cy="50%"
-            innerRadius={52}
-            outerRadius={78}
-            dataKey="value"
-            onMouseEnter={(_, idx) => setActiveIdx(idx)}
-            onMouseLeave={() => setActiveIdx(null)}
-            stroke="none"
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              background: iconBg,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            {byCrop.map((entry, idx) => (
-              <Cell key={idx} fill={entry.fill} />
-            ))}
-          </Pie>
-        </PieChart>
-      </ResponsiveContainer>
-      {/* Mini legend below chart */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 justify-center">
-        {byCrop.map((d) => (
-          <div key={d.crop} className="flex items-center gap-1.5 text-[10px]">
-            <div className="w-2 h-2 rounded-sm" style={{ background: d.fill }} />
-            <span style={{ color: T.text3 }}>{d.crop}</span>
+            <Icon size={14} style={{ color: iconColor }} />
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Delivery Timeline (Gantt-style) ─────────────────────────
-function DeliveryTimeline({ contracts }: { contracts: Contract[] }) {
-  const activeContracts = contracts.filter((c) => c.status !== "cancelled");
-  if (activeContracts.length === 0) return null;
-
-  // Find date range
-  const allDates = activeContracts.flatMap((c) => [
-    new Date(c.delivery_start).getTime(),
-    new Date(c.delivery_end).getTime(),
-  ]);
-  const minDate = Math.min(...allDates);
-  const maxDate = Math.max(...allDates);
-  const range = maxDate - minDate || 1;
-
-  // Group months for header
-  const monthLabels: { label: string; leftPct: number }[] = [];
-  const startMonth = new Date(minDate);
-  startMonth.setDate(1);
-  while (startMonth.getTime() <= maxDate) {
-    const pct = ((startMonth.getTime() - minDate) / range) * 100;
-    if (pct >= 0 && pct <= 100) {
-      monthLabels.push({
-        label: startMonth.toLocaleDateString("en-CA", { month: "short" }),
-        leftPct: pct,
-      });
-    }
-    startMonth.setMonth(startMonth.getMonth() + 1);
-  }
-
-  return (
-    <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-6 hover:border-white/[0.10] transition-colors">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h3 className="text-sm font-bold text-[#F1F5F9]">Delivery Timeline</h3>
-          <p className="text-xs text-[#475569] mt-0.5">Contract delivery windows</p>
-        </div>
-      </div>
-
-      {/* Month headers */}
-      <div className="relative h-5 mb-2">
-        {monthLabels.map((m, i) => (
           <span
-            key={i}
-            className="absolute text-[9px] font-mono uppercase"
-            style={{ left: `${m.leftPct}%`, color: T.text4, transform: "translateX(-50%)" }}
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: 1,
+              textTransform: "uppercase",
+              color: T.text3,
+            }}
           >
-            {m.label}
+            {label}
           </span>
-        ))}
+        </div>
+        <div style={{ fontSize: 26, fontWeight: 700, color: T.text, lineHeight: 1.1 }}>
+          {value}
+        </div>
+        {sub && (
+          <div style={{ fontSize: 11, color: T.text4, marginTop: 4 }}>{sub}</div>
+        )}
       </div>
-
-      {/* Timeline bars */}
-      <div className="space-y-2">
-        {activeContracts.map((c) => {
-          const start = new Date(c.delivery_start).getTime();
-          const end = new Date(c.delivery_end).getTime();
-          const leftPct = ((start - minDate) / range) * 100;
-          const widthPct = Math.max(((end - start) / range) * 100, 2);
-          const color = CROP_COLORS[c.crop] || T.sky;
-          const status = STATUS_CONFIG[c.status] || STATUS_CONFIG.open;
-          const deliveryPct = c.tonnes > 0 ? (c.delivered_tonnes / c.tonnes) * 100 : 0;
-
-          return (
-            <div key={c.id} className="group relative">
-              <div className="flex items-center gap-3">
-                <div className="w-24 flex-shrink-0 flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: color }} />
-                  <span className="text-xs truncate" style={{ color: T.text2 }}>{c.crop}</span>
-                </div>
-                <div className="flex-1 relative h-7 rounded-lg bg-white/[0.02]">
-                  {/* Month gridlines */}
-                  {monthLabels.map((m, i) => (
-                    <div key={i} className="absolute top-0 bottom-0 w-px" style={{ left: `${m.leftPct}%`, backgroundColor: T.gridLine }} />
-                  ))}
-                  {/* Bar */}
-                  <div
-                    className="absolute top-1 bottom-1 rounded-md flex items-center px-2 cursor-pointer transition-all group-hover:brightness-110"
-                    style={{
-                      left: `${leftPct}%`,
-                      width: `${widthPct}%`,
-                      backgroundColor: `${color}30`,
-                      border: `1px solid ${color}50`,
-                    }}
-                    title={`${c.buyer} · ${c.tonnes} MT @ $${c.price_per_tonne}/MT · ${c.delivery_start} → ${c.delivery_end}`}
-                  >
-                    {/* Delivered fill within the bar */}
-                    <div
-                      className="absolute inset-y-0 left-0 rounded-l-md"
-                      style={{
-                        width: `${deliveryPct}%`,
-                        backgroundColor: `${color}60`,
-                      }}
-                    />
-                    <span className="relative text-[9px] font-mono font-semibold truncate" style={{ color: T.text1 }}>
-                      {c.buyer} · {c.tonnes}MT
-                    </span>
-                  </div>
-                </div>
-                <span
-                  className="text-[9px] font-mono uppercase px-2 py-0.5 rounded-full flex-shrink-0"
-                  style={{ color: status.color, background: status.bg }}
-                >
-                  {status.label}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {donut && <div style={{ flexShrink: 0, marginLeft: 12 }}>{donut}</div>}
     </div>
   );
 }
 
-// ═════════════════════════════════════════════════════════════
-//  MARKETING PAGE — FINTECH GRADE
-// ═════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════
 export default function MarketingPage() {
-  const [contracts, setContracts] = useState<Contract[]>([]);
-  const [positions, setPositions] = useState<CropPosition[]>([]);
+  const { user } = useUser();
+  const [data, setData] = useState<MarketingData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("contracts");
-
-  // Filters
-  const [filterCrop, setFilterCrop] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
-
-  // Form
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    crop: "", buyer: "", contract_type: "Flat Price", tonnes: 0,
-    price_per_tonne: 0, delivery_start: "", delivery_end: "", status: "open", notes: "",
-  });
-  const [saving, setSaving] = useState(false);
+  const [cropYear, setCropYear] = useState(String(new Date().getFullYear()));
+  const [unit, setUnit] = useState<"bu" | "mt">("bu");
+  const [tab, setTab] = useState<"overview" | "contracts" | "price" | "hedge">("overview");
 
   useEffect(() => {
+    if (!user?.id) return;
     setLoading(true);
-    Promise.all([
-      fetch("/api/marketing/contracts").then((r) => r.json()),
-      fetch("/api/marketing/positions").then((r) => r.json()),
-    ])
-      .then(([c, p]) => {
-        setContracts(Array.isArray(c) ? c : []);
-        setPositions(Array.isArray(p) ? p : []);
+    fetch(`/api/marketing/positions?cropYear=${cropYear}`, {
+      headers: { "x-user-id": user.id },
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) setData(d);
+        else setData(null);
       })
-      .catch(() => {})
+      .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, []);
+  }, [cropYear, user?.id]);
+
+  // Convert BU to display unit
+  const toUnit = (bu: number, crop?: string) =>
+    unit === "mt" && crop ? buToMt(bu, crop) : bu;
+  const unitLabel = unit === "bu" ? "BU" : "MT";
+
+  // Build donut data arrays
+  const productionDonut = useMemo(
+    () => data?.positions.map((p) => ({ name: p.crop, value: toUnit(p.estimated_production, p.crop) })) || [],
+    [data, unit]
+  );
+  const contractedDonut = useMemo(
+    () => data?.positions.map((p) => ({ name: p.crop, value: toUnit(p.contracted, p.crop) })) || [],
+    [data, unit]
+  );
+  const unpricedDonut = useMemo(
+    () => data?.positions.map((p) => ({ name: p.crop, value: toUnit(p.unpriced, p.crop) })) || [],
+    [data, unit]
+  );
+  const valueDonut = useMemo(
+    () => data?.positions.map((p) => ({ name: p.crop, value: p.contracted_value })) || [],
+    [data]
+  );
+  const avgPriceDonut = useMemo(
+    () =>
+      data?.positions
+        .filter((p) => p.avg_price > 0)
+        .map((p) => ({ name: p.crop, value: p.avg_price })) || [],
+    [data]
+  );
+
+  // Position bars data
+  const positionBars = useMemo(
+    () =>
+      data?.positions.map((p) => ({
+        crop: p.crop,
+        contracted: toUnit(p.contracted, p.crop),
+        delivered: toUnit(p.delivered, p.crop),
+        unpriced: toUnit(p.unpriced, p.crop),
+        total: toUnit(p.estimated_production, p.crop),
+        color: getCropColor(p.crop),
+      })) || [],
+    [data, unit]
+  );
+
+  // Delivery progress data
+  const deliveryData = useMemo(
+    () =>
+      data?.positions
+        .filter((p) => p.contracted > 0)
+        .map((p) => ({
+          crop: p.crop,
+          delivered: toUnit(p.delivered, p.crop),
+          contracted: toUnit(p.contracted, p.crop),
+          percent: p.percent_delivered,
+          color: getCropColor(p.crop),
+          behind: p.percent_delivered < 50,
+        })) || [],
+    [data, unit]
+  );
+
+  // Contract timeline data
+  const timelineData = useMemo(() => {
+    if (!data) return [];
+    const all: { crop: string; date: string; qty: number; price: number; color: string }[] = [];
+    for (const p of data.positions) {
+      for (const c of p.contracts) {
+        if (c.created_at) {
+          all.push({
+            crop: p.crop,
+            date: c.created_at.slice(0, 10),
+            qty: toUnit(c.quantity_bu, p.crop),
+            price: c.price_per_bu,
+            color: getCropColor(p.crop),
+          });
+        }
+      }
+    }
+    return all.sort((a, b) => a.date.localeCompare(b.date));
+  }, [data, unit]);
+
+  const t = data?.totals;
 
   const tabs = [
-    { id: "contracts", label: "Contracts", enabled: true },
-    { id: "prices", label: "Price Tracker", enabled: false },
-    { id: "hedges", label: "Hedge Tracker", enabled: false },
+    { key: "overview", label: "Overview" },
+    { key: "contracts", label: "Contracts" },
+    { key: "price", label: "Price Tracker", soon: true },
+    { key: "hedge", label: "Hedge Tracker", soon: true },
   ];
 
-  // ── Computed ────────────────────────────────────
-  const crops = useMemo(() => [...new Set(contracts.map((c) => c.crop))].sort(), [contracts]);
-
-  const filtered = useMemo(() => {
-    return contracts.filter((c) => {
-      if (filterCrop !== "all" && c.crop !== filterCrop) return false;
-      if (filterStatus !== "all" && c.status !== filterStatus) return false;
-      return true;
-    });
-  }, [contracts, filterCrop, filterStatus]);
-
-  const kpis = useMemo(() => {
-    const active = contracts.filter((c) => c.status !== "cancelled");
-    return {
-      totalTonnes: active.reduce((s, c) => s + c.tonnes, 0),
-      totalValue: active.reduce((s, c) => s + c.tonnes * c.price_per_tonne, 0),
-      openCount: contracts.filter((c) => c.status === "open" || c.status === "partial").length,
-      deliveredCount: contracts.filter((c) => c.status === "delivered").length,
-    };
-  }, [contracts]);
-
-  // ── Form helpers ───────────────────────────────
-  const contractValue = form.tonnes * form.price_per_tonne;
-
-  const resetForm = () => {
-    setShowForm(false);
-    setEditingId(null);
-    setForm({ crop: "", buyer: "", contract_type: "Flat Price", tonnes: 0, price_per_tonne: 0, delivery_start: "", delivery_end: "", status: "open", notes: "" });
-  };
-
-  const handleSave = async () => {
-    if (!form.crop || !form.buyer || !form.tonnes) return;
-    setSaving(true);
-    try {
-      const res = editingId
-        ? await fetch(`/api/marketing/contracts/${editingId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) })
-        : await fetch("/api/marketing/contracts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
-      if (res.ok) {
-        const saved = await res.json();
-        setContracts((p) => editingId ? p.map((c) => (c.id === editingId ? saved : c)) : [saved, ...p]);
-        resetForm();
-      }
-    } catch {}
-    setSaving(false);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this contract?")) return;
-    try {
-      await fetch(`/api/marketing/contracts/${id}`, { method: "DELETE" });
-      setContracts((p) => p.filter((c) => c.id !== id));
-    } catch {}
-  };
-
-  const handleEdit = (c: Contract) => {
-    setEditingId(c.id);
-    setForm({
-      crop: c.crop, buyer: c.buyer, contract_type: c.contract_type,
-      tonnes: c.tonnes, price_per_tonne: c.price_per_tonne,
-      delivery_start: c.delivery_start, delivery_end: c.delivery_end,
-      status: c.status, notes: c.notes || "",
-    });
-    setShowForm(true);
-  };
-
-  const markDelivered = async (c: Contract) => {
-    try {
-      const res = await fetch(`/api/marketing/contracts/${c.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...c, status: "delivered", delivered_tonnes: c.tonnes }),
-      });
-      if (res.ok) {
-        const saved = await res.json();
-        setContracts((p) => p.map((x) => (x.id === c.id ? saved : x)));
-      }
-    } catch {}
-  };
-
-  const fmt = (n: number) => `$${n.toLocaleString("en-CA", { minimumFractionDigits: 2 })}`;
-  const fmtShort = (n: number) => `$${n.toLocaleString("en-CA", { minimumFractionDigits: 0 })}`;
-
   return (
-    <div>
-      {/* ── Header ───────────────────────────────────── */}
-      <div className="flex items-center justify-between mb-6">
+    <div style={{ padding: "28px 32px", maxWidth: 1440, margin: "0 auto" }}>
+      {/* ── Header ──────────────────────────────────────── */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: T.text1 }}>Marketing</h1>
-          <p className="text-sm mt-1" style={{ color: T.text3 }}>
-            Grain sales strategy &amp; contract management
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: T.text, margin: 0 }}>Marketing</h1>
+          <p style={{ fontSize: 13, color: T.text3, marginTop: 4 }}>
+            Grain sales strategy &amp; position management — crop year {cropYear}
           </p>
         </div>
-        <button
-          onClick={() => { resetForm(); setShowForm(true); }}
-          className={btnPrimary}
-          style={{ backgroundColor: T.green, color: T.bg }}
-        >
-          <Plus size={14} />
-          New Contract
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {/* BU / MT Toggle */}
+          <div
+            style={{
+              display: "flex",
+              borderRadius: 8,
+              border: `1px solid ${T.border}`,
+              overflow: "hidden",
+            }}
+          >
+            {(["bu", "mt"] as const).map((u) => (
+              <button
+                key={u}
+                onClick={() => setUnit(u)}
+                style={{
+                  padding: "6px 14px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background: unit === u ? T.green : "transparent",
+                  color: unit === u ? T.bg : T.text3,
+                  border: "none",
+                  cursor: "pointer",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
+                }}
+              >
+                {u}
+              </button>
+            ))}
+          </div>
+          {/* Year Selector */}
+          <select
+            value={cropYear}
+            onChange={(e) => setCropYear(e.target.value)}
+            style={{
+              background: T.card,
+              border: `1px solid ${T.border}`,
+              borderRadius: 8,
+              color: T.text,
+              padding: "6px 12px",
+              fontSize: 13,
+            }}
+          >
+            {[2024, 2025, 2026].map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+          <button
+            style={{
+              background: T.green,
+              color: T.bg,
+              border: "none",
+              borderRadius: 10,
+              padding: "9px 18px",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Plus size={15} /> New Contract
+          </button>
+        </div>
       </div>
 
-      {/* ── Tab Switcher ─────────────────────────────── */}
-      <div className="flex gap-1 mb-6 bg-white/[0.03] p-1 rounded-xl w-fit border border-white/[0.06]">
+      {/* ── Tabs ─────────────────────────────────────────── */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 24 }}>
         {tabs.map((t) => (
           <button
-            key={t.id}
-            onClick={() => t.enabled && setActiveTab(t.id)}
-            disabled={!t.enabled}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-              activeTab === t.id
-                ? "bg-white/[0.08] text-[#F1F5F9] shadow-sm"
-                : t.enabled
-                ? "text-[#64748B] hover:text-[#94A3B8]"
-                : "text-[#334155] cursor-not-allowed"
-            }`}
+            key={t.key}
+            onClick={() => !t.soon && setTab(t.key as any)}
+            style={{
+              padding: "8px 18px",
+              borderRadius: 8,
+              border: "none",
+              background: tab === t.key ? "rgba(52,211,153,0.12)" : "transparent",
+              color: tab === t.key ? T.green : T.text3,
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: t.soon ? "default" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              opacity: t.soon ? 0.5 : 1,
+            }}
           >
             {t.label}
-            {!t.enabled && (
-              <span className="ml-1.5 text-[9px] uppercase font-mono px-1.5 py-0.5 rounded-full bg-white/[0.04] text-[#475569]">
-                Soon
+            {t.soon && (
+              <span
+                style={{
+                  fontSize: 9,
+                  padding: "1px 6px",
+                  borderRadius: 4,
+                  background: "rgba(255,255,255,0.06)",
+                  color: T.text4,
+                  fontWeight: 600,
+                  letterSpacing: 0.5,
+                }}
+              >
+                SOON
               </span>
             )}
           </button>
         ))}
       </div>
 
+      {/* ── Loading ──────────────────────────────────────── */}
       {loading ? (
-        <div className="text-center py-20 flex flex-col items-center gap-3">
-          <Loader2 size={28} className="animate-spin" style={{ color: T.green }} />
-          <span className="text-sm" style={{ color: T.text3 }}>Loading contracts...</span>
+        <div style={{ textAlign: "center", padding: "60px 0", color: T.text3 }}>
+          <Loader2 size={28} className="animate-spin" style={{ color: T.green, margin: "0 auto 12px" }} />
+          <span style={{ fontSize: 13 }}>Loading marketing positions...</span>
         </div>
-      ) : (
+      ) : !data || !t ? (
+        <div style={{ textAlign: "center", padding: "60px 0" }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 16,
+              background: "rgba(255,255,255,0.03)",
+              border: `1px solid ${T.border}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+            }}
+          >
+            <BarChart3 size={24} style={{ color: T.text4 }} />
+          </div>
+          <p style={{ color: T.text2, fontSize: 15, marginBottom: 6 }}>No marketing data yet</p>
+          <p style={{ color: T.text4, fontSize: 12 }}>
+            Add crops in Farm Profile and contracts to see your position.
+          </p>
+        </div>
+      ) : tab === "overview" ? (
         <>
-          {/* ── KPI Cards ──────────────────────────── */}
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <KpiCard label="Committed" value={`${kpis.totalTonnes.toLocaleString()} MT`} icon={Package} iconColor={T.green} bgColor={T.greenDim} />
-            <KpiCard label="Total Value" value={fmtShort(kpis.totalValue)} icon={DollarSign} iconColor={T.green} bgColor={T.greenDim} />
-            <KpiCard label="Open" value={String(kpis.openCount)} icon={Clock} iconColor={T.sky} bgColor={T.skyDim} highlight />
-            <KpiCard label="Delivered" value={String(kpis.deliveredCount)} icon={Truck} iconColor={T.green} bgColor={T.greenDim} />
+          {/* ── KPI Strip ──────────────────────────────────── */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 14 }}>
+            <KpiCard
+              label="Total Production"
+              value={`${fmtNum(unit === "bu" ? t.production : data.positions.reduce((s, p) => s + buToMt(p.estimated_production, p.crop), 0))} ${unitLabel}`}
+              icon={Wheat}
+              iconColor={T.green}
+              iconBg={T.greenBg}
+              donut={<MiniDonut data={productionDonut} />}
+              sub={`${data.positions.length} crop${data.positions.length !== 1 ? "s" : ""}`}
+            />
+            <KpiCard
+              label="Total Contracted"
+              value={`${fmtNum(unit === "bu" ? t.contracted : data.positions.reduce((s, p) => s + buToMt(p.contracted, p.crop), 0))} ${unitLabel}`}
+              icon={TrendingUp}
+              iconColor={T.blue}
+              iconBg={T.blueBg}
+              donut={<MiniDonut data={contractedDonut} />}
+            />
+            <KpiCard
+              label="% Contracted"
+              value={`${t.percent_contracted}%`}
+              icon={Percent}
+              iconColor={t.percent_contracted >= 50 ? T.green : T.gold}
+              iconBg={t.percent_contracted >= 50 ? T.greenBg : T.goldBg}
+              donut={<ProgressRing percent={t.percent_contracted} />}
+              sub={`${fmtNum(t.unpriced)} ${unitLabel} remaining`}
+            />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 28 }}>
+            <KpiCard
+              label="Contracted Value"
+              value={fmtDollar(t.contracted_value)}
+              icon={DollarSign}
+              iconColor={T.green}
+              iconBg={T.greenBg}
+              donut={<MiniDonut data={valueDonut} />}
+            />
+            <KpiCard
+              label="Unpriced"
+              value={`${fmtNum(unit === "bu" ? t.unpriced : data.positions.reduce((s, p) => s + buToMt(p.unpriced, p.crop), 0))} ${unitLabel}`}
+              icon={AlertTriangle}
+              iconColor={t.unpriced > 0 ? T.red : T.green}
+              iconBg={t.unpriced > 0 ? T.redBg : T.greenBg}
+              donut={<MiniDonut data={unpricedDonut} />}
+              sub={t.unpriced > 0 ? "Market exposure" : "Fully contracted"}
+            />
+            <KpiCard
+              label="Avg Realized Price"
+              value={t.avg_price > 0 ? fmtPrice(t.avg_price) : "—"}
+              icon={DollarSign}
+              iconColor={T.gold}
+              iconBg={T.goldBg}
+              donut={<MiniDonut data={avgPriceDonut} />}
+              sub={t.avg_price > 0 ? "Weighted avg $/bu" : "No contracts yet"}
+            />
           </div>
 
-          {/* ── Position Gauges + Donut ────────────── */}
-          <div className="grid grid-cols-[2fr_1fr] gap-4 mb-4">
-            <PositionGauge positions={positions} />
-            <ContractValueDonut contracts={contracts} />
-          </div>
-
-          {/* ── Delivery Timeline ─────────────────── */}
-          <div className="mb-6">
-            <DeliveryTimeline contracts={contracts} />
-          </div>
-
-          {/* ── Filter Bar ────────────────────────── */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex items-center gap-1.5 text-xs" style={{ color: T.text3 }}>
-              <Filter size={12} />
-              Filters:
-            </div>
-            <select value={filterCrop} onChange={(e) => setFilterCrop(e.target.value)} className={selectClass + " text-xs"}>
-              <option value="all">All Crops</option>
-              {crops.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={selectClass + " text-xs"}>
-              <option value="all">All Status</option>
-              {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-            </select>
-            {(filterCrop !== "all" || filterStatus !== "all") && (
-              <button
-                onClick={() => { setFilterCrop("all"); setFilterStatus("all"); }}
-                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg hover:bg-white/[0.04] transition-colors"
-                style={{ color: T.text3 }}
-              >
-                <RotateCcw size={12} />
-                Clear
-              </button>
-            )}
-            <span className="ml-auto text-xs font-mono" style={{ color: T.text4 }}>
-              {filtered.length} contract{filtered.length !== 1 ? "s" : ""}
-            </span>
-          </div>
-
-          {/* ── Contracts Table ────────────────────── */}
-          {filtered.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}` }}>
-                <BarChart3 size={24} style={{ color: T.text4 }} />
+          {/* ── Crop Legend ─────────────────────────────────── */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 16,
+              marginBottom: 24,
+              padding: "10px 16px",
+              background: T.card,
+              borderRadius: 10,
+              border: `1px solid ${T.border}`,
+            }}
+          >
+            {data.positions.map((p) => (
+              <div key={p.crop} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+                <div
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: "50%",
+                    background: getCropColor(p.crop),
+                  }}
+                />
+                <span style={{ color: T.text2, textTransform: "capitalize" }}>{p.crop}</span>
               </div>
-              <p className="text-sm mb-1" style={{ color: T.text2 }}>
-                {contracts.length === 0 ? "No contracts yet" : "No contracts match your filters"}
+            ))}
+          </div>
+
+          {/* ── Crop Position Bars ──────────────────────────── */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 14,
+              marginBottom: 14,
+            }}
+          >
+            {/* Position Bars */}
+            <div
+              style={{
+                background: T.card,
+                border: `1px solid ${T.border}`,
+                borderRadius: 14,
+                padding: 24,
+              }}
+            >
+              <h3 style={{ fontSize: 15, fontWeight: 600, color: T.text, margin: "0 0 4px" }}>
+                Crop Positions
+              </h3>
+              <p style={{ fontSize: 11, color: T.text4, margin: "0 0 20px" }}>
+                Contracted vs unpriced by crop
               </p>
-              <p className="text-xs" style={{ color: T.text4 }}>
-                {contracts.length === 0 ? "Click \"New Contract\" to add your first grain sales contract" : "Try adjusting your filters"}
-              </p>
-            </div>
-          ) : (
-            <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl overflow-hidden">
-              {/* Table header */}
-              <div className="grid grid-cols-[1fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr_0.7fr_auto] gap-3 px-5 py-3 border-b border-white/[0.06] bg-white/[0.01]">
-                {["Crop", "Buyer", "Type", "Quantity", "Price", "Delivery", "Status", ""].map((h) => (
-                  <span key={h} className="text-[9px] uppercase tracking-[2px] font-mono font-semibold" style={{ color: T.text4 }}>{h}</span>
-                ))}
+              <div style={{ display: "flex", gap: 16, marginBottom: 16, fontSize: 11 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: T.green }} />
+                  <span style={{ color: T.text3 }}>Contracted</span>
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: T.blue }} />
+                  <span style={{ color: T.text3 }}>Delivered</span>
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: "rgba(255,255,255,0.08)" }} />
+                  <span style={{ color: T.text3 }}>Unpriced</span>
+                </span>
               </div>
-              {/* Rows */}
-              {filtered.map((c) => {
-                const color = CROP_COLORS[c.crop] || T.sky;
-                const status = STATUS_CONFIG[c.status] || STATUS_CONFIG.open;
+              {positionBars.map((p) => {
+                const max = Math.max(...positionBars.map((b) => b.total), 1);
                 return (
-                  <div
-                    key={c.id}
-                    className="group grid grid-cols-[1fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr_0.7fr_auto] gap-3 px-5 py-3 border-b border-white/[0.03] hover:bg-white/[0.015] transition-colors items-center"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: color }} />
-                      <span className="text-sm font-medium" style={{ color: T.text1 }}>{c.crop}</span>
+                  <div key={p.crop} style={{ marginBottom: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ fontSize: 12, color: T.text, textTransform: "capitalize", display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: p.color }} />
+                        {p.crop}
+                      </span>
+                      <span style={{ fontSize: 11, color: T.text3 }}>
+                        {fmtNum(p.total)} {unitLabel}
+                      </span>
                     </div>
-                    <span className="text-sm" style={{ color: T.text2 }}>{c.buyer}</span>
-                    <span
-                      className="text-[10px] font-mono px-2 py-0.5 rounded-full w-fit"
-                      style={{ color: T.green, background: T.greenDim, border: `1px solid ${T.green}20` }}
+                    <div
+                      style={{
+                        height: 22,
+                        borderRadius: 6,
+                        background: "rgba(255,255,255,0.04)",
+                        overflow: "hidden",
+                        display: "flex",
+                        width: "100%",
+                      }}
                     >
-                      {c.contract_type}
-                    </span>
-                    <span className="text-sm font-mono" style={{ color: T.text1 }}>{c.tonnes.toLocaleString()} MT</span>
-                    <span className="text-sm font-mono" style={{ color: T.green }}>{fmt(c.price_per_tonne)}</span>
-                    <span className="text-xs font-mono" style={{ color: T.text3 }}>
-                      {c.delivery_start && new Date(c.delivery_start).toLocaleDateString("en-CA", { month: "short" })}
-                      {" — "}
-                      {c.delivery_end && new Date(c.delivery_end).toLocaleDateString("en-CA", { month: "short", year: "2-digit" })}
-                    </span>
-                    <span
-                      className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full w-fit"
-                      style={{ color: status.color, background: status.bg }}
-                    >
-                      {status.label}
-                    </span>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleEdit(c)} className="p-1.5 rounded-lg hover:bg-white/[0.06]" title="Edit">
-                        <Edit2 size={12} style={{ color: T.text3 }} />
-                      </button>
-                      {(c.status === "open" || c.status === "partial") && (
-                        <button onClick={() => markDelivered(c)} className="p-1.5 rounded-lg hover:bg-green-500/10" title="Mark Delivered">
-                          <CheckCircle size={12} style={{ color: T.green }} />
-                        </button>
+                      {p.delivered > 0 && (
+                        <div
+                          style={{
+                            width: `${(p.delivered / max) * 100}%`,
+                            background: T.blue,
+                            height: "100%",
+                            transition: "width 0.4s",
+                          }}
+                          title={`Delivered: ${fmtNum(p.delivered)} ${unitLabel}`}
+                        />
                       )}
-                      <button onClick={() => handleDelete(c.id)} className="p-1.5 rounded-lg hover:bg-red-500/10" title="Delete">
-                        <Trash2 size={12} style={{ color: T.red }} />
-                      </button>
+                      {p.contracted - p.delivered > 0 && (
+                        <div
+                          style={{
+                            width: `${((p.contracted - p.delivered) / max) * 100}%`,
+                            background: T.green,
+                            height: "100%",
+                            transition: "width 0.4s",
+                          }}
+                          title={`Contracted (not delivered): ${fmtNum(p.contracted - p.delivered)} ${unitLabel}`}
+                        />
+                      )}
+                      {p.unpriced > 0 && (
+                        <div
+                          style={{
+                            width: `${(p.unpriced / max) * 100}%`,
+                            background: "rgba(255,255,255,0.08)",
+                            height: "100%",
+                            transition: "width 0.4s",
+                          }}
+                          title={`Unpriced: ${fmtNum(p.unpriced)} ${unitLabel}`}
+                        />
+                      )}
                     </div>
                   </div>
                 );
               })}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* ═══ NEW / EDIT CONTRACT MODAL ═══ */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-2xl p-6" style={{ background: "#0F1729", border: `1px solid ${T.borderHover}` }}>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold" style={{ color: T.text1 }}>
-                {editingId ? "Edit Contract" : "New Contract"}
-              </h2>
-              <button onClick={resetForm} className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors">
-                <X size={16} style={{ color: T.text3 }} />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className={labelClass}>Crop</label>
-                <select value={form.crop} onChange={(e) => setForm((p) => ({ ...p, crop: e.target.value }))} className={selectClass + " w-full"}>
-                  <option value="">Select crop...</option>
-                  {Object.keys(CROP_COLORS).map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Buyer</label>
-                <input type="text" value={form.buyer} onChange={(e) => setForm((p) => ({ ...p, buyer: e.target.value }))} placeholder="e.g. Cargill" className={inputClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Contract Type</label>
-                <select value={form.contract_type} onChange={(e) => setForm((p) => ({ ...p, contract_type: e.target.value }))} className={selectClass + " w-full"}>
-                  {["Flat Price", "Basis", "Deferred Delivery", "Futures Only", "Spot"].map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Status</label>
-                <select value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))} className={selectClass + " w-full"}>
-                  {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Tonnes (MT)</label>
-                <input type="number" min={0} value={form.tonnes || ""} onChange={(e) => setForm((p) => ({ ...p, tonnes: parseFloat(e.target.value) || 0 }))} className={inputClass + " font-mono"} />
-              </div>
-              <div>
-                <label className={labelClass}>Price / Tonne (CAD)</label>
-                <input type="number" min={0} step={0.01} value={form.price_per_tonne || ""} onChange={(e) => setForm((p) => ({ ...p, price_per_tonne: parseFloat(e.target.value) || 0 }))} className={inputClass + " font-mono"} />
-              </div>
-              <div>
-                <label className={labelClass}>Delivery Start</label>
-                <input type="date" value={form.delivery_start} onChange={(e) => setForm((p) => ({ ...p, delivery_start: e.target.value }))} className={inputClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Delivery End</label>
-                <input type="date" value={form.delivery_end} onChange={(e) => setForm((p) => ({ ...p, delivery_end: e.target.value }))} className={inputClass} />
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <label className={labelClass}>Notes</label>
-              <input type="text" value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Optional" className={inputClass} />
-            </div>
-
-            {/* Contract value preview */}
-            {contractValue > 0 && (
-              <div className="rounded-xl p-4 mb-5" style={{ background: T.greenDim, border: `1px solid rgba(52,211,153,0.2)` }}>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold" style={{ color: T.green }}>Contract Value</span>
-                  <span className="text-lg font-bold font-mono" style={{ color: T.green }}>
-                    {fmtShort(contractValue)}
-                  </span>
-                </div>
-                <p className="text-xs mt-0.5 font-mono" style={{ color: T.text3 }}>
-                  {form.tonnes.toLocaleString()} MT × ${form.price_per_tonne.toLocaleString()}/MT
+              {positionBars.length === 0 && (
+                <p style={{ color: T.text4, fontSize: 12, textAlign: "center", padding: 20 }}>
+                  No crop data — update Farm Profile with acres and yields.
                 </p>
-              </div>
-            )}
+              )}
+            </div>
 
-            <div className="flex justify-end gap-3">
-              <button onClick={resetForm} className={btnSecondary}>Cancel</button>
-              <button
-                onClick={handleSave}
-                disabled={!form.crop || !form.buyer || !form.tonnes || saving}
-                className={btnPrimary}
-                style={{
-                  backgroundColor: form.crop && form.buyer && form.tonnes ? T.green : T.text4,
-                  color: form.crop && form.buyer && form.tonnes ? T.bg : T.text3,
-                  opacity: form.crop && form.buyer && form.tonnes ? 1 : 0.5,
-                  cursor: form.crop && form.buyer && form.tonnes ? "pointer" : "not-allowed",
-                }}
-              >
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-                {editingId ? "Update" : "Save Contract"}
-              </button>
+            {/* Delivery Progress */}
+            <div
+              style={{
+                background: T.card,
+                border: `1px solid ${T.border}`,
+                borderRadius: 14,
+                padding: 24,
+              }}
+            >
+              <h3 style={{ fontSize: 15, fontWeight: 600, color: T.text, margin: "0 0 4px" }}>
+                Delivery Progress
+              </h3>
+              <p style={{ fontSize: 11, color: T.text4, margin: "0 0 20px" }}>
+                Delivered vs contracted — are you on track?
+              </p>
+              {deliveryData.length > 0 ? (
+                deliveryData.map((d) => (
+                  <div key={d.crop} style={{ marginBottom: 18 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ fontSize: 12, color: T.text, textTransform: "capitalize", display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: d.color }} />
+                        {d.crop}
+                        {d.behind && (
+                          <span style={{ color: T.red, fontSize: 10, fontWeight: 600 }}>BEHIND</span>
+                        )}
+                      </span>
+                      <span style={{ fontSize: 11, color: T.text3 }}>
+                        {fmtNum(d.delivered)} / {fmtNum(d.contracted)} {unitLabel} ({d.percent}%)
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        height: 10,
+                        borderRadius: 5,
+                        background: "rgba(255,255,255,0.04)",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${Math.min(d.percent, 100)}%`,
+                          height: "100%",
+                          borderRadius: 5,
+                          background: d.behind
+                            ? `linear-gradient(90deg, ${T.red}, ${T.gold})`
+                            : `linear-gradient(90deg, ${d.color}, ${T.green})`,
+                          transition: "width 0.6s ease",
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: "center", padding: 30 }}>
+                  <Truck size={24} style={{ color: T.text4, margin: "0 auto 8px" }} />
+                  <p style={{ color: T.text4, fontSize: 12 }}>
+                    No contracts to deliver against yet.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* ── Timeline + Price Scatter ────────────────────── */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 14,
+            }}
+          >
+            {/* Contract Timeline */}
+            <div
+              style={{
+                background: T.card,
+                border: `1px solid ${T.border}`,
+                borderRadius: 14,
+                padding: 24,
+              }}
+            >
+              <h3 style={{ fontSize: 15, fontWeight: 600, color: T.text, margin: "0 0 4px" }}>
+                Sales Timeline
+              </h3>
+              <p style={{ fontSize: 11, color: T.text4, margin: "0 0 16px" }}>
+                When contracts were signed
+              </p>
+              {timelineData.length > 0 ? (
+                <div style={{ height: 200 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={timelineData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                      <XAxis dataKey="date" tick={{ fill: T.text4, fontSize: 10 }} />
+                      <YAxis tick={{ fill: T.text4, fontSize: 10 }} />
+                      <Tooltip
+                        contentStyle={{
+                          background: T.card,
+                          border: `1px solid ${T.border}`,
+                          borderRadius: 8,
+                          fontSize: 11,
+                          color: T.text,
+                        }}
+                        formatter={(v: any) => [`${fmtNum(Number(v))} ${unitLabel}`, "Volume"]}
+                      />
+                      <Bar dataKey="qty" radius={[4, 4, 0, 0]}>
+                        {timelineData.map((entry, i) => (
+                          <Cell key={i} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div style={{ textAlign: "center", padding: 30 }}>
+                  <Calendar size={24} style={{ color: T.text4, margin: "0 auto 8px" }} />
+                  <p style={{ color: T.text4, fontSize: 12 }}>
+                    Contract timeline appears when contracts are added.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Price Scatter */}
+            <div
+              style={{
+                background: T.card,
+                border: `1px solid ${T.border}`,
+                borderRadius: 14,
+                padding: 24,
+              }}
+            >
+              <h3 style={{ fontSize: 15, fontWeight: 600, color: T.text, margin: "0 0 4px" }}>
+                Price Performance
+              </h3>
+              <p style={{ fontSize: 11, color: T.text4, margin: "0 0 16px" }}>
+                Contract prices vs weighted average
+              </p>
+              {timelineData.length > 0 ? (
+                <div style={{ height: 200 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsScatter>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                      <XAxis dataKey="date" tick={{ fill: T.text4, fontSize: 10 }} name="Date" />
+                      <YAxis dataKey="price" tick={{ fill: T.text4, fontSize: 10 }} name="Price" unit="$/bu" />
+                      <ZAxis dataKey="qty" range={[40, 400]} name="Volume" />
+                      <Tooltip
+                        contentStyle={{
+                          background: T.card,
+                          border: `1px solid ${T.border}`,
+                          borderRadius: 8,
+                          fontSize: 11,
+                          color: T.text,
+                        }}
+                        formatter={(v: any, name: any) => {
+                          if (name === "Price") return [fmtPrice(v), name];
+                          if (name === "Volume") return [`${fmtNum(v)} ${unitLabel}`, name];
+                          return [v, name];
+                        }}
+                      />
+                      <Scatter data={timelineData}>
+                        {timelineData.map((entry, i) => (
+                          <Cell key={i} fill={entry.color} />
+                        ))}
+                      </Scatter>
+                    </RechartsScatter>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div style={{ textAlign: "center", padding: 30 }}>
+                  <ScatterChart size={24} style={{ color: T.text4, margin: "0 auto 8px" }} />
+                  <p style={{ color: T.text4, fontSize: 12 }}>
+                    Price scatter appears when contracts with prices are added.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Lily Marketing Chip ────────────────────────── */}
+          <div
+            style={{
+              marginTop: 24,
+              background: "linear-gradient(135deg, rgba(52,211,153,0.06), rgba(96,165,250,0.06))",
+              border: `1px solid ${T.border}`,
+              borderRadius: 14,
+              padding: "16px 20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 20 }}>🌱</span>
+              <div>
+                <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>
+                  Ask Lily about your marketing position
+                </span>
+                <p style={{ fontSize: 11, color: T.text3, margin: "2px 0 0" }}>
+                  AI-powered advice based on your contracts, prices, and production
+                </p>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[
+                "Build a sell plan",
+                "Am I behind on deliveries?",
+                "Break-even by crop",
+              ].map((chip) => (
+                <button
+                  key={chip}
+                  style={{
+                    padding: "5px 12px",
+                    borderRadius: 20,
+                    border: `1px solid ${T.border}`,
+                    background: "rgba(255,255,255,0.04)",
+                    color: T.text2,
+                    fontSize: 11,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : tab === "contracts" ? (
+        /* ── Contracts Tab (placeholder) ───────────────── */
+        <div
+          style={{
+            background: T.card,
+            border: `1px solid ${T.border}`,
+            borderRadius: 14,
+            padding: 40,
+            textAlign: "center",
+          }}
+        >
+          <p style={{ color: T.text2, fontSize: 14, marginBottom: 8 }}>
+            Contracts table coming in Phase 3
+          </p>
+          <p style={{ color: T.text4, fontSize: 12 }}>
+            Full CRUD table with filters by crop, status, delivery date
+          </p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
