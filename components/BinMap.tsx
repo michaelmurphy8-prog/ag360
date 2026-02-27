@@ -3,16 +3,21 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import {
-  Plus, Trash2, X, Loader2, Edit2, Save, MapPin,
-  ChevronDown, Droplets, Wind, Wifi, Package,
+  Plus, Trash2, X, Loader2, MapPin, Wind, Wifi, Package,
 } from "lucide-react";
 import { getCropColor, CANONICAL_CROPS } from "@/lib/crop-colors";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 
 // ─── Types ──────────────────────────────────────────────
 type Yard = {
   id: string;
   yard_name: string;
   location: string | null;
+  latitude: number | null;
+  longitude: number | null;
   notes: string | null;
   bin_count: number;
   total_capacity_bu: number;
@@ -35,6 +40,8 @@ type Bin = {
   notes: string | null;
   pos_x: number;
   pos_y: number;
+  latitude: number | null;
+  longitude: number | null;
   fill_pct: number;
 };
 
@@ -74,117 +81,53 @@ const selectStyle: React.CSSProperties = {
   ...inputStyle, appearance: "auto" as any, background: "#111827",
 };
 
-// ─── Bin SVG Shape ──────────────────────────────────────
-function BinIcon({
-  bin, isSelected, onMouseDown, onClick,
-}: {
-  bin: Bin; isSelected: boolean;
-  onMouseDown: (e: React.MouseEvent) => void;
-  onClick: () => void;
-}) {
-  const fillPct = bin.fill_pct;
-  const cropColor = bin.crop ? getCropColor(bin.crop) : "rgba(255,255,255,0.08)";
+// Default: Saskatchewan farmland
+const DEFAULT_LAT = 52.1332;
+const DEFAULT_LNG = -106.6700;
+const DEFAULT_ZOOM = 16;
+
+// ─── Marker HTML Builder ────────────────────────────────
+function buildMarkerHTML(bin: Bin): string {
+  const cropColor = bin.crop ? getCropColor(bin.crop) : "rgba(255,255,255,0.15)";
   const isEmpty = bin.current_bu === 0;
+  const fillPct = bin.fill_pct;
   const isRect = bin.bin_type === "shed" || bin.bin_type === "temporary";
-  const size = Math.max(36, Math.min(56, Math.sqrt(bin.capacity_bu / 100) * 4));
+  const size = Math.max(48, Math.min(72, Math.sqrt(bin.capacity_bu / 100) * 5));
 
-  return (
-    <g
-      transform={`translate(${bin.pos_x}, ${bin.pos_y})`}
-      onMouseDown={onMouseDown}
-      onClick={onClick}
-      style={{ cursor: "grab" }}
-    >
-      {/* Selection ring */}
-      {isSelected && (
-        isRect
-          ? <rect x={-size - 4} y={-size * 0.7 - 4} width={(size + 4) * 2} height={(size * 0.7 + 4) * 2} rx={6} fill="none" stroke={T.green} strokeWidth={2} strokeDasharray="4 2" />
-          : <circle cx={0} cy={0} r={size + 4} fill="none" stroke={T.green} strokeWidth={2} strokeDasharray="4 2" />
-      )}
+  const badges = [
+    bin.has_aeration ? `<span style="position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:${T.blue};border:2px solid ${T.card}"></span>` : "",
+    bin.has_monitoring ? `<span style="position:absolute;top:8px;right:-4px;width:10px;height:10px;border-radius:50%;background:${T.green};border:2px solid ${T.card}"></span>` : "",
+  ].join("");
 
-      {/* Bin shape — background */}
-      {isRect ? (
-        <rect x={-size} y={-size * 0.7} width={size * 2} height={size * 1.4} rx={4}
-          fill={isEmpty ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.04)"}
-          stroke={isEmpty ? "rgba(255,255,255,0.08)" : cropColor}
-          strokeWidth={isEmpty ? 1 : 1.5}
-          strokeDasharray={isEmpty ? "4 3" : "none"}
-        />
-      ) : (
-        <circle cx={0} cy={0} r={size}
-          fill={isEmpty ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.04)"}
-          stroke={isEmpty ? "rgba(255,255,255,0.08)" : cropColor}
-          strokeWidth={isEmpty ? 1 : 1.5}
-          strokeDasharray={isEmpty ? "4 3" : "none"}
-        />
-      )}
+  if (isRect) {
+    return `<div style="position:relative;width:${size * 1.4}px;height:${size}px;cursor:grab;user-select:none">
+      ${badges}
+      <div style="width:100%;height:100%;border-radius:6px;border:${isEmpty ? `1.5px dashed rgba(255,255,255,0.15)` : `2px solid ${cropColor}`};background:rgba(17,24,39,0.85);overflow:hidden;position:relative;backdrop-filter:blur(4px)">
+        <div style="position:absolute;bottom:0;left:0;right:0;height:${fillPct}%;background:${cropColor};opacity:0.4;transition:height 0.3s"></div>
+        <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;z-index:1">
+          <span style="font-size:${size > 56 ? 14 : 12}px;font-weight:700;color:${isEmpty ? T.text4 : "#fff"}">${isEmpty ? "Empty" : fillPct + "%"}</span>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:4px">
+        <div style="font-size:10px;font-weight:600;color:#E2E8F0;text-shadow:0 1px 3px rgba(0,0,0,0.8)">${bin.bin_name}</div>
+        <div style="font-size:9px;color:#94A3B8;text-shadow:0 1px 2px rgba(0,0,0,0.8)">${bin.crop ? bin.crop + " · " + fmtNum(bin.current_bu) + " bu" : fmtNum(bin.capacity_bu) + " bu cap"}</div>
+      </div>
+    </div>`;
+  }
 
-      {/* Fill level — clipped */}
-      {fillPct > 0 && (
-        isRect ? (
-          <>
-            <defs>
-              <clipPath id={`clip-rect-${bin.id}`}>
-                <rect x={-size} y={-size * 0.7} width={size * 2} height={size * 1.4} rx={4} />
-              </clipPath>
-            </defs>
-            <rect
-              x={-size}
-              y={-size * 0.7 + size * 1.4 * (1 - fillPct / 100)}
-              width={size * 2}
-              height={size * 1.4 * (fillPct / 100)}
-              fill={cropColor}
-              opacity={0.35}
-              clipPath={`url(#clip-rect-${bin.id})`}
-            />
-          </>
-        ) : (
-          <>
-            <defs>
-              <clipPath id={`clip-circle-${bin.id}`}>
-                <circle cx={0} cy={0} r={size} />
-              </clipPath>
-            </defs>
-            <rect
-              x={-size}
-              y={-size + size * 2 * (1 - fillPct / 100)}
-              width={size * 2}
-              height={size * 2 * (fillPct / 100)}
-              fill={cropColor}
-              opacity={0.35}
-              clipPath={`url(#clip-circle-${bin.id})`}
-            />
-          </>
-        )
-      )}
-
-      {/* Fill % text */}
-      <text x={0} y={-2} textAnchor="middle" dominantBaseline="central"
-        fill={isEmpty ? T.text4 : T.text} fontSize={size > 40 ? 13 : 11} fontWeight={700}>
-        {isEmpty ? "Empty" : `${fillPct}%`}
-      </text>
-
-      {/* Bin name */}
-      <text x={0} y={isRect ? size * 0.7 + 16 : size + 14} textAnchor="middle"
-        fill={T.text2} fontSize={10} fontWeight={600}>
-        {bin.bin_name}
-      </text>
-
-      {/* Crop + bushels label */}
-      <text x={0} y={isRect ? size * 0.7 + 28 : size + 26} textAnchor="middle"
-        fill={T.text4} fontSize={9}>
-        {bin.crop ? `${bin.crop} · ${fmtNum(bin.current_bu)} bu` : `${fmtNum(bin.capacity_bu)} bu cap`}
-      </text>
-
-      {/* Feature badges */}
-      {bin.has_aeration && (
-        <circle cx={isRect ? size - 6 : size * 0.6} cy={isRect ? -size * 0.7 + 6 : -size * 0.6} r={5} fill={T.blue} opacity={0.8} />
-      )}
-      {bin.has_monitoring && (
-        <circle cx={isRect ? size - 6 : size * 0.6} cy={isRect ? -size * 0.7 + 18 : -size * 0.4} r={5} fill={T.green} opacity={0.8} />
-      )}
-    </g>
-  );
+  return `<div style="position:relative;width:${size}px;height:${size}px;cursor:grab;user-select:none">
+    ${badges}
+    <div style="width:100%;height:100%;border-radius:50%;border:${isEmpty ? `1.5px dashed rgba(255,255,255,0.15)` : `2px solid ${cropColor}`};background:rgba(17,24,39,0.85);overflow:hidden;position:relative;backdrop-filter:blur(4px)">
+      <div style="position:absolute;bottom:0;left:0;right:0;height:${fillPct}%;background:${cropColor};opacity:0.4;transition:height 0.3s"></div>
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;z-index:1">
+        <span style="font-size:${size > 56 ? 14 : 12}px;font-weight:700;color:${isEmpty ? T.text4 : "#fff"}">${isEmpty ? "Empty" : fillPct + "%"}</span>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:4px">
+      <div style="font-size:10px;font-weight:600;color:#E2E8F0;text-shadow:0 1px 3px rgba(0,0,0,0.8)">${bin.bin_name}</div>
+      <div style="font-size:9px;color:#94A3B8;text-shadow:0 1px 2px rgba(0,0,0,0.8)">${bin.crop ? bin.crop + " · " + fmtNum(bin.current_bu) + " bu" : fmtNum(bin.capacity_bu) + " bu cap"}</div>
+    </div>
+  </div>`;
 }
 
 // ═════════════════════════════════════════════════════════
@@ -193,21 +136,17 @@ function BinIcon({
 export default function BinMap() {
   const { user } = useUser();
 
-  // State
   const [yards, setYards] = useState<Yard[]>([]);
   const [bins, setBins] = useState<Bin[]>([]);
   const [summary, setSummary] = useState<BinSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeYard, setActiveYard] = useState<string | null>(null);
 
-  // Modals
   const [showYardModal, setShowYardModal] = useState(false);
   const [showBinModal, setShowBinModal] = useState(false);
   const [editingBin, setEditingBin] = useState<Bin | null>(null);
-  const [selectedBin, setSelectedBin] = useState<string | null>(null);
 
-  // Forms
-  const [yardForm, setYardForm] = useState({ yard_name: "", location: "", notes: "" });
+  const [yardForm, setYardForm] = useState({ yard_name: "", location: "", notes: "", latitude: "", longitude: "" });
   const [binForm, setBinForm] = useState({
     bin_name: "", bin_type: "hopper", capacity_bu: "", current_bu: "",
     crop: "", grade: "", moisture_pct: "", has_aeration: false,
@@ -215,16 +154,10 @@ export default function BinMap() {
   });
   const [saving, setSaving] = useState(false);
 
-  // SVG pan/zoom
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [viewBox, setViewBox] = useState({ x: -400, y: -300, w: 800, h: 600 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-
-  // Drag state
-  const [dragging, setDragging] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [hasDragged, setHasDragged] = useState(false);
+  // Map refs
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
 
   // ─── Data Fetching ──────────────────────────────────
   const fetchYards = useCallback(async () => {
@@ -252,6 +185,101 @@ export default function BinMap() {
 
   useEffect(() => { fetchBins(); }, [fetchBins]);
 
+  // ─── Map Initialization ─────────────────────────────
+  useEffect(() => {
+    if (!mapContainerRef.current || !activeYard) return;
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+
+    const yard = yards.find((y) => y.id === activeYard);
+    const lat = yard?.latitude ? Number(yard.latitude) : DEFAULT_LAT;
+    const lng = yard?.longitude ? Number(yard.longitude) : DEFAULT_LNG;
+
+    const map = new mapboxgl.Map({
+      container: mapContainerRef.current,
+      style: "mapbox://styles/mapbox/satellite-v9",
+      center: [lng, lat],
+      zoom: DEFAULT_ZOOM,
+      attributionControl: false,
+    });
+
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+    mapRef.current = map;
+
+    return () => {
+      markersRef.current.forEach((m) => m.remove());
+      markersRef.current.clear();
+      map.remove();
+      mapRef.current = null;
+    };
+  }, [activeYard, yards]);
+
+  // ─── Render Markers ─────────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const onReady = () => {
+      // Remove old markers
+      markersRef.current.forEach((m) => m.remove());
+      markersRef.current.clear();
+
+      const yard = yards.find((y) => y.id === activeYard);
+      const yardLat = yard?.latitude ? Number(yard.latitude) : DEFAULT_LAT;
+      const yardLng = yard?.longitude ? Number(yard.longitude) : DEFAULT_LNG;
+
+      bins.forEach((bin, index) => {
+        const binLat = bin.latitude ? Number(bin.latitude) : yardLat + (Math.floor(index / 5) - 1) * 0.0003;
+        const binLng = bin.longitude ? Number(bin.longitude) : yardLng + ((index % 5) - 2) * 0.0004;
+
+        const el = document.createElement("div");
+        el.innerHTML = buildMarkerHTML(bin);
+        el.style.cursor = "grab";
+
+        const marker = new mapboxgl.Marker({
+          element: el,
+          draggable: true,
+          anchor: "center",
+        })
+          .setLngLat([binLng, binLat])
+          .addTo(map);
+
+        // Click to edit
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openEditBin(bin);
+        });
+
+        // Save position on drag end
+        marker.on("dragend", async () => {
+          const lngLat = marker.getLngLat();
+          if (user?.id) {
+            await fetch("/api/inventory/bins", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json", "x-user-id": user.id },
+              body: JSON.stringify({
+                id: bin.id,
+                latitude: lngLat.lat,
+                longitude: lngLat.lng,
+                pos_x: 0, pos_y: 0,
+              }),
+            });
+          }
+        });
+
+        markersRef.current.set(bin.id, marker);
+      });
+    };
+
+    if (map.loaded()) {
+      onReady();
+    } else {
+      map.on("load", onReady);
+    }
+  }, [bins, activeYard, yards, user?.id]);
+
   // ─── Yard CRUD ──────────────────────────────────────
   async function saveYard() {
     if (!user?.id || !yardForm.yard_name.trim()) return;
@@ -259,14 +287,18 @@ export default function BinMap() {
     const res = await fetch("/api/inventory/yards", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-user-id": user.id },
-      body: JSON.stringify(yardForm),
+      body: JSON.stringify({
+        ...yardForm,
+        latitude: yardForm.latitude ? Number(yardForm.latitude) : null,
+        longitude: yardForm.longitude ? Number(yardForm.longitude) : null,
+      }),
     });
     if (res.ok) {
       const data = await res.json();
       await fetchYards();
       setActiveYard(data.yard.id);
       setShowYardModal(false);
-      setYardForm({ yard_name: "", location: "", notes: "" });
+      setYardForm({ yard_name: "", location: "", notes: "", latitude: "", longitude: "" });
     }
     setSaving(false);
   }
@@ -292,15 +324,11 @@ export default function BinMap() {
   function openEditBin(bin: Bin) {
     setEditingBin(bin);
     setBinForm({
-      bin_name: bin.bin_name,
-      bin_type: bin.bin_type,
-      capacity_bu: String(bin.capacity_bu),
-      current_bu: String(bin.current_bu),
-      crop: bin.crop || "",
-      grade: bin.grade || "",
+      bin_name: bin.bin_name, bin_type: bin.bin_type,
+      capacity_bu: String(bin.capacity_bu), current_bu: String(bin.current_bu),
+      crop: bin.crop || "", grade: bin.grade || "",
       moisture_pct: bin.moisture_pct ? String(bin.moisture_pct) : "",
-      has_aeration: bin.has_aeration,
-      has_monitoring: bin.has_monitoring,
+      has_aeration: bin.has_aeration, has_monitoring: bin.has_monitoring,
       notes: bin.notes || "",
     });
     setShowBinModal(true);
@@ -309,6 +337,10 @@ export default function BinMap() {
   async function saveBin() {
     if (!user?.id || !activeYard || !binForm.bin_name.trim() || !binForm.capacity_bu) return;
     setSaving(true);
+
+    const yard = yards.find((y) => y.id === activeYard);
+    const yardLat = yard?.latitude ? Number(yard.latitude) : DEFAULT_LAT;
+    const yardLng = yard?.longitude ? Number(yard.longitude) : DEFAULT_LNG;
 
     const payload = {
       ...(editingBin ? { id: editingBin.id } : {}),
@@ -323,10 +355,9 @@ export default function BinMap() {
       has_aeration: binForm.has_aeration,
       has_monitoring: binForm.has_monitoring,
       notes: binForm.notes || null,
-      // Auto-place new bins in a grid
       ...(!editingBin ? {
-        pos_x: (bins.length % 5) * 140 - 280,
-        pos_y: Math.floor(bins.length / 5) * 140 - 140,
+        latitude: yardLat + (Math.floor(bins.length / 5) - 1) * 0.0003,
+        longitude: yardLng + ((bins.length % 5) - 2) * 0.0004,
       } : {}),
     };
 
@@ -347,91 +378,11 @@ export default function BinMap() {
   async function deleteBin(id: string) {
     if (!user?.id || !confirm("Delete this bin?")) return;
     await fetch(`/api/inventory/bins?id=${id}`, { method: "DELETE", headers: { "x-user-id": user.id } });
-    setSelectedBin(null);
     await fetchBins();
     await fetchYards();
   }
 
-  // ─── Drag Handling ──────────────────────────────────
-  function handleBinMouseDown(binId: string, e: React.MouseEvent) {
-    e.stopPropagation();
-    const bin = bins.find((b) => b.id === binId);
-    if (!bin || !svgRef.current) return;
-
-    const pt = svgRef.current.createSVGPoint();
-    pt.x = e.clientX;
-    pt.y = e.clientY;
-    const svgPt = pt.matrixTransform(svgRef.current.getScreenCTM()?.inverse());
-
-    setDragging(binId);
-    setDragOffset({ x: svgPt.x - bin.pos_x, y: svgPt.y - bin.pos_y });
-    setHasDragged(false);
-  }
-
-  function handleMouseMove(e: React.MouseEvent) {
-    if (dragging && svgRef.current) {
-      const pt = svgRef.current.createSVGPoint();
-      pt.x = e.clientX;
-      pt.y = e.clientY;
-      const svgPt = pt.matrixTransform(svgRef.current.getScreenCTM()?.inverse());
-
-      setBins((prev) =>
-        prev.map((b) =>
-          b.id === dragging
-            ? { ...b, pos_x: Math.round(svgPt.x - dragOffset.x), pos_y: Math.round(svgPt.y - dragOffset.y) }
-            : b
-        )
-      );
-      setHasDragged(true);
-      return;
-    }
-
-    if (isPanning) {
-      const dx = (e.clientX - panStart.x) * (viewBox.w / (svgRef.current?.clientWidth || 800));
-      const dy = (e.clientY - panStart.y) * (viewBox.h / (svgRef.current?.clientHeight || 600));
-      setViewBox((v) => ({ ...v, x: v.x - dx, y: v.y - dy }));
-      setPanStart({ x: e.clientX, y: e.clientY });
-    }
-  }
-
-  async function handleMouseUp() {
-    if (dragging && hasDragged && user?.id) {
-      const bin = bins.find((b) => b.id === dragging);
-      if (bin) {
-        await fetch("/api/inventory/bins", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", "x-user-id": user.id },
-          body: JSON.stringify({ id: bin.id, pos_x: bin.pos_x, pos_y: bin.pos_y }),
-        });
-      }
-    }
-    setDragging(null);
-    setIsPanning(false);
-  }
-
-  function handleCanvasMouseDown(e: React.MouseEvent) {
-    if (e.target === svgRef.current || (e.target as SVGElement).tagName === "rect") {
-      setIsPanning(true);
-      setPanStart({ x: e.clientX, y: e.clientY });
-      setSelectedBin(null);
-    }
-  }
-
-  function handleWheel(e: React.WheelEvent) {
-    e.preventDefault();
-    const scale = e.deltaY > 0 ? 1.1 : 0.9;
-    setViewBox((v) => {
-      const cx = v.x + v.w / 2;
-      const cy = v.y + v.h / 2;
-      const nw = v.w * scale;
-      const nh = v.h * scale;
-      return { x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh };
-    });
-  }
-
   // ─── Render ─────────────────────────────────────────
-  const activeYardData = yards.find((y) => y.id === activeYard);
-
   if (loading) {
     return (
       <div style={{ textAlign: "center", padding: 60, color: T.text3 }}>
@@ -443,7 +394,7 @@ export default function BinMap() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* ── Top Bar: Yard Selector + Actions ─────────── */}
+      {/* ── Top Bar ──────────────────────────────────── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {yards.length > 0 ? (
@@ -489,22 +440,17 @@ export default function BinMap() {
       {/* ── Summary Strip ────────────────────────────── */}
       {summary && summary.total_bins > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: "14px 18px" }}>
-            <p style={{ fontSize: 10, fontWeight: 600, color: T.text3, textTransform: "uppercase", letterSpacing: 1 }}>Total Bins</p>
-            <p style={{ fontSize: 22, fontWeight: 700, color: T.text, marginTop: 2 }}>{summary.total_bins}</p>
-          </div>
-          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: "14px 18px" }}>
-            <p style={{ fontSize: 10, fontWeight: 600, color: T.text3, textTransform: "uppercase", letterSpacing: 1 }}>Total Capacity</p>
-            <p style={{ fontSize: 22, fontWeight: 700, color: T.text, marginTop: 2 }}>{fmtNum(summary.total_capacity_bu)} bu</p>
-          </div>
-          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: "14px 18px" }}>
-            <p style={{ fontSize: 10, fontWeight: 600, color: T.text3, textTransform: "uppercase", letterSpacing: 1 }}>Stored</p>
-            <p style={{ fontSize: 22, fontWeight: 700, color: T.text, marginTop: 2 }}>{fmtNum(summary.total_stored_bu)} bu</p>
-          </div>
-          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: "14px 18px" }}>
-            <p style={{ fontSize: 10, fontWeight: 600, color: T.text3, textTransform: "uppercase", letterSpacing: 1 }}>Utilization</p>
-            <p style={{ fontSize: 22, fontWeight: 700, color: summary.utilization_pct > 80 ? T.red : summary.utilization_pct > 50 ? "#F5A623" : T.green, marginTop: 2 }}>{summary.utilization_pct}%</p>
-          </div>
+          {[
+            { label: "Total Bins", value: String(summary.total_bins) },
+            { label: "Total Capacity", value: `${fmtNum(summary.total_capacity_bu)} bu` },
+            { label: "Stored", value: `${fmtNum(summary.total_stored_bu)} bu` },
+            { label: "Utilization", value: `${summary.utilization_pct}%`, color: summary.utilization_pct > 80 ? T.red : summary.utilization_pct > 50 ? "#F5A623" : T.green },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: "14px 18px" }}>
+              <p style={{ fontSize: 10, fontWeight: 600, color: T.text3, textTransform: "uppercase", letterSpacing: 1 }}>{label}</p>
+              <p style={{ fontSize: 22, fontWeight: 700, color: color || T.text, marginTop: 2 }}>{value}</p>
+            </div>
+          ))}
         </div>
       )}
 
@@ -521,58 +467,15 @@ export default function BinMap() {
         </div>
       )}
 
-      {/* ── SVG Canvas ───────────────────────────────── */}
+      {/* ── Map Canvas ───────────────────────────────── */}
       {activeYard ? (
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: "hidden", position: "relative" }}>
-          {/* Canvas label */}
-          <div style={{ position: "absolute", top: 12, left: 16, zIndex: 10, display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 11, color: T.text4, fontWeight: 600 }}>{activeYardData?.yard_name}</span>
-            <span style={{ fontSize: 10, color: T.text4 }}>Drag bins to arrange · Scroll to zoom · Click bin to edit</span>
+        <div style={{ borderRadius: 14, overflow: "hidden", border: `1px solid ${T.border}`, position: "relative" }}>
+          <div style={{ position: "absolute", top: 12, left: 56, zIndex: 10, display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 11, color: "#fff", fontWeight: 600, background: "rgba(0,0,0,0.5)", padding: "4px 10px", borderRadius: 6, backdropFilter: "blur(4px)" }}>
+              {yards.find((y) => y.id === activeYard)?.yard_name} · Drag bins to arrange · Click to edit
+            </span>
           </div>
-
-          <svg
-            ref={svgRef}
-            viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
-            width="100%"
-            height="520"
-            style={{ background: "rgba(11,17,32,0.6)", cursor: isPanning ? "grabbing" : "default" }}
-            onMouseDown={handleCanvasMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onWheel={handleWheel}
-          >
-            {/* Grid */}
-            <defs>
-              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" />
-              </pattern>
-            </defs>
-            <rect x={viewBox.x - 2000} y={viewBox.y - 2000} width={viewBox.w + 4000} height={viewBox.h + 4000} fill="url(#grid)" />
-
-            {/* Bins */}
-            {bins.map((bin) => (
-              <BinIcon
-                key={bin.id}
-                bin={bin}
-                isSelected={selectedBin === bin.id}
-                onMouseDown={(e) => handleBinMouseDown(bin.id, e)}
-                onClick={() => {
-                  if (!hasDragged) {
-                    setSelectedBin(bin.id);
-                    openEditBin(bin);
-                  }
-                }}
-              />
-            ))}
-
-            {/* Empty state */}
-            {bins.length === 0 && (
-              <text x={0} y={0} textAnchor="middle" dominantBaseline="central" fill={T.text4} fontSize={14}>
-                Click &quot;Add Bin&quot; to place your first bin
-              </text>
-            )}
-          </svg>
+          <div ref={mapContainerRef} style={{ width: "100%", height: 560 }} />
         </div>
       ) : yards.length > 0 ? (
         <div style={{ textAlign: "center", padding: 60, color: T.text3, background: T.card, borderRadius: 14, border: `1px solid ${T.border}` }}>
@@ -584,7 +487,7 @@ export default function BinMap() {
           <Package size={36} style={{ margin: "0 auto 16px", color: T.text4 }} />
           <h3 style={{ fontSize: 16, fontWeight: 600, color: T.text, marginBottom: 8 }}>Set Up Your Bin Yard</h3>
           <p style={{ fontSize: 13, color: T.text3, marginBottom: 20, maxWidth: 400, margin: "0 auto 20px" }}>
-            Create a yard for each storage site on your operation, then add bins with capacity and current inventory.
+            Create a yard for each storage site, then add bins with capacity and current inventory.
           </p>
           <button onClick={() => setShowYardModal(true)}
             style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: T.green, color: T.bg, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
@@ -597,7 +500,7 @@ export default function BinMap() {
       {showYardModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}
           onClick={() => setShowYardModal(false)}>
-          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 28, width: 420, maxWidth: "90vw" }}
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 28, width: 460, maxWidth: "90vw" }}
             onClick={(e) => e.stopPropagation()}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
               <h3 style={{ fontSize: 16, fontWeight: 600, color: T.text }}>New Yard</h3>
@@ -609,9 +512,22 @@ export default function BinMap() {
                 <input style={inputStyle} value={yardForm.yard_name} onChange={(e) => setYardForm({ ...yardForm, yard_name: e.target.value })} placeholder="Home Yard" />
               </div>
               <div>
-                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: T.text3, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>Location</label>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: T.text3, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>Legal Location</label>
                 <input style={inputStyle} value={yardForm.location} onChange={(e) => setYardForm({ ...yardForm, location: e.target.value })} placeholder="NW-36-21-14 W3" />
               </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: T.text3, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>Latitude</label>
+                  <input style={inputStyle} type="number" step="0.0001" value={yardForm.latitude} onChange={(e) => setYardForm({ ...yardForm, latitude: e.target.value })} placeholder="52.1332" />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: T.text3, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>Longitude</label>
+                  <input style={inputStyle} type="number" step="0.0001" value={yardForm.longitude} onChange={(e) => setYardForm({ ...yardForm, longitude: e.target.value })} placeholder="-106.6700" />
+                </div>
+              </div>
+              <p style={{ fontSize: 11, color: T.text4, marginTop: -6 }}>
+                Tip: Right-click your yard on Google Maps → &quot;What&apos;s here?&quot; to get coordinates
+              </p>
               <div>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: T.text3, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>Notes</label>
                 <input style={inputStyle} value={yardForm.notes} onChange={(e) => setYardForm({ ...yardForm, notes: e.target.value })} placeholder="Optional" />
@@ -643,7 +559,6 @@ export default function BinMap() {
                 <button onClick={() => setShowBinModal(false)} style={{ background: "none", border: "none", color: T.text3, cursor: "pointer" }}><X size={18} /></button>
               </div>
             </div>
-
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <div>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: T.text3, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>Bin Name *</label>
@@ -686,22 +601,16 @@ export default function BinMap() {
                 <input style={inputStyle} value={binForm.notes} onChange={(e) => setBinForm({ ...binForm, notes: e.target.value })} placeholder="Optional" />
               </div>
             </div>
-
-            {/* Feature toggles */}
             <div style={{ display: "flex", gap: 16, marginTop: 16 }}>
               <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: T.text2, cursor: "pointer" }}>
-                <input type="checkbox" checked={binForm.has_aeration} onChange={(e) => setBinForm({ ...binForm, has_aeration: e.target.checked })}
-                  style={{ accentColor: T.green }} />
+                <input type="checkbox" checked={binForm.has_aeration} onChange={(e) => setBinForm({ ...binForm, has_aeration: e.target.checked })} style={{ accentColor: T.green }} />
                 <Wind size={12} style={{ color: T.blue }} /> Aeration
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: T.text2, cursor: "pointer" }}>
-                <input type="checkbox" checked={binForm.has_monitoring} onChange={(e) => setBinForm({ ...binForm, has_monitoring: e.target.checked })}
-                  style={{ accentColor: T.green }} />
+                <input type="checkbox" checked={binForm.has_monitoring} onChange={(e) => setBinForm({ ...binForm, has_monitoring: e.target.checked })} style={{ accentColor: T.green }} />
                 <Wifi size={12} style={{ color: T.green }} /> Monitoring
               </label>
             </div>
-
-            {/* Fill preview */}
             {binForm.capacity_bu && (
               <div style={{ marginTop: 16, padding: 12, background: "rgba(255,255,255,0.02)", borderRadius: 8, border: `1px solid ${T.border}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: T.text3, marginBottom: 6 }}>
@@ -718,7 +627,6 @@ export default function BinMap() {
                 </div>
               </div>
             )}
-
             <button onClick={saveBin} disabled={saving || !binForm.bin_name.trim() || !binForm.capacity_bu}
               style={{ marginTop: 20, width: "100%", padding: "10px 0", borderRadius: 10, border: "none", background: T.green, color: T.bg, fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
               {saving ? "Saving..." : editingBin ? "Update Bin" : "Add Bin"}
