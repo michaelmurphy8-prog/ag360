@@ -112,13 +112,14 @@ export async function POST(req: NextRequest) {
     if (body.crop && !CANONICAL_CROPS.includes(body.crop)) return NextResponse.json({ error: `Invalid crop. Must be one of: ${CANONICAL_CROPS.join(", ")}` }, { status: 400 });
 
     const rows = await sql`
-      INSERT INTO bins (user_id, yard_id, bin_name, bin_type, capacity_bu, current_bu, crop, grade, moisture_pct, has_aeration, has_monitoring, notes, pos_x, pos_y)
+      INSERT INTO bins (user_id, yard_id, bin_name, bin_type, capacity_bu, current_bu, crop, grade, moisture_pct, has_aeration, has_monitoring, notes, pos_x, pos_y, latitude, longitude)
       VALUES (
         ${userId}, ${body.yard_id}, ${body.bin_name.trim()},
         ${body.bin_type || "hopper"}, ${body.capacity_bu}, ${body.current_bu || 0},
         ${body.crop || null}, ${body.grade || null}, ${body.moisture_pct || null},
         ${body.has_aeration || false}, ${body.has_monitoring || false},
-        ${body.notes || null}, ${body.pos_x || 0}, ${body.pos_y || 0}
+        ${body.notes || null}, ${body.pos_x || 0}, ${body.pos_y || 0},
+        ${body.latitude || null}, ${body.longitude || null}
       )
       RETURNING *
     `;
@@ -175,6 +176,8 @@ export async function PUT(req: NextRequest) {
         yard_id = COALESCE(${body.yard_id || null}, yard_id),
         pos_x = COALESCE(${body.pos_x ?? null}, pos_x),
         pos_y = COALESCE(${body.pos_y ?? null}, pos_y),
+        latitude = COALESCE(${body.latitude ?? null}, latitude),
+        longitude = COALESCE(${body.longitude ?? null}, longitude),
         updated_at = NOW()
       WHERE id = ${body.id} AND user_id = ${userId}
       RETURNING *
