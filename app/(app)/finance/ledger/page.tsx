@@ -55,6 +55,7 @@ interface Account {
   code: string;
   name: string;
   type: string;
+  account_type?: string;
   sub_type: string;
 }
 
@@ -355,7 +356,6 @@ fetch("/api/finance/journal", { headers: { "x-user-id": user.id } }).then((r) =>
 fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) => r.json()),
     ])
       .then(([e, a]) => {
-        console.log("Ledger response:", e, a);
         const rawEntries = Array.isArray(e) ? e : e?.entries || e?.data || [];
         const mapped = rawEntries.map((entry: any) => ({
           ...entry,
@@ -467,7 +467,8 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
   const coaGroups = useMemo(() => {
     const groups: Record<string, Account[]> = {};
     accounts.forEach((a) => {
-      const g = a.type;
+      const raw = a.account_type || a.type || "other";
+      const g = raw.charAt(0).toUpperCase() + raw.slice(1);
       if (!groups[g]) groups[g] = [];
       groups[g].push(a);
     });
