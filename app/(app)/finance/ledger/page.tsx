@@ -1,198 +1,521 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  BookOpen, Plus, X, CheckCircle, AlertTriangle, Loader2, Search,
+  ChevronDown, Trash2, Edit2, Filter, RotateCcw, Calendar, ArrowUpRight,
+  ArrowDownRight, Scale, FileText, DollarSign, TrendingUp, TrendingDown,
+} from "lucide-react";
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Sector,
+} from "recharts";
 
+// ─── Design Tokens ───────────────────────────────────────────
+const T = {
+  bg: "#080C15",
+  card: "#0F1729",
+  cardAlt: "#111827",
+  border: "rgba(255,255,255,0.06)",
+  borderHover: "rgba(255,255,255,0.12)",
+  text1: "#F1F5F9",
+  text2: "#94A3B8",
+  text3: "#64748B",
+  text4: "#475569",
+  green: "#34D399",
+  greenDim: "rgba(52,211,153,0.12)",
+  red: "#F87171",
+  redDim: "rgba(248,113,113,0.12)",
+  amber: "#FBBF24",
+  amberDim: "rgba(251,191,36,0.12)",
+  sky: "#38BDF8",
+  skyDim: "rgba(56,189,248,0.12)",
+  purple: "#A78BFA",
+  purpleDim: "rgba(167,139,250,0.12)",
+  gridLine: "rgba(255,255,255,0.04)",
+  tooltipBg: "#1E293B",
+  tooltipBorder: "rgba(255,255,255,0.10)",
+};
+
+// ─── Shared Styles ───────────────────────────────────────────
+const inputClass =
+  "w-full bg-white/[0.04] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] placeholder-[#475569] focus:outline-none focus:border-[#34D399]/50 transition-colors";
+const selectClass =
+  "bg-[#111827] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] focus:outline-none focus:border-[#34D399]/50 transition-colors";
+const labelClass = "block text-[10px] uppercase tracking-[2px] font-mono font-semibold text-[#64748B] mb-1.5";
+const btnPrimary =
+  "flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl transition-all";
+const btnSecondary =
+  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border border-white/[0.10] text-[#94A3B8] hover:text-[#F1F5F9] hover:border-white/[0.16] transition-all";
+
+// ─── Interfaces ──────────────────────────────────────────────
 interface Account {
   id: string;
   code: string;
   name: string;
-  account_type: string;
+  type: string;
   sub_type: string;
-  normal_balance: string;
-  field_allocatable: boolean;
 }
 
 interface JournalLine {
   account_id: string;
   account_code?: string;
   account_name?: string;
-  description: string;
   debit: number;
   credit: number;
+  field_id?: string;
   field_name?: string;
-  crop?: string;
+  notes?: string;
 }
 
 interface JournalEntry {
   id: string;
-  entry_number: number;
-  entry_date: string;
+  date: string;
   description: string;
-  source: string;
-  crop_year: number;
-  field_name?: string;
-  crop?: string;
+  reference?: string;
   lines: JournalLine[];
+  created_at: string;
 }
 
-export default function LedgerPage() {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [cropYear, setCropYear] = useState("2025");
-  const [tab, setTab] = useState<"journal" | "accounts">("journal");
-  const [showNewEntry, setShowNewEntry] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+// ─── Chart Tooltip ───────────────────────────────────────────
+function ChartTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div
+      style={{
+        background: T.tooltipBg,
+        border: `1px solid ${T.tooltipBorder}`,
+        borderRadius: 10,
+        padding: "10px 14px",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+      }}
+    >
+      <p style={{ color: T.text3, fontSize: 10, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+        {label}
+      </p>
+      {payload.map((p: any, i: number) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+          <div style={{ width: 8, height: 8, borderRadius: 2, background: p.color || p.stroke }} />
+          <span style={{ color: T.text2, fontSize: 12 }}>{p.name}:</span>
+          <span style={{ color: T.text1, fontSize: 13, fontWeight: 600, fontFamily: "monospace" }}>
+            ${Math.abs(p.value).toLocaleString("en-CA", { minimumFractionDigits: 0 })}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
-  // New entry form state
-  const [entryDate, setEntryDate] = useState(new Date().toISOString().split("T")[0]);
-  const [entryDesc, setEntryDesc] = useState("");
-  const [entryMemo, setEntryMemo] = useState("");
-  const [entryFieldName, setEntryFieldName] = useState("");
-  const [entryCrop, setEntryCrop] = useState("");
-  const [lines, setLines] = useState<{ account_id: string; description: string; debit: string; credit: string }[]>([
-    { account_id: "", description: "", debit: "", credit: "" },
-    { account_id: "", description: "", debit: "", credit: "" },
+// ─── Cashflow Sparkline ──────────────────────────────────────
+function CashflowSparkline({ entries }: { entries: JournalEntry[] }) {
+  // Build daily running cashflow from journal entries
+  const dailyData = useMemo(() => {
+    if (!entries.length) return [];
+    const byDate: Record<string, { inflow: number; outflow: number }> = {};
+    entries.forEach((e) => {
+      const d = e.date.slice(0, 10);
+      if (!byDate[d]) byDate[d] = { inflow: 0, outflow: 0 };
+      e.lines.forEach((l) => {
+        // Revenue accounts (4xxx) credit = inflow; Expense accounts (5xxx+) debit = outflow
+        const code = l.account_code || "";
+        if (code.startsWith("4")) byDate[d].inflow += l.credit;
+        else if (parseInt(code) >= 5000) byDate[d].outflow += l.debit;
+      });
+    });
+    return Object.entries(byDate)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, d]) => ({
+        date: new Date(date).toLocaleDateString("en-CA", { month: "short", day: "numeric" }),
+        inflow: d.inflow,
+        outflow: -d.outflow,
+        net: d.inflow - d.outflow,
+      }));
+  }, [entries]);
+
+  if (dailyData.length < 2) return null;
+
+  return (
+    <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.10] transition-colors">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-sm font-bold text-[#F1F5F9]">Cashflow</h3>
+          <p className="text-xs text-[#475569] mt-0.5">Daily money in &amp; out</p>
+        </div>
+        <div className="flex items-center gap-4 text-[10px] font-mono uppercase tracking-wider">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: T.green }} />
+            <span style={{ color: T.text3 }}>Inflow</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: T.red }} />
+            <span style={{ color: T.text3 }}>Outflow</span>
+          </div>
+        </div>
+      </div>
+      <ResponsiveContainer width="100%" height={160}>
+        <AreaChart data={dailyData} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
+          <defs>
+            <linearGradient id="inflowGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={T.green} stopOpacity={0.25} />
+              <stop offset="100%" stopColor={T.green} stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="outflowGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={T.red} stopOpacity={0.25} />
+              <stop offset="100%" stopColor={T.red} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke={T.gridLine} vertical={false} />
+          <XAxis
+            dataKey="date"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: T.text4, fontSize: 9, fontFamily: "monospace" }}
+            interval="preserveStartEnd"
+          />
+          <YAxis
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: T.text4, fontSize: 9, fontFamily: "monospace" }}
+            tickFormatter={(v: number) => `$${(Math.abs(v) / 1000).toFixed(0)}K`}
+          />
+          <Tooltip content={<ChartTooltip />} />
+          <Area
+            type="monotone"
+            dataKey="inflow"
+            stroke={T.green}
+            strokeWidth={2}
+            fill="url(#inflowGrad)"
+            name="Inflow"
+          />
+          <Area
+            type="monotone"
+            dataKey="outflow"
+            stroke={T.red}
+            strokeWidth={2}
+            fill="url(#outflowGrad)"
+            name="Outflow"
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// ─── Revenue / Expense Donut ─────────────────────────────────
+function LedgerDonut({ entries }: { entries: JournalEntry[] }) {
+  const [activeIdx, setActiveIdx] = useState<number | null>(null);
+
+  const totals = useMemo(() => {
+    let revenue = 0;
+    let expenses = 0;
+    entries.forEach((e) =>
+      e.lines.forEach((l) => {
+        const code = l.account_code || "";
+        if (code.startsWith("4")) revenue += l.credit;
+        else if (parseInt(code) >= 5000) expenses += l.debit;
+      })
+    );
+    return [
+      { name: "Revenue", value: revenue, fill: T.green },
+      { name: "Expenses", value: expenses, fill: T.red },
+    ];
+  }, [entries]);
+
+  if (totals[0].value === 0 && totals[1].value === 0) return null;
+
+  const renderActiveShape = (props: any) => {
+    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
+    return (
+      <g>
+        <Sector
+          cx={cx} cy={cy}
+          innerRadius={innerRadius - 2} outerRadius={outerRadius + 6}
+          startAngle={startAngle} endAngle={endAngle}
+          fill={fill}
+          style={{ filter: "drop-shadow(0 0 8px rgba(0,0,0,0.3))" }}
+        />
+        <text x={cx} y={cy - 8} textAnchor="middle" fill={T.text1} fontSize={14} fontWeight={700} fontFamily="monospace">
+          ${(value / 1000).toFixed(0)}K
+        </text>
+        <text x={cx} y={cy + 10} textAnchor="middle" fill={T.text3} fontSize={10}>
+          {payload.name}
+        </text>
+        <text x={cx} y={cy + 24} textAnchor="middle" fill={fill} fontSize={11} fontWeight={600} fontFamily="monospace">
+          {(percent * 100).toFixed(1)}%
+        </text>
+      </g>
+    );
+  };
+
+  return (
+    <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.10] transition-colors">
+      <h3 className="text-sm font-bold text-[#F1F5F9] mb-1">YTD Split</h3>
+      <p className="text-xs text-[#475569] mb-3">Hover for details</p>
+      <ResponsiveContainer width="100%" height={160}>
+        <PieChart>
+          <Pie
+  {...{ activeIndex: activeIdx !== null ? activeIdx : undefined } as any}
+            activeShape={renderActiveShape}
+            data={totals}
+            cx="50%"
+            cy="50%"
+            innerRadius={42}
+            outerRadius={65}
+            dataKey="value"
+            onMouseEnter={(_, idx) => setActiveIdx(idx)}
+            onMouseLeave={() => setActiveIdx(null)}
+            stroke="none"
+          >
+            {totals.map((entry, idx) => (
+              <Cell key={idx} fill={entry.fill} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// ─── KPI Card ────────────────────────────────────────────────
+function LedgerKpi({
+  label, value, icon: Icon, iconColor, bgColor,
+}: {
+  label: string; value: string; icon: React.ElementType; iconColor: string; bgColor: string;
+}) {
+  return (
+    <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-4 hover:border-white/[0.10] transition-all">
+      <div className="flex items-center gap-2.5 mb-2">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: bgColor }}>
+          <Icon size={13} style={{ color: iconColor }} />
+        </div>
+        <span className="text-[10px] uppercase tracking-[2px] font-mono font-semibold" style={{ color: T.text3 }}>{label}</span>
+      </div>
+      <div className="text-lg font-bold font-mono" style={{ color: T.text1 }}>{value}</div>
+    </div>
+  );
+}
+
+// ─── Entry Type Badge ────────────────────────────────────────
+function EntryTypeBadge({ lines }: { lines: JournalLine[] }) {
+  const hasRevenue = lines.some((l) => (l.account_code || "").startsWith("4") && l.credit > 0);
+  const hasExpense = lines.some((l) => parseInt(l.account_code || "0") >= 5000 && l.debit > 0);
+
+  if (hasRevenue && hasExpense)
+    return <span className="text-[9px] font-mono uppercase px-2 py-0.5 rounded-full" style={{ color: T.amber, background: T.amberDim }}>Mixed</span>;
+  if (hasRevenue)
+    return <span className="text-[9px] font-mono uppercase px-2 py-0.5 rounded-full" style={{ color: T.green, background: T.greenDim }}>Revenue</span>;
+  if (hasExpense)
+    return <span className="text-[9px] font-mono uppercase px-2 py-0.5 rounded-full" style={{ color: T.red, background: T.redDim }}>Expense</span>;
+  return <span className="text-[9px] font-mono uppercase px-2 py-0.5 rounded-full" style={{ color: T.sky, background: T.skyDim }}>Transfer</span>;
+}
+
+// ─── Entry Edge Color (Stripe-style left bar) ────────────────
+function entryEdgeColor(lines: JournalLine[]): string {
+  const hasRevenue = lines.some((l) => (l.account_code || "").startsWith("4") && l.credit > 0);
+  const hasExpense = lines.some((l) => parseInt(l.account_code || "0") >= 5000 && l.debit > 0);
+  if (hasRevenue && hasExpense) return T.amber;
+  if (hasRevenue) return T.green;
+  if (hasExpense) return T.red;
+  return T.sky;
+}
+
+// ═════════════════════════════════════════════════════════════
+//  LEDGER PAGE — FINTECH GRADE
+// ═════════════════════════════════════════════════════════════
+export default function LedgerPage() {
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"journal" | "coa">("journal");
+
+  // Filters
+  const [searchQ, setSearchQ] = useState("");
+  const [filterType, setFilterType] = useState("all"); // all | revenue | expense | transfer
+  const [filterMonth, setFilterMonth] = useState("all");
+
+  // Form
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formDate, setFormDate] = useState(new Date().toISOString().slice(0, 10));
+  const [formDesc, setFormDesc] = useState("");
+  const [formRef, setFormRef] = useState("");
+  const [formLines, setFormLines] = useState<JournalLine[]>([
+    { account_id: "", debit: 0, credit: 0, notes: "" },
+    { account_id: "", debit: 0, credit: 0, notes: "" },
   ]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchAccounts();
-    fetchEntries();
-  }, [cropYear]);
-
-  const fetchAccounts = async () => {
-    const res = await fetch("/api/finance/accounts");
-    const data = await res.json();
-    if (data.accounts) setAccounts(data.accounts);
-  };
-
-  const fetchEntries = async () => {
     setLoading(true);
-    const res = await fetch(`/api/finance/journal?cropYear=${cropYear}`);
-    const data = await res.json();
-    if (data.entries) setEntries(data.entries);
-    setLoading(false);
+    Promise.all([
+      fetch("/api/finance/journal-entries").then((r) => r.json()),
+      fetch("/api/finance/accounts").then((r) => r.json()),
+    ])
+      .then(([e, a]) => {
+        setEntries(Array.isArray(e) ? e : []);
+        setAccounts(Array.isArray(a) ? a : []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  // ── Computed ────────────────────────────────────
+  const totalDebits = useMemo(() => entries.reduce((s, e) => s + e.lines.reduce((ss, l) => ss + l.debit, 0), 0), [entries]);
+  const totalCredits = useMemo(() => entries.reduce((s, e) => s + e.lines.reduce((ss, l) => ss + l.credit, 0), 0), [entries]);
+  const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01;
+
+  const filteredEntries = useMemo(() => {
+    return entries.filter((e) => {
+      if (searchQ && !e.description.toLowerCase().includes(searchQ.toLowerCase()) && !e.reference?.toLowerCase().includes(searchQ.toLowerCase())) return false;
+      if (filterMonth !== "all" && !e.date.startsWith(filterMonth)) return false;
+      if (filterType !== "all") {
+        const hasRev = e.lines.some((l) => (l.account_code || "").startsWith("4") && l.credit > 0);
+        const hasExp = e.lines.some((l) => parseInt(l.account_code || "0") >= 5000 && l.debit > 0);
+        if (filterType === "revenue" && !hasRev) return false;
+        if (filterType === "expense" && !hasExp) return false;
+        if (filterType === "transfer" && (hasRev || hasExp)) return false;
+      }
+      return true;
+    });
+  }, [entries, searchQ, filterType, filterMonth]);
+
+  // ── Unique months from entries ──────────────────
+  const months = useMemo(() => {
+    const set = new Set<string>();
+    entries.forEach((e) => set.add(e.date.slice(0, 7)));
+    return Array.from(set).sort().reverse();
+  }, [entries]);
+
+  // ── Form helpers ───────────────────────────────
+  const formTotalDebit = formLines.reduce((s, l) => s + (l.debit || 0), 0);
+  const formTotalCredit = formLines.reduce((s, l) => s + (l.credit || 0), 0);
+  const formBalanced = Math.abs(formTotalDebit - formTotalCredit) < 0.01 && formTotalDebit > 0;
+
+  const addLine = () =>
+    setFormLines((p) => [...p, { account_id: "", debit: 0, credit: 0, notes: "" }]);
+  const removeLine = (i: number) =>
+    setFormLines((p) => p.filter((_, idx) => idx !== i));
+  const updateLine = (i: number, field: string, val: any) =>
+    setFormLines((p) => p.map((l, idx) => (idx === i ? { ...l, [field]: val } : l)));
+
+  const resetForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setFormDate(new Date().toISOString().slice(0, 10));
+    setFormDesc("");
+    setFormRef("");
+    setFormLines([
+      { account_id: "", debit: 0, credit: 0, notes: "" },
+      { account_id: "", debit: 0, credit: 0, notes: "" },
+    ]);
   };
 
-  const addLine = () => {
-    setLines([...lines, { account_id: "", description: "", debit: "", credit: "" }]);
-  };
-
-  const updateLine = (idx: number, field: string, value: string) => {
-    const updated = [...lines];
-    (updated[idx] as any)[field] = value;
-    setLines(updated);
-  };
-
-  const removeLine = (idx: number) => {
-    if (lines.length <= 2) return;
-    setLines(lines.filter((_, i) => i !== idx));
-  };
-
-  const totalDebit = lines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0);
-  const totalCredit = lines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0);
-  const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
-
-  const saveEntry = async () => {
-    if (!entryDate || !entryDesc || !isBalanced) return;
+  const handleSave = async () => {
+    if (!formBalanced || !formDesc) return;
     setSaving(true);
-    setError("");
-
     try {
-      const res = await fetch("/api/finance/journal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          entry_date: entryDate,
-          description: entryDesc,
-          memo: entryMemo,
-          crop_year: parseInt(cropYear),
-          field_name: entryFieldName || null,
-          crop: entryCrop || null,
-          lines: lines.filter((l) => l.account_id).map((l) => ({
-            account_id: l.account_id,
-            description: l.description,
-            debit: parseFloat(l.debit) || 0,
-            credit: parseFloat(l.credit) || 0,
-          })),
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
-      setShowNewEntry(false);
-      setEntryDesc("");
-      setEntryMemo("");
-      setEntryFieldName("");
-      setEntryCrop("");
-      setLines([
-        { account_id: "", description: "", debit: "", credit: "" },
-        { account_id: "", description: "", debit: "", credit: "" },
-      ]);
-      fetchEntries();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
+      const body = { date: formDate, description: formDesc, reference: formRef, lines: formLines };
+      const res = editingId
+        ? await fetch(`/api/finance/journal-entries/${editingId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+        : await fetch("/api/finance/journal-entries", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (res.ok) {
+        const saved = await res.json();
+        setEntries((prev) =>
+          editingId
+            ? prev.map((e) => (e.id === editingId ? saved : e))
+            : [saved, ...prev]
+        );
+        resetForm();
+      }
+    } catch {}
+    setSaving(false);
   };
 
-  const fmt = (n: number) => n > 0 ? `$${n.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "";
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this journal entry?")) return;
+    try {
+      await fetch(`/api/finance/journal-entries/${id}`, { method: "DELETE" });
+      setEntries((p) => p.filter((e) => e.id !== id));
+    } catch {}
+  };
 
-  // Group accounts by type for the chart of accounts view
-  const accountsByType = accounts.reduce((acc: Record<string, Account[]>, a) => {
-    if (!acc[a.account_type]) acc[a.account_type] = [];
-    acc[a.account_type].push(a);
-    return acc;
-  }, {});
+  const handleEdit = (entry: JournalEntry) => {
+    setEditingId(entry.id);
+    setFormDate(entry.date.slice(0, 10));
+    setFormDesc(entry.description);
+    setFormRef(entry.reference || "");
+    setFormLines(entry.lines);
+    setShowForm(true);
+  };
 
-  const typeLabels: Record<string, string> = {
-    asset: "Assets",
-    liability: "Liabilities",
-    equity: "Equity",
-    revenue: "Revenue",
-    expense: "Expenses",
+  // ── Format helpers ─────────────────────────────
+  const fmt = (n: number) => `$${n.toLocaleString("en-CA", { minimumFractionDigits: 2 })}`;
+
+  // ── Chart of Accounts grouped ──────────────────
+  const coaGroups = useMemo(() => {
+    const groups: Record<string, Account[]> = {};
+    accounts.forEach((a) => {
+      const g = a.type;
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(a);
+    });
+    return groups;
+  }, [accounts]);
+
+  const coaMeta: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
+    Asset: { icon: Scale, color: T.green, bg: T.greenDim },
+    Liability: { icon: AlertTriangle, color: T.amber, bg: T.amberDim },
+    Equity: { icon: BookOpen, color: T.purple, bg: T.purpleDim },
+    Revenue: { icon: TrendingUp, color: T.green, bg: T.greenDim },
+    Expense: { icon: TrendingDown, color: T.red, bg: T.redDim },
   };
 
   return (
     <div>
+      {/* ── Header ───────────────────────────────────── */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#222527]">Ledger</h1>
-          <p className="text-sm text-[#7A8A7C] mt-1">Double-entry farm accounting</p>
+          <h1 className="text-2xl font-bold" style={{ color: T.text1 }}>Ledger</h1>
+          <p className="text-sm mt-1" style={{ color: T.text3 }}>
+            Double-entry journal &middot; {entries.length} entries
+          </p>
         </div>
         <div className="flex items-center gap-3">
-          <select
-            value={cropYear}
-            onChange={(e) => setCropYear(e.target.value)}
-            className="bg-white border border-[#E4E7E0] rounded-lg px-3 py-1.5 text-sm text-[#222527]"
+          {/* Balance indicator */}
+          <div
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-semibold"
+            style={{
+              background: isBalanced ? T.greenDim : T.redDim,
+              color: isBalanced ? T.green : T.red,
+            }}
           >
-            {["2026", "2025", "2024", "2023"].map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
+            {isBalanced ? <CheckCircle size={12} /> : <AlertTriangle size={12} />}
+            {isBalanced ? "Balanced" : "Out of Balance"}
+          </div>
           <button
-            onClick={() => setShowNewEntry(!showNewEntry)}
-            className="px-4 py-1.5 text-sm font-semibold rounded-lg bg-[#4A7C59] text-white hover:bg-[#3D6B4A]"
+            onClick={() => { resetForm(); setShowForm(true); }}
+            className={btnPrimary}
+            style={{ backgroundColor: T.green, color: T.bg }}
           >
-            + New Entry
+            <Plus size={14} />
+            New Entry
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-[#F5F5F3] p-1 rounded-xl w-fit">
+      {/* ── Tab Switcher ─────────────────────────────── */}
+      <div className="flex gap-1 mb-6 bg-white/[0.03] p-1 rounded-xl w-fit border border-white/[0.06]">
         {[
           { id: "journal" as const, label: "Journal Entries" },
-          { id: "accounts" as const, label: "Chart of Accounts" },
+          { id: "coa" as const, label: "Chart of Accounts" },
         ].map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-              tab === t.id ? "bg-white text-[#222527] shadow-sm" : "text-[#7A8A7C] hover:text-[#222527]"
+              tab === t.id
+                ? "bg-white/[0.08] text-[#F1F5F9] shadow-sm"
+                : "text-[#64748B] hover:text-[#94A3B8]"
             }`}
           >
             {t.label}
@@ -200,193 +523,331 @@ export default function LedgerPage() {
         ))}
       </div>
 
-      {error && (
-        <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
-          {error}
-          <button onClick={() => setError("")} className="ml-2 text-red-400">✕</button>
+      {loading ? (
+        <div className="text-center py-20 flex flex-col items-center gap-3">
+          <Loader2 size={28} className="animate-spin" style={{ color: T.green }} />
+          <span className="text-sm" style={{ color: T.text3 }}>Loading ledger...</span>
         </div>
-      )}
-
-      {/* New Entry Form */}
-      {showNewEntry && (
-        <div className="bg-white border border-[#E4E7E0] rounded-xl p-5 mb-6">
-          <h3 className="text-sm font-bold text-[#222527] mb-4">New Journal Entry</h3>
-
-          <div className="grid grid-cols-4 gap-3 mb-4">
-            <div>
-              <label className="text-[10px] uppercase text-[#7A8A7C] font-semibold">Date</label>
-              <input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)}
-                className="w-full mt-1 border border-[#E4E7E0] rounded-lg px-3 py-1.5 text-sm" />
-            </div>
-            <div className="col-span-2">
-              <label className="text-[10px] uppercase text-[#7A8A7C] font-semibold">Description</label>
-              <input type="text" value={entryDesc} onChange={(e) => setEntryDesc(e.target.value)}
-                placeholder="e.g. Canola sale to Viterra Swift Current"
-                className="w-full mt-1 border border-[#E4E7E0] rounded-lg px-3 py-1.5 text-sm" />
-            </div>
-            <div>
-              <label className="text-[10px] uppercase text-[#7A8A7C] font-semibold">Field (optional)</label>
-              <input type="text" value={entryFieldName} onChange={(e) => setEntryFieldName(e.target.value)}
-                placeholder="e.g. North Home"
-                className="w-full mt-1 border border-[#E4E7E0] rounded-lg px-3 py-1.5 text-sm" />
-            </div>
-          </div>
-
-          {/* Lines */}
-          <div className="bg-[#F8FAF7] rounded-lg p-3 mb-3">
-            <div className="grid grid-cols-[2fr_1.5fr_100px_100px_32px] gap-2 text-[10px] uppercase text-[#7A8A7C] font-semibold mb-2 px-1">
-              <div>Account</div>
-              <div>Description</div>
-              <div className="text-right">Debit</div>
-              <div className="text-right">Credit</div>
-              <div />
-            </div>
-
-            {lines.map((line, idx) => (
-              <div key={idx} className="grid grid-cols-[2fr_1.5fr_100px_100px_32px] gap-2 mb-1.5">
-                <select
-                  value={line.account_id}
-                  onChange={(e) => updateLine(idx, "account_id", e.target.value)}
-                  className="border border-[#E4E7E0] rounded-lg px-2 py-1.5 text-sm bg-white"
-                >
-                  <option value="">Select account...</option>
-                  {["revenue", "expense", "asset", "liability", "equity"].map((type) => (
-                    <optgroup key={type} label={typeLabels[type]}>
-                      {accounts.filter((a) => a.account_type === type).map((a) => (
-                        <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-                <input type="text" value={line.description} onChange={(e) => updateLine(idx, "description", e.target.value)}
-                  placeholder="Line memo" className="border border-[#E4E7E0] rounded-lg px-2 py-1.5 text-sm" />
-                <input type="number" step="0.01" value={line.debit} onChange={(e) => updateLine(idx, "debit", e.target.value)}
-                  placeholder="0.00" className="border border-[#E4E7E0] rounded-lg px-2 py-1.5 text-sm text-right" />
-                <input type="number" step="0.01" value={line.credit} onChange={(e) => updateLine(idx, "credit", e.target.value)}
-                  placeholder="0.00" className="border border-[#E4E7E0] rounded-lg px-2 py-1.5 text-sm text-right" />
-                <button onClick={() => removeLine(idx)} className="text-[#B0B8B0] hover:text-red-400 text-lg">✕</button>
+      ) : tab === "journal" ? (
+        <>
+          {/* ── KPI Row + Charts ──────────────────────── */}
+          {entries.length > 0 && (
+            <>
+              <div className="grid grid-cols-4 gap-4 mb-4">
+                <LedgerKpi label="Entries" value={String(entries.length)} icon={FileText} iconColor={T.sky} bgColor={T.skyDim} />
+                <LedgerKpi label="Total Debits" value={fmt(totalDebits)} icon={ArrowUpRight} iconColor={T.green} bgColor={T.greenDim} />
+                <LedgerKpi label="Total Credits" value={fmt(totalCredits)} icon={ArrowDownRight} iconColor={T.red} bgColor={T.redDim} />
+                <LedgerKpi label="Net" value={fmt(totalDebits - totalCredits)} icon={DollarSign} iconColor={isBalanced ? T.green : T.red} bgColor={isBalanced ? T.greenDim : T.redDim} />
               </div>
-            ))}
+              <div className="grid grid-cols-[2fr_1fr] gap-4 mb-6">
+                <CashflowSparkline entries={entries} />
+                <LedgerDonut entries={entries} />
+              </div>
+            </>
+          )}
 
-            <button onClick={addLine} className="text-xs text-[#4A7C59] hover:underline mt-1">+ Add line</button>
-          </div>
-
-          {/* Totals */}
-          <div className="flex items-center justify-between">
-            <div className="flex gap-6 text-sm">
-              <span className="text-[#7A8A7C]">Debits: <span className="font-bold text-[#222527]">${totalDebit.toFixed(2)}</span></span>
-              <span className="text-[#7A8A7C]">Credits: <span className="font-bold text-[#222527]">${totalCredit.toFixed(2)}</span></span>
-              {isBalanced ? (
-                <span className="text-[#4A7C59] font-semibold text-xs">Balanced</span>
-              ) : totalDebit > 0 || totalCredit > 0 ? (
-                <span className="text-red-500 font-semibold text-xs">
-                  Out of balance by ${Math.abs(totalDebit - totalCredit).toFixed(2)}
-                </span>
-              ) : null}
+          {/* ── Filter Bar (Mercury-style) ────────────── */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: T.text4 }} />
+              <input
+                type="text"
+                placeholder="Search entries..."
+                value={searchQ}
+                onChange={(e) => setSearchQ(e.target.value)}
+                className={inputClass + " pl-9"}
+              />
             </div>
-            <div className="flex gap-2">
-              <button onClick={() => setShowNewEntry(false)}
-                className="px-4 py-1.5 text-sm text-[#7A8A7C] border border-[#E4E7E0] rounded-lg hover:bg-[#F5F5F3]">
-                Cancel
+            <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className={selectClass}>
+              <option value="all">All Types</option>
+              <option value="revenue">Revenue</option>
+              <option value="expense">Expense</option>
+              <option value="transfer">Transfer</option>
+            </select>
+            <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className={selectClass}>
+              <option value="all">All Months</option>
+              {months.map((m) => (
+                <option key={m} value={m}>
+                  {new Date(m + "-01").toLocaleDateString("en-CA", { year: "numeric", month: "long" })}
+                </option>
+              ))}
+            </select>
+            {(searchQ || filterType !== "all" || filterMonth !== "all") && (
+              <button
+                onClick={() => { setSearchQ(""); setFilterType("all"); setFilterMonth("all"); }}
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg hover:bg-white/[0.04] transition-colors"
+                style={{ color: T.text3 }}
+              >
+                <RotateCcw size={12} />
+                Clear
               </button>
-              <button onClick={saveEntry} disabled={!isBalanced || saving || !entryDesc}
-                className={`px-4 py-1.5 text-sm font-semibold rounded-lg ${
-                  isBalanced && entryDesc ? "bg-[#4A7C59] text-white hover:bg-[#3D6B4A]" : "bg-[#E4E7E0] text-[#B0B8B0] cursor-not-allowed"
-                }`}>
-                {saving ? "Saving..." : "Post Entry"}
-              </button>
+            )}
+            <div className="ml-auto text-xs font-mono" style={{ color: T.text4 }}>
+              {filteredEntries.length} of {entries.length}
             </div>
           </div>
-        </div>
-      )}
 
-      {/* JOURNAL ENTRIES TAB */}
-      {tab === "journal" && (
-        loading ? (
-          <div className="text-center py-16 text-[#7A8A7C]">Loading journal entries...</div>
-        ) : entries.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-4xl mb-3">📒</div>
-            <p className="text-[#7A8A7C] mb-2">No journal entries for {cropYear} yet.</p>
-            <p className="text-xs text-[#B0B8B0]">Click "+ New Entry" to record your first transaction.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {entries.map((entry) => {
-              const entryLines = Array.isArray(entry.lines) ? entry.lines : [];
-              const total = entryLines.reduce((s, l) => s + (parseFloat(String(l.debit)) || 0), 0);
-
-              return (
-                <div key={entry.id} className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-[#F5F5F3]">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-mono text-[#B0B8B0]">#{entry.entry_number}</span>
-                      <span className="text-xs text-[#7A8A7C]">{new Date(entry.entry_date).toLocaleDateString("en-CA")}</span>
-                      <span className="text-sm font-semibold text-[#222527]">{entry.description}</span>
-                      {entry.field_name && (
-                        <span className="text-[10px] bg-[#F5F5F3] text-[#7A8A7C] px-2 py-0.5 rounded-full">{entry.field_name}</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] uppercase text-[#B0B8B0]">{entry.source}</span>
-                      <span className="text-sm font-bold text-[#222527]">${total.toFixed(2)}</span>
-                    </div>
-                  </div>
-                  <div className="px-4 py-2">
-                    {entryLines.map((line, i) => (
-                      <div key={i} className="grid grid-cols-[1fr_100px_100px] gap-2 py-1 text-xs">
-                        <span className={`${parseFloat(String(line.credit)) > 0 ? "pl-6" : ""} text-[#222527]`}>
-                          <span className="text-[#B0B8B0] font-mono mr-2">{line.account_code}</span>
-                          {line.account_name}
-                          {line.description && <span className="text-[#B0B8B0]"> — {line.description}</span>}
-                        </span>
-                        <span className="text-right font-mono text-[#222527]">{fmt(parseFloat(String(line.debit)) || 0)}</span>
-                        <span className="text-right font-mono text-[#222527]">{fmt(parseFloat(String(line.credit)) || 0)}</span>
+          {/* ── Entries List ──────────────────────────── */}
+          {filteredEntries.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}` }}>
+                <BookOpen size={24} style={{ color: T.text4 }} />
+              </div>
+              <p className="text-sm mb-1" style={{ color: T.text2 }}>
+                {entries.length === 0 ? "No journal entries yet" : "No entries match your filters"}
+              </p>
+              <p className="text-xs" style={{ color: T.text4 }}>
+                {entries.length === 0 ? "Click \"New Entry\" to record your first transaction" : "Try adjusting your search or filters"}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredEntries.map((entry) => {
+                const entryTotal = entry.lines.reduce((s, l) => s + l.debit, 0);
+                const edgeColor = entryEdgeColor(entry.lines);
+                return (
+                  <div
+                    key={entry.id}
+                    className="group bg-[#0F1729] border border-white/[0.06] rounded-xl overflow-hidden hover:border-white/[0.12] transition-all"
+                  >
+                    {/* Stripe-style left color edge */}
+                    <div className="flex">
+                      <div className="w-1 flex-shrink-0 rounded-l-xl" style={{ backgroundColor: edgeColor }} />
+                      <div className="flex-1 p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-mono" style={{ color: T.text4 }}>
+                              {new Date(entry.date).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}
+                            </span>
+                            <span className="text-sm font-medium" style={{ color: T.text1 }}>{entry.description}</span>
+                            <EntryTypeBadge lines={entry.lines} />
+                            {entry.reference && (
+                              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-white/[0.04]" style={{ color: T.text4 }}>
+                                #{entry.reference}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-mono font-semibold" style={{ color: T.text1 }}>
+                              {fmt(entryTotal)}
+                            </span>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleEdit(entry)}
+                                className="p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors"
+                                title="Edit"
+                              >
+                                <Edit2 size={13} style={{ color: T.text3 }} />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(entry.id)}
+                                className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 size={13} style={{ color: T.red }} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Line items (collapsed by default, shows on hover) */}
+                        <div className="mt-2 overflow-hidden max-h-0 group-hover:max-h-96 transition-all duration-300">
+                          <div className="pt-2 border-t border-white/[0.04] space-y-1">
+                            {entry.lines.map((l, i) => (
+                              <div key={i} className="flex items-center justify-between text-xs py-0.5">
+                                <span style={{ color: T.text2 }}>
+                                  <span className="font-mono mr-2" style={{ color: T.text4 }}>{l.account_code}</span>
+                                  {l.account_name}
+                                  {l.field_name && <span className="ml-1" style={{ color: T.text4 }}>({l.field_name})</span>}
+                                </span>
+                                <div className="flex gap-6 font-mono">
+                                  <span style={{ color: l.debit > 0 ? T.text1 : T.text4 }}>
+                                    {l.debit > 0 ? fmt(l.debit) : "—"}
+                                  </span>
+                                  <span style={{ color: l.credit > 0 ? T.text1 : T.text4 }}>
+                                    {l.credit > 0 ? fmt(l.credit) : "—"}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                    ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )
-      )}
-
-      {/* CHART OF ACCOUNTS TAB */}
-      {tab === "accounts" && (
+                );
+              })}
+            </div>
+          )}
+        </>
+      ) : (
+        /* ── Chart of Accounts ──────────────────────── */
         <div className="space-y-4">
-          {["asset", "liability", "equity", "revenue", "expense"].map((type) => {
-            const accts = accountsByType[type] || [];
-            if (accts.length === 0) return null;
-
+          {Object.entries(coaGroups).map(([type, accts]) => {
+            const meta = coaMeta[type] || { icon: FileText, color: T.text3, bg: "rgba(255,255,255,0.04)" };
+            const Icon = meta.icon;
             return (
-              <div key={type} className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden">
-                <div className="px-4 py-3 bg-[#F5F5F3] border-b border-[#E4E7E0]">
-                  <h3 className="text-sm font-bold text-[#222527]">{typeLabels[type]} ({accts.length})</h3>
+              <div key={type} className="bg-[#0F1729] border border-white/[0.06] rounded-xl overflow-hidden hover:border-white/[0.10] transition-colors">
+                <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: meta.bg }}>
+                    <Icon size={14} style={{ color: meta.color }} />
+                  </div>
+                  <h3 className="text-sm font-bold" style={{ color: T.text1 }}>{type}s</h3>
+                  <span className="text-xs font-mono" style={{ color: T.text4 }}>{accts.length} accounts</span>
                 </div>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-[10px] uppercase text-[#7A8A7C] font-semibold">
-                      <th className="text-left px-4 py-2">Code</th>
-                      <th className="text-left px-4 py-2">Name</th>
-                      <th className="text-left px-4 py-2">Sub-type</th>
-                      <th className="text-center px-4 py-2">Field Alloc.</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {accts.map((a) => (
-                      <tr key={a.id} className="border-t border-[#F5F5F3] hover:bg-[#F8FAF7]">
-                        <td className="px-4 py-2 font-mono text-[#7A8A7C]">{a.code}</td>
-                        <td className="px-4 py-2 font-medium text-[#222527]">{a.name}</td>
-                        <td className="px-4 py-2 text-[#7A8A7C] text-xs">{a.sub_type}</td>
-                        <td className="px-4 py-2 text-center">{a.field_allocatable ? "✓" : ""}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="divide-y divide-white/[0.04]">
+                  {accts.sort((a, b) => a.code.localeCompare(b.code)).map((a) => (
+                    <div key={a.id} className="flex items-center justify-between px-5 py-2.5 hover:bg-white/[0.01] transition-colors">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-mono w-12" style={{ color: T.text4 }}>{a.code}</span>
+                        <span className="text-sm" style={{ color: T.text1 }}>{a.name}</span>
+                      </div>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-white/[0.04] font-mono" style={{ color: T.text3 }}>
+                        {a.sub_type}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             );
           })}
+          {accounts.length === 0 && (
+            <div className="text-center py-16">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${T.border}` }}>
+                <BookOpen size={24} style={{ color: T.text4 }} />
+              </div>
+              <p className="text-sm" style={{ color: T.text2 }}>Chart of Accounts will appear when you add accounts.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══ NEW / EDIT ENTRY MODAL ═══ */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div
+            className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl p-6"
+            style={{ background: "#0F1729", border: `1px solid ${T.borderHover}` }}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold" style={{ color: T.text1 }}>
+                {editingId ? "Edit Journal Entry" : "New Journal Entry"}
+              </h2>
+              <button onClick={resetForm} className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors">
+                <X size={16} style={{ color: T.text3 }} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 mb-5">
+              <div>
+                <label className={labelClass}>Date</label>
+                <input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Description</label>
+                <input type="text" value={formDesc} onChange={(e) => setFormDesc(e.target.value)} placeholder="e.g. Fuel purchase" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Reference</label>
+                <input type="text" value={formRef} onChange={(e) => setFormRef(e.target.value)} placeholder="Optional #" className={inputClass} />
+              </div>
+            </div>
+
+            {/* Line items */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className={labelClass + " mb-0"}>Line Items</label>
+                <button onClick={addLine} className="text-xs flex items-center gap-1 hover:text-[#34D399] transition-colors" style={{ color: T.text3 }}>
+                  <Plus size={12} /> Add Line
+                </button>
+              </div>
+              <div className="space-y-2">
+                {formLines.map((line, i) => (
+                  <div key={i} className="grid grid-cols-[2fr_1fr_1fr_auto] gap-2 items-center">
+                    <select
+                      value={line.account_id}
+                      onChange={(e) => updateLine(i, "account_id", e.target.value)}
+                      className={selectClass + " text-xs"}
+                    >
+                      <option value="">Select account...</option>
+                      {accounts.map((a) => (
+                        <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={line.debit || ""}
+                      onChange={(e) => updateLine(i, "debit", parseFloat(e.target.value) || 0)}
+                      placeholder="Debit"
+                      className={inputClass + " text-right font-mono text-xs"}
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={line.credit || ""}
+                      onChange={(e) => updateLine(i, "credit", parseFloat(e.target.value) || 0)}
+                      placeholder="Credit"
+                      className={inputClass + " text-right font-mono text-xs"}
+                    />
+                    <button
+                      onClick={() => removeLine(i)}
+                      className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
+                      disabled={formLines.length <= 2}
+                    >
+                      <X size={13} style={{ color: formLines.length <= 2 ? T.text4 : T.red }} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Balance preview */}
+            <div
+              className="rounded-xl p-4 mb-5 border"
+              style={{
+                background: formBalanced ? T.greenDim : T.redDim,
+                borderColor: formBalanced ? "rgba(52,211,153,0.2)" : "rgba(248,113,113,0.2)",
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {formBalanced ? (
+                    <CheckCircle size={14} style={{ color: T.green }} />
+                  ) : (
+                    <AlertTriangle size={14} style={{ color: T.red }} />
+                  )}
+                  <span className="text-xs font-semibold" style={{ color: formBalanced ? T.green : T.red }}>
+                    {formBalanced ? "Balanced" : "Entry must balance"}
+                  </span>
+                </div>
+                <div className="flex gap-6 text-xs font-mono">
+                  <span style={{ color: T.text2 }}>DR: <span style={{ color: T.text1 }}>{fmt(formTotalDebit)}</span></span>
+                  <span style={{ color: T.text2 }}>CR: <span style={{ color: T.text1 }}>{fmt(formTotalCredit)}</span></span>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3">
+              <button onClick={resetForm} className={btnSecondary}>Cancel</button>
+              <button
+                onClick={handleSave}
+                disabled={!formBalanced || !formDesc || saving}
+                className={btnPrimary}
+                style={{
+                  backgroundColor: formBalanced && formDesc ? T.green : T.text4,
+                  color: formBalanced && formDesc ? T.bg : T.text3,
+                  opacity: formBalanced && formDesc ? 1 : 0.5,
+                  cursor: formBalanced && formDesc ? "pointer" : "not-allowed",
+                }}
+              >
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                {editingId ? "Update" : "Save Entry"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
