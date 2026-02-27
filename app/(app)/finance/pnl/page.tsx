@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import { useState, useEffect, useMemo } from "react";
 import {
   TrendingUp, TrendingDown, DollarSign, Percent, ChevronDown,
@@ -616,6 +617,7 @@ function PnLStatement({
 //  P&L PAGE — FINTECH GRADE
 // ═════════════════════════════════════════════════════════════
 export default function PnLPage() {
+  const { user } = useUser();
   const [data, setData] = useState<PnLData | null>(null);
   const [loading, setLoading] = useState(true);
   const [cropYear, setCropYear] = useState("2025");
@@ -623,13 +625,47 @@ export default function PnLPage() {
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
+    if (!user?.id) return;
     setLoading(true);
-    fetch(`/api/finance/pnl?cropYear=${cropYear}&view=${view}`)
+    fetch(`/api/finance/pnl?cropYear=${cropYear}&view=${view}`, {
+      headers: { "x-user-id": user.id },
+    })
       .then((r) => r.json())
-      .then((d) => setData(d))
+      .then((d) => {
+        if (!d.success) { setData(null); return; }
+        // Transform API response to match page's expected shape
+        const revenueLines: PnLLine[] = [];
+        const expensesByCategory: Record<string, ExpenseCategory> = {};
+        for (const g of (d.groups || [])) {
+          for (const cat of (g.categories || [])) {
+            if (cat.type === "revenue") {
+              revenueLines.push({ account_id: "", code: "", name: cat.name, sub_type: "", balance: cat.amount });
+            } else if (cat.type === "expense") {
+              expensesByCategory[cat.name] = {
+                label: cat.name,
+                total: cat.amount,
+                lines: [{ account_id: "", code: "", name: cat.name, sub_type: "", balance: cat.amount }],
+              };
+            }
+          }
+        }
+        const totalRevenue = d.totals?.revenue || 0;
+        const totalExpenses = d.totals?.expenses || 0;
+        const netIncome = d.totals?.netIncome || 0;
+        const transformed: PnLData = {
+          cropYear: d.cropYear,
+          totalRevenue,
+          totalExpenses,
+          netIncome,
+          margin: totalRevenue > 0 ? Math.round((netIncome / totalRevenue) * 100) : 0,
+          revenueLines,
+          expensesByCategory,
+        };
+        setData(transformed);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [cropYear, view]);
+  }, [cropYear, view, user?.id]);
 
   const toggleCategory = (cat: string) => {
     setExpandedCategories((prev) => ({ ...prev, [cat]: !prev[cat] }));
@@ -638,7 +674,7 @@ export default function PnLPage() {
   const fmtShort = (n: number) =>
     `$${Math.abs(n).toLocaleString("en-CA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
-  const hasData = data && (data.totalRevenue > 0 || data.totalExpenses > 0);
+  const hasData = data && ((data as any).totals?.revenue > 0 || (data as any).totals?.expenses > 0 || data.totalRevenue > 0 || data.totalExpenses > 0);
 
   return (
     <div>

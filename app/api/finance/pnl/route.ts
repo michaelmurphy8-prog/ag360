@@ -1,171 +1,201 @@
-// app/api/finance/pnl/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { neon } from "@neondatabase/serverless";
 
 const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET(req: NextRequest) {
-  const { userId } = await auth();
+  const userId = req.headers.get("x-user-id");
+  console.log("P&L hit — userId:", req.headers.get("x-user-id"), "url:", req.url);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const cropYear = parseInt(req.nextUrl.searchParams.get("cropYear") || "2025");
-  const view = req.nextUrl.searchParams.get("view") || "farm"; // farm | crop | field
+  const { searchParams } = new URL(req.url);
+  const cropYear = parseInt(searchParams.get("cropYear") || String(new Date().getFullYear()));
+  const view = searchParams.get("view") || "farm"; // farm | crop | field
 
   try {
-    // Get all account balances from journal lines for this crop year
-    let balances;
+    // ── Real ledger data from journal entries ──
+    let ledgerData;
 
-    if (view === "field") {
-      balances = await sql`
+    if (view === "crop") {
+      ledgerData = await sql`
         SELECT
-          a.id as account_id, a.code, a.name, a.account_type, a.sub_type,
-          a.normal_balance, a.field_allocatable,
-          jl.field_name,
-          jl.crop,
+          jl.crop as group_key,
+          jl.crop as group_label,
+          a.account_type,
+          a.sub_type,
+          a.name as account_name,
           COALESCE(SUM(jl.debit), 0) as total_debit,
           COALESCE(SUM(jl.credit), 0) as total_credit
-        FROM accounts a
-        LEFT JOIN journal_lines jl ON jl.account_id = a.id
-        LEFT JOIN journal_entries je ON jl.journal_entry_id = je.id
-          AND je.user_id = ${userId}
+        FROM journal_entries je
+        JOIN journal_lines jl ON jl.journal_entry_id = je.id
+        JOIN accounts a ON a.id = jl.account_id AND a.user_id = ${userId}
+        WHERE je.user_id = ${userId}
           AND je.crop_year = ${cropYear}
           AND je.is_void = false
-          AND je.is_posted = true
-        WHERE a.user_id = ${userId}
-          AND a.account_type IN ('revenue', 'expense')
-          AND a.is_active = true
-        GROUP BY a.id, a.code, a.name, a.account_type, a.sub_type, a.normal_balance, a.field_allocatable, jl.field_name, jl.crop
-        ORDER BY a.sort_order ASC
+        GROUP BY jl.crop, a.account_type, a.sub_type, a.name
+        ORDER BY jl.crop, a.account_type, a.name
       `;
-    } else if (view === "crop") {
-      balances = await sql`
+    } else if (view === "field") {
+      ledgerData = await sql`
         SELECT
-          a.id as account_id, a.code, a.name, a.account_type, a.sub_type,
-          a.normal_balance,
-          jl.crop,
+          jl.field_name as group_key,
+          jl.field_name as group_label,
+          a.account_type,
+          a.sub_type,
+          a.name as account_name,
           COALESCE(SUM(jl.debit), 0) as total_debit,
           COALESCE(SUM(jl.credit), 0) as total_credit
-        FROM accounts a
-        LEFT JOIN journal_lines jl ON jl.account_id = a.id
-        LEFT JOIN journal_entries je ON jl.journal_entry_id = je.id
-          AND je.user_id = ${userId}
+        FROM journal_entries je
+        JOIN journal_lines jl ON jl.journal_entry_id = je.id
+        JOIN accounts a ON a.id = jl.account_id AND a.user_id = ${userId}
+        WHERE je.user_id = ${userId}
           AND je.crop_year = ${cropYear}
           AND je.is_void = false
-          AND je.is_posted = true
-        WHERE a.user_id = ${userId}
-          AND a.account_type IN ('revenue', 'expense')
-          AND a.is_active = true
-        GROUP BY a.id, a.code, a.name, a.account_type, a.sub_type, a.normal_balance, jl.crop
-        ORDER BY a.sort_order ASC
+        GROUP BY jl.field_name, a.account_type, a.sub_type, a.name
+        ORDER BY jl.field_name, a.account_type, a.name
       `;
     } else {
-      // Farm-wide
-      balances = await sql`
+      ledgerData = await sql`
         SELECT
-          a.id as account_id, a.code, a.name, a.account_type, a.sub_type,
-          a.normal_balance,
+          'farm' as group_key,
+          'Whole Farm' as group_label,
+          a.account_type,
+          a.sub_type,
+          a.name as account_name,
           COALESCE(SUM(jl.debit), 0) as total_debit,
           COALESCE(SUM(jl.credit), 0) as total_credit
-        FROM accounts a
-        LEFT JOIN journal_lines jl ON jl.account_id = a.id
-        LEFT JOIN journal_entries je ON jl.journal_entry_id = je.id
-          AND je.user_id = ${userId}
+        FROM journal_entries je
+        JOIN journal_lines jl ON jl.journal_entry_id = je.id
+        JOIN accounts a ON a.id = jl.account_id AND a.user_id = ${userId}
+        WHERE je.user_id = ${userId}
           AND je.crop_year = ${cropYear}
           AND je.is_void = false
-          AND je.is_posted = true
-        WHERE a.user_id = ${userId}
-          AND a.account_type IN ('revenue', 'expense')
-          AND a.is_active = true
-        GROUP BY a.id, a.code, a.name, a.account_type, a.sub_type, a.normal_balance
-        HAVING COALESCE(SUM(jl.debit), 0) > 0 OR COALESCE(SUM(jl.credit), 0) > 0
-        ORDER BY a.sort_order ASC
+        GROUP BY a.account_type, a.sub_type, a.name
+        ORDER BY a.account_type, a.name
       `;
     }
 
-    // Calculate the P&L structure
-    let totalRevenue = 0;
-    let totalExpenses = 0;
-    const revenueLines: any[] = [];
-    const expenseLines: any[] = [];
+    // ── Farm Profile estimates as fallback ──
+    const profileRows = await sql`
+      SELECT profile FROM farm_profiles WHERE user_id = ${userId}
+    `;
+    const profile = profileRows[0]?.profile;
+    const estimates: Record<string, { revenue: number; costs: number; acres: number }> = {};
 
-    for (const b of balances) {
-      const debit = parseFloat(b.total_debit) || 0;
-      const credit = parseFloat(b.total_credit) || 0;
-      // Revenue accounts have credit normal balance (credit - debit = balance)
-      // Expense accounts have debit normal balance (debit - credit = balance)
-      const balance = b.normal_balance === "credit" ? credit - debit : debit - credit;
+    if (profile?.crops && Array.isArray(profile.crops)) {
+      for (const c of profile.crops) {
+        const name = c.crop || c.name;
+        if (!name) continue;
+        const acres = Number(c.acres || c.total_acres || 0);
+        const targetYield = Number(c.target_yield || c.yield || 0);
+        const targetPrice = Number(c.target_price || c.price || 0);
+        const costPerAcre = Number(c.cost_per_acre || c.costs || 0);
 
-      if (balance === 0) continue;
-
-      const line = {
-        account_id: b.account_id,
-        code: b.code,
-        name: b.name,
-        sub_type: b.sub_type,
-        balance: Math.abs(balance),
-        field_name: b.field_name || null,
-        crop: b.crop || null,
-      };
-
-      if (b.account_type === "revenue") {
-        totalRevenue += Math.abs(balance);
-        revenueLines.push(line);
-      } else {
-        totalExpenses += Math.abs(balance);
-        expenseLines.push(line);
+        estimates[name] = {
+          revenue: Math.round(acres * targetYield * targetPrice),
+          costs: Math.round(acres * costPerAcre),
+          acres,
+        };
       }
     }
 
-    const netIncome = totalRevenue - totalExpenses;
-    const margin = totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0;
+    // ── Merge real + estimated ──
+    const groups: Record<string, {
+      label: string;
+      revenue: number;
+      expenses: number;
+      categories: Record<string, { type: string; amount: number }>;
+      hasRealData: boolean;
+    }> = {};
 
-    // Group expenses by sub_type for the P&L display
-    const expensesByCategory: Record<string, { label: string; total: number; lines: any[] }> = {};
-    for (const e of expenseLines) {
-      const cat = e.sub_type || "other";
-      if (!expensesByCategory[cat]) {
-        expensesByCategory[cat] = { label: formatSubType(cat), total: 0, lines: [] };
+    for (const row of ledgerData) {
+      const key = row.group_key || "farm";
+      if (!groups[key]) {
+        groups[key] = {
+          label: row.group_label || key,
+          revenue: 0,
+          expenses: 0,
+          categories: {},
+          hasRealData: true,
+        };
       }
-      expensesByCategory[cat].total += e.balance;
-      expensesByCategory[cat].lines.push(e);
+
+      const amount = Number(row.total_credit) - Number(row.total_debit);
+
+      if (row.account_type === "revenue") {
+        groups[key].revenue += Math.abs(amount);
+        groups[key].categories[row.account_name] = { type: "revenue", amount: Math.abs(amount) };
+      } else if (row.account_type === "expense") {
+        const expAmount = Number(row.total_debit) - Number(row.total_credit);
+        groups[key].expenses += Math.abs(expAmount);
+        groups[key].categories[row.account_name] = { type: "expense", amount: Math.abs(expAmount) };
+      }
     }
+
+    // Fill in Farm Profile estimates for crops with no real data
+    if (view === "crop" || view === "farm") {
+      for (const [cropName, est] of Object.entries(estimates)) {
+        const key = view === "crop" ? cropName : "farm";
+        if (!groups[key]) {
+          groups[key] = {
+            label: view === "crop" ? cropName : "Whole Farm",
+            revenue: est.revenue,
+            expenses: est.costs,
+            categories: {
+              "Estimated Revenue": { type: "revenue", amount: est.revenue },
+              "Estimated Costs": { type: "expense", amount: est.costs },
+            },
+            hasRealData: false,
+          };
+        } else if (view === "farm" && groups[key].revenue === 0 && groups[key].expenses === 0) {
+          // Farm view: add estimates if ledger is empty
+          groups[key].revenue += est.revenue;
+          groups[key].expenses += est.costs;
+          groups[key].hasRealData = false;
+        }
+      }
+    }
+
+    // Build response
+    const result = Object.entries(groups).map(([key, g]) => ({
+      key,
+      label: g.label,
+      revenue: g.revenue,
+      expenses: g.expenses,
+      netIncome: g.revenue - g.expenses,
+      margin: g.revenue > 0 ? Math.round((g.revenue - g.expenses) / g.revenue * 100) : 0,
+      categories: Object.entries(g.categories).map(([name, c]) => ({
+        name,
+        type: c.type,
+        amount: c.amount,
+      })),
+      hasRealData: g.hasRealData,
+    }));
+
+    // Farm-level totals
+    const totals = {
+      revenue: result.reduce((s, r) => s + r.revenue, 0),
+      expenses: result.reduce((s, r) => s + r.expenses, 0),
+      netIncome: result.reduce((s, r) => s + r.netIncome, 0),
+    };
+
+    const availableYears = await sql`
+      SELECT DISTINCT crop_year FROM journal_entries
+      WHERE user_id = ${userId} AND is_void = false
+      ORDER BY crop_year DESC
+    `;
 
     return NextResponse.json({
+      success: true,
       cropYear,
       view,
-      totalRevenue,
-      totalExpenses,
-      netIncome,
-      margin: Math.round(margin * 10) / 10,
-      revenueLines,
-      expensesByCategory,
-      entryCount: balances.length,
+      totals,
+      groups: result.sort((a, b) => b.revenue - a.revenue),
+      availableYears: availableYears.map(y => y.crop_year),
+      hasEstimates: result.some(r => !r.hasRealData),
     });
-  } catch (error) {
-    console.error("P&L fetch error:", error);
-    return NextResponse.json({ error: "Failed to generate P&L" }, { status: 500 });
+  } catch (err: any) {
+    console.error("P&L GET error:", err?.message || err, err?.stack);
+    return NextResponse.json({ error: "Failed to fetch P&L" }, { status: 500 });
   }
-}
-
-function formatSubType(sub: string): string {
-  const map: Record<string, string> = {
-    grain_sales: "Grain Sales",
-    insurance: "Insurance",
-    government: "Government Payments",
-    other_revenue: "Other Revenue",
-    livestock: "Livestock",
-    crop_input: "Crop Inputs",
-    custom_work: "Custom Work",
-    grain_handling: "Grain Handling",
-    fuel: "Fuel & Lubricants",
-    equipment: "Equipment & Repairs",
-    land: "Land Costs",
-    labour: "Labour",
-    overhead: "Overhead & Admin",
-    interest: "Interest",
-    depreciation: "Depreciation",
-    other: "Other Expenses",
-  };
-  return map[sub] || sub;
 }

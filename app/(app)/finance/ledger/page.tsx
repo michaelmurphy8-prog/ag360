@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   BookOpen, Plus, X, CheckCircle, AlertTriangle, Loader2, Search,
@@ -323,6 +324,7 @@ function entryEdgeColor(lines: JournalLine[]): string {
 //  LEDGER PAGE — FINTECH GRADE
 // ═════════════════════════════════════════════════════════════
 export default function LedgerPage() {
+  const { user } = useUser();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
@@ -346,18 +348,28 @@ export default function LedgerPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (!user?.id) return;
     setLoading(true);
-    Promise.all([
-      fetch("/api/finance/journal-entries").then((r) => r.json()),
-      fetch("/api/finance/accounts").then((r) => r.json()),
+Promise.all([
+fetch("/api/finance/journal", { headers: { "x-user-id": user.id } }).then((r) => r.json()),
+fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) => r.json()),
     ])
       .then(([e, a]) => {
-        setEntries(Array.isArray(e) ? e : []);
-        setAccounts(Array.isArray(a) ? a : []);
+        console.log("Ledger response:", e, a);
+        const rawEntries = Array.isArray(e) ? e : e?.entries || e?.data || [];
+        const mapped = rawEntries.map((entry: any) => ({
+          ...entry,
+          date: entry.date || entry.entry_date || "",
+          number: entry.number || entry.entry_number || 0,
+          ref: entry.ref || entry.source || "",
+          lines: entry.lines || [],
+        }));
+        setEntries(mapped);
+        setAccounts(Array.isArray(a) ? a : a?.accounts || a?.data || []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [user?.id]);
 
   // ── Computed ────────────────────────────────────
   const totalDebits = useMemo(() => entries.reduce((s, e) => s + e.lines.reduce((ss, l) => ss + l.debit, 0), 0), [entries]);
@@ -416,8 +428,8 @@ export default function LedgerPage() {
     try {
       const body = { date: formDate, description: formDesc, reference: formRef, lines: formLines };
       const res = editingId
-        ? await fetch(`/api/finance/journal-entries/${editingId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
-        : await fetch("/api/finance/journal-entries", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        ? await fetch(`/api/finance/journal/${editingId}`, { method: "PUT", headers: { "Content-Type": "application/json", "x-user-id": user?.id || "" }, body: JSON.stringify(body) })
+: await fetch("/api/finance/journal", { method: "POST", headers: { "Content-Type": "application/json", "x-user-id": user?.id || "" }, body: JSON.stringify(body) });
       if (res.ok) {
         const saved = await res.json();
         setEntries((prev) =>
@@ -434,7 +446,7 @@ export default function LedgerPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this journal entry?")) return;
     try {
-      await fetch(`/api/finance/journal-entries/${id}`, { method: "DELETE" });
+      await fetch(`/api/finance/journal/${id}`, { method: "DELETE", headers: { "x-user-id": user?.id || "" } });
       setEntries((p) => p.filter((e) => e.id !== id));
     } catch {}
   };
