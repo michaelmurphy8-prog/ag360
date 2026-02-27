@@ -1,243 +1,253 @@
 "use client";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Upload, Database, DollarSign, Lock, BookOpen, Receipt } from "lucide-react";
 import {
-  LayoutDashboard, Wheat, Leaf, Beef, Tractor, TrendingUp,
-  Sprout, Package, Users, Cloud, Bot, Settings, ClipboardList,
-  BarChart2, ChevronDown, Map, FileText,
+  LayoutDashboard, Wheat, Leaf, Beef, Tractor,
+  Sprout, Package, Users, Cloud, Bot, Settings,
+  ClipboardList, DollarSign, ChevronDown, Lock,
+  Truck, Wrench, MapPin,
 } from "lucide-react";
+import { UserButton } from "@clerk/nextjs";
 
-type SubItem = {
-  label: string;
-  href: string;
-  icon?: React.ElementType;
-};
-
-type NavItem = {
+// ─── Nav Structure ───────────────────────────────────────────
+interface NavItem {
   label: string;
   icon: React.ElementType;
-  href: string;
-  subItems?: SubItem[];
-};
+  href?: string;
+  children?: { label: string; href: string }[];
+  comingSoon?: boolean;
+}
 
-const navItems: NavItem[] = [
-  { label: "Overview", icon: LayoutDashboard, href: "/overview" },
-  { label: "Grain360", icon: Wheat, href: "/grain360" },
+const navSections: { title?: string; items: NavItem[] }[] = [
   {
-    label: "Finance",
-    icon: DollarSign,
-    href: "/finance",
-    subItems: [
-      { label: "Market Prices", href: "/grain360/prices", icon: BarChart2 },
-{ label: "Marketing", href: "/marketing", icon: TrendingUp },
-{ label: "P&L", href: "/finance/pnl", icon: BookOpen },
-{ label: "Contracts", href: "/finance/contracts", icon: FileText },
-{ label: "Ledger", href: "/finance/ledger", icon: Receipt },
+    items: [
+      { label: "Overview", icon: LayoutDashboard, href: "/overview" },
+      { label: "Grain360", icon: Wheat, href: "/grain360" },
     ],
   },
   {
-    label: "Agronomy",
-    icon: Sprout,
-    href: "/agronomy",
-    subItems: [
-      { label: "Weather", href: "/weather", icon: Cloud },
+    items: [
+      {
+        label: "Finance", icon: DollarSign,
+        children: [
+          { label: "Ledger", href: "/finance/ledger" },
+          { label: "Field P&L", href: "/finance/field-pl" },
+        ],
+      },
+      {
+        label: "Agronomy", icon: Sprout,
+        children: [
+          { label: "Crop Economics", href: "/agronomy" },
+          { label: "Spray Calendar", href: "/agronomy/spray-calendar" },
+          { label: "Scout Reports", href: "/agronomy/scout" },
+        ],
+      },
+      {
+        label: "Operations", icon: Truck,
+        children: [
+          { label: "Grain Loads", href: "/grain360/loads" },
+          { label: "Fields", href: "/fields" },
+        ],
+      },
     ],
   },
-  
   {
-    label: "Operations",
-    icon: Database,
-    href: "/grain360/operations",
-    subItems: [
-      { label: "Fields", href: "/fields", icon: Map },
-      { label: "Import Data", href: "/grain360/imports", icon: Upload },
+    items: [
+      { label: "Inventory", icon: Package, href: "/inventory" },
+      { label: "Machinery", icon: Tractor, href: "/machinery" },
+      { label: "Labour & HR", icon: Users, href: "/labour" },
+      { label: "Farm Profile", icon: ClipboardList, href: "/farm-profile" },
+      { label: "Weather", icon: Cloud, href: "/weather" },
+      { label: "Lily (Advisor)", icon: Bot, href: "/advisor" },
     ],
   },
-  { label: "Inventory", icon: Package, href: "/inventory" },
-  { label: "Machinery", icon: Tractor, href: "/machinery" },
-  { label: "Labour & HR", icon: Users, href: "/labour" },
-  { label: "Farm Profile", icon: ClipboardList, href: "/farm-profile" },
-  { label: "Lily (Advisor)", icon: Bot, href: "/advisor" },
+  {
+    title: "COMING SOON",
+    items: [
+      { label: "Produce360", icon: Leaf, comingSoon: true },
+      { label: "Cattle360", icon: Beef, comingSoon: true },
+      { label: "Connect360", icon: MapPin, comingSoon: true },
+    ],
+  },
 ];
 
-const comingSoonItems: { label: string; icon: React.ElementType }[] = [
-  { label: "Produce360", icon: Leaf },
-  { label: "Cattle360", icon: Beef },
-];
+// ─── T5 Logo (Slash Divider) ─────────────────────────────────
+function Logo() {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[20px] font-bold text-[#F1F5F9] tracking-tight" style={{ fontFamily: "'Inter', sans-serif" }}>
+        AG
+      </span>
+      <div className="w-[1px] h-[18px] bg-white/20 rotate-[15deg]" />
+      <span className="text-[17px] font-normal text-[#34D399] tracking-wide" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+        360
+      </span>
+    </div>
+  );
+}
 
-export default function SideNav() {
-  const pathname = usePathname();
-
-  // Track which collapsible sections are open
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
-
-  const toggleSection = (href: string) => {
-    setOpenSections((prev) => ({ ...prev, [href]: !prev[href] }));
-  };
-
-  // Auto-open a section if the current path is inside it
-  const isSectionOpen = (item: NavItem) => {
-    // Explicitly toggled
-    if (openSections[item.href] !== undefined) return openSections[item.href];
-    // Auto-open if active
-    if (pathname === item.href) return true;
-    if (pathname.startsWith(item.href + "/")) return true;
-    if (item.subItems?.some((s) => pathname === s.href)) return true;
-    return false;
-  };
+// ─── Expandable Nav Group ────────────────────────────────────
+function NavGroup({ item, pathname }: { item: NavItem; pathname: string }) {
+  const isChildActive = item.children?.some((c) => pathname.startsWith(c.href)) ?? false;
+  const [open, setOpen] = useState(isChildActive);
+  const Icon = item.icon;
 
   return (
-    <aside className="w-64 h-screen bg-white border-r border-[#E4E7E0] flex flex-col fixed left-0 top-0">
-      {/* Logo */}
-      <div className="px-6 py-6 border-b border-[#E4E7E0] flex flex-col items-center text-center">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-7 h-7 rounded-lg bg-[#4A7C59] flex items-center justify-center flex-shrink-0">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <circle cx="7" cy="7" r="5.5" stroke="white" strokeWidth="1.5" />
-              <circle cx="7" cy="7" r="2" fill="white" />
-              <line x1="7" y1="1" x2="7" y2="4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-              <line x1="7" y1="10" x2="7" y2="13" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-              <line x1="1" y1="7" x2="4" y2="7" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-              <line x1="10" y1="7" x2="13" y2="7" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-[#222527]">
-            AG<span className="text-[#4A7C59]">360</span>
-          </h1>
-        </div>
-        <p className="text-[11px] font-medium text-[#7A8A7C] tracking-widest uppercase">
-          For the Farmer
-        </p>
-      </div>
-
-      {/* Main Nav */}
-      <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-0.5">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
-          const isParentOfActive = item.subItems?.some((s) => pathname === s.href);
-          const hasSubItems = item.subItems && item.subItems.length > 0;
-          const isOpen = hasSubItems ? isSectionOpen(item) : false;
-
-          return (
-            <div key={item.href}>
-              {/* Parent item */}
-              {hasSubItems ? (
-                <div className="flex items-center">
-                  <Link
-                    href={item.href}
-                    onClick={() => { if (!isOpen) toggleSection(item.href) }}
-                    className={`flex-1 flex items-center gap-3 px-3 py-2.5 rounded-l-[10px] text-sm font-medium transition-colors ${
-                      isActive || isParentOfActive
-                        ? "bg-[#DDE3D6] text-[#4A7C59]"
-                        : "text-[#7A8A7C] hover:bg-[#F5F5F3] hover:text-[#222527]"
-                    }`}
-                  >
-                    <Icon size={16} />
-                    <span className="flex-1 text-left">{item.label}</span>
-                  </Link>
-                  <button
-                    onClick={() => toggleSection(item.href)}
-                    className={`px-2 py-2.5 rounded-r-[10px] transition-colors ${
-                      isActive || isParentOfActive
-                        ? "bg-[#DDE3D6] text-[#4A7C59]"
-                        : "text-[#7A8A7C] hover:bg-[#F5F5F3]"
-                    }`}
-                  >
-                    <ChevronDown
-                      size={14}
-                      className={`transition-transform duration-200 ${isOpen ? "rotate-0" : "-rotate-90"}`}
-                    />
-                  </button>
-                </div>
-              ) : (
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-[#DDE3D6] text-[#4A7C59]"
-                      : "text-[#7A8A7C] hover:bg-[#F5F5F3] hover:text-[#222527]"
-                  }`}
-                >
-                  <Icon size={16} />
-                  <span className="flex-1">{item.label}</span>
-                </Link>
-              )}
-
-              {/* Sub items */}
-              {hasSubItems && isOpen && (
-                <div className="ml-6 mt-0.5 space-y-0.5 border-l border-[#E4E7E0] pl-3">
-                  {item.subItems!.map((sub) => {
-                    const SubIcon = sub.icon || BarChart2;
-                    const subActive = pathname === sub.href;
-                    return (
-                      <Link
-                        key={sub.href}
-                        href={sub.href}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-[8px] text-xs font-medium transition-colors ${
-                          subActive
-                            ? "bg-[#DDE3D6] text-[#4A7C59]"
-                            : "text-[#7A8A7C] hover:bg-[#F5F5F3] hover:text-[#222527]"
-                        }`}
-                      >
-                        <SubIcon size={13} />
-                        {sub.label}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {/* Coming Soon Section */}
-        <div className="pt-3 mt-3 border-t border-[#E4E7E0]">
-          <p className="px-3 text-[10px] font-semibold text-[#B0B8B0] uppercase tracking-wider mb-2">
-            Coming Soon
-          </p>
-          {comingSoonItems.map((item) => {
-            const Icon = item.icon;
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${
+          isChildActive
+            ? "text-[#F1F5F9] bg-white/[0.04]"
+            : "text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-white/[0.04]"
+        }`}
+      >
+        <Icon size={15} strokeWidth={1.8} className={isChildActive ? "text-[#34D399]" : ""} />
+        <span className="flex-1 text-left">{item.label}</span>
+        <ChevronDown
+          size={14}
+          className={`transition-transform duration-200 text-[#64748B] ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div className="ml-[26px] pl-3 border-l border-white/[0.06] mt-0.5 space-y-0.5">
+          {item.children!.map((child) => {
+            const active = pathname === child.href || pathname.startsWith(child.href + "/");
             return (
-              <div
-                key={item.label}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-sm font-medium text-[#C5CBC5] cursor-default"
+              <Link
+                key={child.href}
+                href={child.href}
+                className={`block px-3 py-1.5 rounded-md text-[12px] transition-colors ${
+                  active
+                    ? "text-[#34D399] bg-[#34D399]/[0.08]"
+                    : "text-[#64748B] hover:text-[#94A3B8] hover:bg-white/[0.03]"
+                }`}
               >
-                <Icon size={16} />
-                <span className="flex-1">{item.label}</span>
-                <Lock size={12} className="text-[#D4D9D4]" />
-              </div>
+                {child.label}
+              </Link>
             );
           })}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Single Nav Link ─────────────────────────────────────────
+function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+  const Icon = item.icon;
+  const active = pathname === item.href || pathname.startsWith(item.href + "/");
+
+  if (item.comingSoon) {
+    return (
+      <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-[#475569] cursor-default">
+        <Icon size={15} strokeWidth={1.8} />
+        <span className="flex-1">{item.label}</span>
+        <Lock size={11} className="text-[#475569]" />
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={item.href!}
+      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${
+        active
+          ? "text-[#F1F5F9] bg-white/[0.06]"
+          : "text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-white/[0.04]"
+      }`}
+    >
+      <Icon
+        size={15}
+        strokeWidth={1.8}
+        className={active ? "text-[#34D399]" : ""}
+      />
+      <span>{item.label}</span>
+    </Link>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SIDE NAV
+// ═══════════════════════════════════════════════════════════════
+export default function SideNav() {
+  const pathname = usePathname();
+
+  return (
+    <aside className="w-56 h-screen bg-[#080C15] border-r border-white/[0.06] flex flex-col fixed left-0 top-0 z-50">
+
+      {/* ── Logo ──────────────────────────────────────── */}
+      <div className="px-5 py-5 border-b border-white/[0.06]">
+        <Logo />
+        <p
+          className="text-[10px] text-[#64748B] mt-1 tracking-[2px] uppercase"
+          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+        >
+          FOR THE FARMER
+        </p>
+      </div>
+
+      {/* ── Navigation ────────────────────────────────── */}
+      <nav className="flex-1 px-2.5 py-3 overflow-y-auto space-y-4 scrollbar-thin">
+        {navSections.map((section, si) => (
+          <div key={si}>
+            {section.title && (
+              <p
+                className="px-3 mb-2 text-[10px] font-medium text-[#475569] tracking-[2px] uppercase"
+                style={{ fontFamily: "'JetBrains Mono', monospace" }}
+              >
+                {section.title}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {section.items.map((item) =>
+                item.children ? (
+                  <NavGroup key={item.label} item={item} pathname={pathname} />
+                ) : (
+                  <NavLink key={item.label} item={item} pathname={pathname} />
+                )
+              )}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      {/* Bottom: Settings + User */}
-      <div className="border-t border-[#E4E7E0]">
-        <div className="px-3 py-2">
-          <Link
-            href="/settings"
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-sm font-medium transition-colors ${
-              pathname === "/settings"
-                ? "bg-[#DDE3D6] text-[#4A7C59]"
-                : "text-[#7A8A7C] hover:bg-[#F5F5F3] hover:text-[#222527]"
-            }`}
-          >
-            <Settings size={16} />
-            <span>Settings</span>
-          </Link>
-        </div>
-        <div className="px-4 py-4 border-t border-[#E4E7E0]">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#DDE3D6] flex items-center justify-center text-sm font-bold text-[#4A7C59]">
-              M
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[#222527]">Mike Murphy</p>
-              <p className="text-xs text-[#4A7C59] font-medium">Pro Trial</p>
-            </div>
+      {/* ── Settings ──────────────────────────────────── */}
+      <div className="px-2.5 py-2 border-t border-white/[0.06]">
+        <Link
+          href="/settings"
+          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors ${
+            pathname === "/settings"
+              ? "text-[#F1F5F9] bg-white/[0.06]"
+              : "text-[#64748B] hover:text-[#94A3B8] hover:bg-white/[0.04]"
+          }`}
+        >
+          <Settings size={15} strokeWidth={1.8} />
+          <span>Settings</span>
+        </Link>
+      </div>
+
+      {/* ── User ──────────────────────────────────────── */}
+      <div className="px-4 py-3.5 border-t border-white/[0.06]">
+        <div className="flex items-center gap-3">
+          <UserButton
+            afterSignOutUrl="/"
+            appearance={{
+              elements: {
+                avatarBox: "w-7 h-7",
+              },
+            }}
+          />
+          <div className="min-w-0">
+            <p className="text-[12px] font-medium text-[#F1F5F9] truncate">Mike Murphy</p>
+            <p
+              className="text-[10px] text-[#34D399] font-medium"
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              Pro Trial
+            </p>
           </div>
         </div>
       </div>

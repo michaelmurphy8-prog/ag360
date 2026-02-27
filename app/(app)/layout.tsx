@@ -1,3 +1,6 @@
+// app/(app)/layout.tsx
+// AG360 App Shell — dark theme matching landing page design language
+
 import SideNav from "@/components/layout/SideNav";
 
 export default function AppLayout({
@@ -6,9 +9,9 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#F5F5F3] flex">
+    <div className="min-h-screen bg-[#0B1120] flex">
       <SideNav />
-      <main className="flex-1 ml-64 p-8">
+      <main className="flex-1 ml-56 p-6">
         {children}
       </main>
     </div>
