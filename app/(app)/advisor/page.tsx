@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, User, Sparkles, AlertTriangle, CheckCircle, Wheat, Tractor, DollarSign, Sprout, Bug, Users, TrendingUp, Scale } from "lucide-react";
+import { Send, User, Sparkles, AlertTriangle, CheckCircle, Wheat, Tractor, DollarSign, Sprout, Bug, Users, TrendingUp, Scale, Paperclip, X, FileText, Image } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import LilyIcon from "@/components/LilyIcon";
 
@@ -53,9 +53,16 @@ type FarmProfile = {
   }[];
 };
 
+type Attachment = {
+  name: string;
+  type: string;
+  base64: string;
+  mediaType: string;
+};
+
 type Message = {
   role: "user" | "assistant";
-  content: string;
+  content: string | any[];
 };
 
 // ─── Farm Context Builder ─────────────────────────────────────
@@ -174,6 +181,8 @@ export default function AdvisorPage() {
   const [profile, setProfile] = useState<FarmProfile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -209,43 +218,68 @@ export default function AdvisorPage() {
     }
   }, [pendingPrompt, user?.id, loading]);
 
-  async function sendMessage(text: string) {
-    if (!text.trim() || loading) return;
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files) return;
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(",")[1];
+        const mediaType = file.type || "application/octet-stream";
+        setAttachments((prev) => [...prev, { name: file.name, type: file.type, base64, mediaType }]);
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  }
 
+  function removeAttachment(index: number) {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  }
+  async function sendMessage(text: string) {
+    if ((!text.trim() && attachments.length === 0) || loading) return;
     const farmContext = profile ? buildFarmContext(profile) : "";
 
-    const userMessage: Message = { role: "user", content: text };
+    const contentBlocks: any[] = [];
+    for (const att of attachments) {
+      if (att.type.startsWith("image/")) {
+        contentBlocks.push({ type: "image", source: { type: "base64", media_type: att.mediaType, data: att.base64 } });
+      } else if (att.type === "application/pdf") {
+        contentBlocks.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: att.base64 } });
+      } else {
+        try { const decoded = atob(att.base64); contentBlocks.push({ type: "text", text: `[File: ${att.name}]\n${decoded}` }); }
+        catch { contentBlocks.push({ type: "text", text: `[File: ${att.name} — could not decode]` }); }
+      }
+    }
+    if (text.trim()) contentBlocks.push({ type: "text", text: text.trim() });
+
+    const displayContent = [...attachments.map((a) => `📎 ${a.name}`), text.trim()].filter(Boolean).join("\n");
+    const userMessage: Message = { role: "user", content: displayContent };
+    const apiUserMessage = { role: "user", content: contentBlocks.length === 1 && contentBlocks[0].type === "text" ? contentBlocks[0].text : contentBlocks };
     const updatedMessages = [...messages, userMessage];
-    const apiMessages = [...messages, userMessage];
+    const apiMessages = [...messages.map((m) => ({ role: m.role, content: m.content })), apiUserMessage];
 
     setMessages(updatedMessages);
     setInput("");
+    setAttachments([]);
     setLoading(true);
     setStreamingText("");
-
     try {
       const res = await fetch("/api/advisor", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-id": user?.id || "",
-        },
+        headers: { "Content-Type": "application/json", "x-user-id": user?.id || "" },
         body: JSON.stringify({ messages: apiMessages, farmContext }),
       });
-
       if (!res.body) throw new Error("No response body");
-
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullText = "";
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         fullText += decoder.decode(value);
         setStreamingText(fullText);
       }
-
       setMessages([...updatedMessages, { role: "assistant", content: fullText }]);
       setStreamingText("");
     } catch (error) {
@@ -376,13 +410,13 @@ export default function AdvisorPage() {
                     : { background: "rgba(17,24,39,0.8)", border: "1px solid rgba(255,255,255,0.06)" }
                   }>
                   {msg.role === "assistant"
-                    ? <LilyMessage content={msg.content} />
+                    ? <LilyMessage content={typeof msg.content === "string" ? msg.content : msg.content.map((b: any) => b.text || "").join("\n")} />
                     : <p className="text-[13px] text-[#080C15] font-medium leading-relaxed">{msg.content}</p>
                   }
                   {msg.role === "assistant" && (
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(msg.content);
+                        navigator.clipboard.writeText(typeof msg.content === "string" ? msg.content : msg.content.map((b: any) => b.text || "").join("\n"))
                         const btn = document.getElementById(`copy-${i}`);
                         if (btn) { btn.textContent = "Copied!"; setTimeout(() => { btn.textContent = "Copy"; }, 1500); }
                       }}
@@ -456,7 +490,34 @@ export default function AdvisorPage() {
             : "inset 0 1px 0 rgba(255,255,255,0.02)",
         }}
       >
+        {/* Attachment preview */}
+        {attachments.length > 0 && (
+          <div className="flex gap-2 flex-wrap mb-2">
+            {attachments.map((att, i) => (
+              <div key={i} className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg"
+                style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.20)", color: "#34D399" }}>
+                {att.type.startsWith("image/") ? <Image size={11} /> : <FileText size={11} />}
+                <span className="max-w-[120px] truncate">{att.name}</span>
+                <button onClick={() => removeAttachment(i)} className="hover:text-white transition-colors ml-0.5"><X size={10} /></button>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="flex gap-3 items-center">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            accept="image/*,.pdf,.csv,.txt,.xlsx,.xls,.doc,.docx"
+            multiple
+            className="hidden"
+          />
+          <button onClick={() => fileInputRef.current?.click()}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 hover:bg-white/[0.06]"
+            style={{ background: "rgba(255,255,255,0.04)" }}
+            title="Attach file">
+            <Paperclip size={14} className="text-[#64748B]" />
+          </button>
           <input
             type="text"
             value={input}
@@ -467,13 +528,13 @@ export default function AdvisorPage() {
             placeholder="Ask Lily anything about your farm operation..."
             className="flex-1 text-[13px] text-[#F1F5F9] placeholder:text-[#475569] outline-none bg-transparent"
           />
-          <button onClick={() => sendMessage(input)} disabled={loading || !input.trim()}
+          <button onClick={() => sendMessage(input)} disabled={loading || (!input.trim() && attachments.length === 0)}
             className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 disabled:opacity-30"
             style={{
-              background: !input.trim() || loading ? "rgba(255,255,255,0.04)" : "linear-gradient(135deg, #34D399, #2DD4A8)",
-              boxShadow: input.trim() && !loading ? "0 2px 8px rgba(52,211,153,0.25)" : "none",
+              background: (!input.trim() && attachments.length === 0) || loading ? "rgba(255,255,255,0.04)" : "linear-gradient(135deg, #34D399, #2DD4A8)",
+              boxShadow: (input.trim() || attachments.length > 0) && !loading ? "0 2px 8px rgba(52,211,153,0.25)" : "none",
             }}>
-            <Send size={14} className={input.trim() && !loading ? "text-[#080C15]" : "text-[#475569]"} />
+            <Send size={14} className={(input.trim() || attachments.length > 0) && !loading ? "text-[#080C15]" : "text-[#475569]"} />
           </button>
         </div>
       </div>

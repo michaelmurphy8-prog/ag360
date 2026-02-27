@@ -11,93 +11,146 @@ const sql = neon(process.env.DATABASE_URL!);
 // ============================================================
 export const LILY_TOOLS = [
   {
-    name: "get_harvest_data",
-    description: "Get harvest records for a specific crop year. Returns yield, variety, area, moisture by field. Use this when the farmer asks about yields, variety performance, harvest results, or anything related to what was harvested.",
+    name: "get_marketing_positions",
+    description:
+      "Get the farmer's full marketing position — production estimates (forecast and actual), contracted bushels, deliveries, unpriced exposure, and percent contracted by crop. This is the PRIMARY tool for any marketing, selling, contracting, or risk management question. ALWAYS call this before giving marketing advice.",
     input_schema: {
       type: "object" as const,
       properties: {
-        crop_year: { type: "number", description: "Crop year (e.g. 2025)" },
-        crop: { type: "string", description: "Filter by crop name (optional, e.g. 'Canola', 'HRW Wheat')" },
-        field_name: { type: "string", description: "Filter by specific field name (optional)" },
+        crop_year: {
+          type: "number",
+          description: "Crop year (e.g. 2025)",
+        },
+      },
+      required: ["crop_year"],
+    },
+  },
+  {
+    name: "get_harvest_data",
+    description:
+      "Get harvest records for a specific crop year. Returns yield, variety, area, moisture by field. Use this when the farmer asks about yields, variety performance, harvest results, or anything related to what was harvested.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        crop_year: {
+          type: "number",
+          description: "Crop year (e.g. 2025)",
+        },
+        crop: {
+          type: "string",
+          description:
+            "Filter by crop name (optional, e.g. 'Canola', 'HRW Wheat')",
+        },
+        field_name: {
+          type: "string",
+          description: "Filter by specific field name (optional)",
+        },
       },
       required: ["crop_year"],
     },
   },
   {
     name: "get_seeding_data",
-    description: "Get seeding/planting records for a crop year. Returns crop, variety, area, seeding date, seed rate by field. Use when farmer asks about what was planted, seeding rates, or planting dates.",
+    description:
+      "Get seeding/planting records for a crop year. Returns crop, variety, area, seeding date, seed rate by field. Use when farmer asks about what was planted, seeding rates, or planting dates.",
     input_schema: {
       type: "object" as const,
       properties: {
         crop_year: { type: "number", description: "Crop year" },
-        crop: { type: "string", description: "Filter by crop (optional)" },
+        crop: {
+          type: "string",
+          description: "Filter by crop (optional)",
+        },
       },
       required: ["crop_year"],
     },
   },
   {
     name: "get_application_data",
-    description: "Get spray/fertilizer/chemical application records. Returns product, type, rate, area, date by field. Use when farmer asks about spray history, input usage, or chemical applications.",
+    description:
+      "Get spray/fertilizer/chemical application records. Returns product, type, rate, area, date by field. Use when farmer asks about spray history, input usage, or chemical applications.",
     input_schema: {
       type: "object" as const,
       properties: {
         crop_year: { type: "number", description: "Crop year" },
-        product_type: { type: "string", description: "Filter by type: herbicide, fungicide, insecticide, fertilizer, etc. (optional)" },
-        field_name: { type: "string", description: "Filter by field (optional)" },
+        product_type: {
+          type: "string",
+          description:
+            "Filter by type: herbicide, fungicide, insecticide, fertilizer, etc. (optional)",
+        },
+        field_name: {
+          type: "string",
+          description: "Filter by field (optional)",
+        },
       },
       required: ["crop_year"],
     },
   },
   {
     name: "get_grain_inventory",
-    description: "Get current grain inventory — what's in the bins right now. Returns crop, quantity, bin location, grade. Use when farmer asks about grain on hand, storage, or what they have left to sell.",
+    description:
+      "Get current grain inventory — what's in the bins right now. Returns crop, quantity, bin location, grade. Use when farmer asks about grain on hand, storage, or what they have left to sell.",
     input_schema: {
       type: "object" as const,
       properties: {
-        crop: { type: "string", description: "Filter by crop type (optional)" },
+        crop: {
+          type: "string",
+          description: "Filter by crop type (optional)",
+        },
       },
     },
   },
   {
     name: "get_grain_loads",
-    description: "Get grain delivery/load records. Returns crop, bushels, buyer, price, grade, date. Use when farmer asks about deliveries, sales history, or what they've sold.",
+    description:
+      "Get grain delivery/load records. Returns crop, weight, buyer, date. Use when farmer asks about deliveries, sales history, or what they've sold.",
     input_schema: {
       type: "object" as const,
       properties: {
         crop_year: { type: "number", description: "Crop year" },
-        crop: { type: "string", description: "Filter by crop (optional)" },
+        crop: {
+          type: "string",
+          description: "Filter by crop (optional)",
+        },
       },
       required: ["crop_year"],
     },
   },
   {
     name: "get_contracts",
-    description: "Get active grain contracts. Returns crop, type, bushels, price, buyer, delivery window, status. Use when farmer asks about contracts, commitments, delivery obligations, or marketing position.",
+    description:
+      "Get active grain contracts from inventory_contracts. Returns crop, type, bushels, price, buyer, delivery date. Use when farmer asks about contracts, commitments, delivery obligations.",
     input_schema: {
       type: "object" as const,
       properties: {
-        crop_year: { type: "number", description: "Crop year" },
-        status: { type: "string", description: "Filter: open, delivered, cancelled (optional)" },
-        crop: { type: "string", description: "Filter by crop (optional)" },
+        crop: {
+          type: "string",
+          description: "Filter by crop (optional)",
+        },
       },
-      required: ["crop_year"],
     },
   },
   {
     name: "get_pnl_summary",
-    description: "Get the farm's Profit & Loss summary. Returns total revenue, total expenses, net income, margin, and breakdown by category. Use when farmer asks about profitability, costs, margins, or financial performance.",
+    description:
+      "Get the farm's Profit & Loss summary. Returns total revenue, total expenses, net income, margin, and breakdown by category. Use when farmer asks about profitability, costs, margins, or financial performance.",
     input_schema: {
       type: "object" as const,
       properties: {
         crop_year: { type: "number", description: "Crop year" },
-        view: { type: "string", description: "View: 'farm' (whole operation), 'crop' (by crop), 'field' (by field). Default: farm" },
+        view: {
+          type: "string",
+          description:
+            "View: 'farm' (whole operation), 'crop' (by crop), 'field' (by field). Default: farm",
+        },
       },
       required: ["crop_year"],
     },
   },
   {
     name: "get_fields",
-    description: "Get the farm's field registry. Returns field names, acres, soil zone, current crop, legal land description. Use when farmer asks about their fields, acreage, or land base.",
+    description:
+      "Get the farm's field registry. Returns field names, acres, soil zone, current crop, legal land description. Use when farmer asks about their fields, acreage, or land base.",
     input_schema: {
       type: "object" as const,
       properties: {},
@@ -105,7 +158,8 @@ export const LILY_TOOLS = [
   },
   {
     name: "get_equipment",
-    description: "Get the farm's equipment fleet. Returns name, make, model, year, type. Use when farmer asks about their machinery or equipment.",
+    description:
+      "Get the farm's equipment fleet. Returns name, make, model, year, type. Use when farmer asks about their machinery or equipment.",
     input_schema: {
       type: "object" as const,
       properties: {},
@@ -113,7 +167,8 @@ export const LILY_TOOLS = [
   },
   {
     name: "get_market_prices",
-    description: "Get current commodity futures prices and Saskatchewan cash bids. Returns futures contracts and elevator cash prices with basis. Use when farmer asks about current prices, basis, or market conditions. ALWAYS call this before giving any marketing advice.",
+    description:
+      "Get current commodity futures prices and Saskatchewan cash bids. Returns futures contracts and elevator cash prices with basis. Use when farmer asks about current prices, basis, or market conditions.",
     input_schema: {
       type: "object" as const,
       properties: {},
@@ -121,7 +176,8 @@ export const LILY_TOOLS = [
   },
   {
     name: "get_weather",
-    description: "Get current weather and forecast for the farm location. Use when farmer asks about weather, spray conditions, or field conditions.",
+    description:
+      "Get current weather and forecast for the farm location. Use when farmer asks about weather, spray conditions, or field conditions.",
     input_schema: {
       type: "object" as const,
       properties: {},
@@ -129,12 +185,16 @@ export const LILY_TOOLS = [
   },
   {
     name: "get_journal_entries",
-    description: "Get recent journal/ledger entries from the accounting system. Returns transactions with accounts, debits, credits. Use when farmer asks about recent transactions, bookkeeping, or specific financial entries.",
+    description:
+      "Get recent journal/ledger entries from the accounting system. Returns transactions with accounts, debits, credits. Use when farmer asks about recent transactions, bookkeeping, or specific financial entries.",
     input_schema: {
       type: "object" as const,
       properties: {
         crop_year: { type: "number", description: "Crop year" },
-        limit: { type: "number", description: "Number of entries to return (default 20)" },
+        limit: {
+          type: "number",
+          description: "Number of entries to return (default 20)",
+        },
       },
       required: ["crop_year"],
     },
@@ -152,8 +212,140 @@ export async function executeTool(
 ): Promise<string> {
   try {
     switch (toolName) {
+      // ─── NEW: Marketing Positions ───────────────────────
+      case "get_marketing_positions": {
+        const cropYear = input.crop_year || new Date().getFullYear();
+
+        // 1. Crop plans (production estimates)
+        const plans = await sql`
+          SELECT crop, acres, target_yield_bu, actual_yield_bu,
+                 (acres * target_yield_bu) AS forecast_bu,
+                 CASE WHEN actual_yield_bu IS NOT NULL
+                      THEN (acres * actual_yield_bu)
+                      ELSE NULL
+                 END AS actual_bu
+          FROM crop_plans
+          WHERE user_id = ${userId} AND crop_year = ${cropYear}
+          ORDER BY (acres * target_yield_bu) DESC
+        `;
+
+        if (plans.length === 0) {
+          return `No crop plan found for ${cropYear}. The farmer needs to enter their crop plan in Farm Profile (crops, acres, target yields) so I can calculate their marketing position.`;
+        }
+
+        // 2. Contracts
+        const contracts = await sql`
+          SELECT crop, quantity_bu, price_per_bu, basis, contract_type, elevator, delivery_date
+          FROM inventory_contracts
+          WHERE user_id = ${userId}
+        `;
+
+        // 3. Deliveries
+        const deliveries = await sql`
+          SELECT crop, COALESCE(SUM(net_weight_kg), 0) as total_kg
+          FROM grain_loads
+          WHERE farm_id = ${userId} AND crop_year = ${cropYear} AND crop IS NOT NULL
+          GROUP BY crop
+        `;
+
+        // Build per-crop summary
+        const KG_PER_BU: Record<string, number> = {
+          "hrs wheat": 27.22, durum: 27.22, canola: 22.68, barley: 21.77,
+          oats: 15.42, flax: 25.4, "large green lentils": 27.22,
+          "small green lentils": 27.22, "small red lentils": 27.22,
+          peas: 27.22, chickpeas: 27.22, mustard: 22.68, lentils: 27.22,
+        };
+
+        const cropData: Record<string, any> = {};
+
+        for (const p of plans) {
+          const forecastBu = Math.round(parseFloat(p.forecast_bu));
+          const actualBu = p.actual_bu != null ? Math.round(parseFloat(p.actual_bu)) : null;
+          cropData[p.crop] = {
+            acres: parseFloat(p.acres),
+            target_yield: parseFloat(p.target_yield_bu),
+            actual_yield: p.actual_yield_bu ? parseFloat(p.actual_yield_bu) : null,
+            forecast_production: forecastBu,
+            actual_production: actualBu,
+            contracted_bu: 0,
+            contracted_value: 0,
+            delivered_bu: 0,
+            contracts: [] as any[],
+          };
+        }
+
+        for (const c of contracts) {
+          if (!c.crop || !cropData[c.crop]) continue;
+          const qty = Number(c.quantity_bu || 0);
+          const price = Number(c.price_per_bu || 0);
+          cropData[c.crop].contracted_bu += qty;
+          cropData[c.crop].contracted_value += qty * price;
+          cropData[c.crop].contracts.push({
+            type: c.contract_type,
+            bu: qty,
+            price: price,
+            basis: Number(c.basis || 0),
+            elevator: c.elevator,
+            delivery: c.delivery_date,
+          });
+        }
+
+        for (const d of deliveries) {
+          if (!d.crop || !cropData[d.crop]) continue;
+          const factor = KG_PER_BU[d.crop.toLowerCase()] || 27.22;
+          cropData[d.crop].delivered_bu = Math.round(Number(d.total_kg) / factor);
+        }
+
+        // Format response
+        let totalForecast = 0;
+        let totalContracted = 0;
+        let totalValue = 0;
+        let totalDelivered = 0;
+        const lines: string[] = [];
+
+        for (const [crop, d] of Object.entries(cropData)) {
+          const production = d.actual_production || d.forecast_production;
+          const unpriced = Math.max(0, production - d.contracted_bu);
+          const pctContracted = production > 0 ? Math.round((d.contracted_bu / production) * 100) : 0;
+          const pctDelivered = d.contracted_bu > 0 ? Math.round((d.delivered_bu / d.contracted_bu) * 100) : 0;
+          const avgPrice = d.contracted_bu > 0 ? (d.contracted_value / d.contracted_bu).toFixed(2) : "N/A";
+
+          totalForecast += production;
+          totalContracted += d.contracted_bu;
+          totalValue += d.contracted_value;
+          totalDelivered += d.delivered_bu;
+
+          let line = `${crop}: ${d.acres} ac × ${d.target_yield} bu/ac = ${d.forecast_production.toLocaleString()} bu forecast`;
+          if (d.actual_production) {
+            line += ` | ACTUAL: ${d.actual_production.toLocaleString()} bu (${d.actual_yield} bu/ac)`;
+          }
+          line += ` | Contracted: ${d.contracted_bu.toLocaleString()} bu (${pctContracted}%) @ avg $${avgPrice}/bu`;
+          line += ` | Delivered: ${d.delivered_bu.toLocaleString()} bu (${pctDelivered}% of contracted)`;
+          line += ` | UNPRICED: ${unpriced.toLocaleString()} bu`;
+
+          if (d.contracts.length > 0) {
+            line += "\n    Contracts:";
+            for (const c of d.contracts) {
+              line += `\n      ${c.type || "Cash"}: ${c.bu.toLocaleString()} bu @ $${c.price.toFixed(2)}/bu${c.basis ? ` (basis: ${c.basis})` : ""} → ${c.elevator || "?"} by ${c.delivery || "?"}`;
+            }
+          }
+
+          lines.push(line);
+        }
+
+        const totalUnpriced = Math.max(0, totalForecast - totalContracted);
+        const overallPct = totalForecast > 0 ? Math.round((totalContracted / totalForecast) * 100) : 0;
+        const overallAvg = totalContracted > 0 ? (totalValue / totalContracted).toFixed(2) : "N/A";
+
+        return `MARKETING POSITION — ${cropYear}:
+TOTALS: ${totalForecast.toLocaleString()} bu production | ${totalContracted.toLocaleString()} bu contracted (${overallPct}%) | ${totalUnpriced.toLocaleString()} bu UNPRICED | ${totalDelivered.toLocaleString()} bu delivered | Avg price: $${overallAvg}/bu | Contracted value: $${Math.round(totalValue).toLocaleString()}
+
+BY CROP:
+${lines.join("\n\n")}`;
+      }
+
       case "get_harvest_data": {
-        let query = sql`
+        const query = sql`
           SELECT crop, variety, external_field_name as field_name,
                  area_harvested_ac, dry_yield_bu_per_ac, total_dry_yield_bu,
                  moisture_pct, protein_pct, test_weight_lbs_per_bu
@@ -164,18 +356,37 @@ export async function executeTool(
         const records = await query;
 
         let filtered = records;
-        if (input.crop) filtered = filtered.filter((r: any) => r.crop?.toLowerCase().includes(input.crop.toLowerCase()));
-        if (input.field_name) filtered = filtered.filter((r: any) => r.field_name?.toLowerCase().includes(input.field_name.toLowerCase()));
+        if (input.crop)
+          filtered = filtered.filter((r: any) =>
+            r.crop?.toLowerCase().includes(input.crop.toLowerCase())
+          );
+        if (input.field_name)
+          filtered = filtered.filter((r: any) =>
+            r.field_name
+              ?.toLowerCase()
+              .includes(input.field_name.toLowerCase())
+          );
 
-        if (filtered.length === 0) return `No harvest records found for crop year ${input.crop_year}${input.crop ? ` and crop "${input.crop}"` : ""}.`;
+        if (filtered.length === 0)
+          return `No harvest records found for crop year ${input.crop_year}${input.crop ? ` and crop "${input.crop}"` : ""}.`;
 
-        const totalAcres = filtered.reduce((s: number, r: any) => s + (parseFloat(r.area_harvested_ac) || 0), 0);
-        const totalBu = filtered.reduce((s: number, r: any) => s + (parseFloat(r.total_dry_yield_bu) || 0), 0);
-        const avgYield = totalAcres > 0 ? (totalBu / totalAcres).toFixed(1) : "N/A";
+        const totalAcres = filtered.reduce(
+          (s: number, r: any) => s + (parseFloat(r.area_harvested_ac) || 0),
+          0
+        );
+        const totalBu = filtered.reduce(
+          (s: number, r: any) => s + (parseFloat(r.total_dry_yield_bu) || 0),
+          0
+        );
+        const avgYield =
+          totalAcres > 0 ? (totalBu / totalAcres).toFixed(1) : "N/A";
 
-        const lines = filtered.map((r: any) =>
-          `${r.field_name}: ${r.crop} ${r.variety || ""} — ${r.dry_yield_bu_per_ac} bu/ac, ${r.area_harvested_ac} ac, ${r.total_dry_yield_bu} total bu, ${r.moisture_pct}% moisture${r.protein_pct ? `, ${r.protein_pct}% protein` : ""}`
-        ).join("\n");
+        const lines = filtered
+          .map(
+            (r: any) =>
+              `${r.field_name}: ${r.crop} ${r.variety || ""} — ${r.dry_yield_bu_per_ac} bu/ac, ${r.area_harvested_ac} ac, ${r.total_dry_yield_bu} total bu, ${r.moisture_pct}% moisture${r.protein_pct ? `, ${r.protein_pct}% protein` : ""}`
+          )
+          .join("\n");
 
         return `Harvest Data — ${input.crop_year}${input.crop ? ` (${input.crop})` : ""}:\nTotal: ${Math.round(totalAcres)} acres, ${Math.round(totalBu).toLocaleString()} bushels, ${avgYield} bu/ac average\n\n${lines}`;
       }
@@ -190,13 +401,20 @@ export async function executeTool(
         `;
 
         let filtered = records;
-        if (input.crop) filtered = filtered.filter((r: any) => r.crop?.toLowerCase().includes(input.crop.toLowerCase()));
+        if (input.crop)
+          filtered = filtered.filter((r: any) =>
+            r.crop?.toLowerCase().includes(input.crop.toLowerCase())
+          );
 
-        if (filtered.length === 0) return `No seeding records for ${input.crop_year}.`;
+        if (filtered.length === 0)
+          return `No seeding records for ${input.crop_year}.`;
 
-        const lines = filtered.map((r: any) =>
-          `${r.field_name}: ${r.crop} ${r.variety || ""} — ${r.area_seeded_ac} ac, seeded ${r.seeding_date || "N/A"}${r.seed_rate ? `, rate: ${r.seed_rate} ${r.seed_rate_unit || ""}` : ""}`
-        ).join("\n");
+        const lines = filtered
+          .map(
+            (r: any) =>
+              `${r.field_name}: ${r.crop} ${r.variety || ""} — ${r.area_seeded_ac} ac, seeded ${r.seeding_date || "N/A"}${r.seed_rate ? `, rate: ${r.seed_rate} ${r.seed_rate_unit || ""}` : ""}`
+          )
+          .join("\n");
 
         return `Seeding Data — ${input.crop_year}:\n${lines}`;
       }
@@ -211,14 +429,28 @@ export async function executeTool(
         `;
 
         let filtered = records;
-        if (input.product_type) filtered = filtered.filter((r: any) => r.product_type?.toLowerCase() === input.product_type.toLowerCase());
-        if (input.field_name) filtered = filtered.filter((r: any) => r.field_name?.toLowerCase().includes(input.field_name.toLowerCase()));
+        if (input.product_type)
+          filtered = filtered.filter(
+            (r: any) =>
+              r.product_type?.toLowerCase() ===
+              input.product_type.toLowerCase()
+          );
+        if (input.field_name)
+          filtered = filtered.filter((r: any) =>
+            r.field_name
+              ?.toLowerCase()
+              .includes(input.field_name.toLowerCase())
+          );
 
-        if (filtered.length === 0) return `No application records for ${input.crop_year}.`;
+        if (filtered.length === 0)
+          return `No application records for ${input.crop_year}.`;
 
-        const lines = filtered.map((r: any) =>
-          `${r.field_name}: ${r.product_name} (${r.product_type}) — ${r.area_applied_ac} ac, ${r.application_date || "N/A"}${r.rate ? `, rate: ${r.rate} ${r.rate_unit || ""}` : ""}`
-        ).join("\n");
+        const lines = filtered
+          .map(
+            (r: any) =>
+              `${r.field_name}: ${r.product_name} (${r.product_type}) — ${r.area_applied_ac} ac, ${r.application_date || "N/A"}${r.rate ? `, rate: ${r.rate} ${r.rate_unit || ""}` : ""}`
+          )
+          .join("\n");
 
         return `Application Records — ${input.crop_year}:\n${lines}`;
       }
@@ -226,73 +458,101 @@ export async function executeTool(
       case "get_grain_inventory": {
         const records = await sql`
           SELECT crop_type, quantity, unit, bin_location, grade, notes
-          FROM grain_inventory
+          FROM inventory_items
           WHERE user_id = ${userId} AND quantity > 0
           ORDER BY crop_type ASC
         `;
 
         let filtered = records;
-        if (input.crop) filtered = filtered.filter((r: any) => r.crop_type?.toLowerCase().includes(input.crop.toLowerCase()));
+        if (input.crop)
+          filtered = filtered.filter((r: any) =>
+            r.crop_type?.toLowerCase().includes(input.crop.toLowerCase())
+          );
 
         if (filtered.length === 0) return "No grain inventory on hand.";
 
-        const lines = filtered.map((r: any) =>
-          `${r.crop_type}: ${parseFloat(r.quantity).toLocaleString()} ${r.unit || "bu"}${r.bin_location ? ` in ${r.bin_location}` : ""}${r.grade ? ` (${r.grade})` : ""}`
-        ).join("\n");
+        const lines = filtered
+          .map(
+            (r: any) =>
+              `${r.crop_type}: ${parseFloat(r.quantity).toLocaleString()} ${r.unit || "bu"}${r.bin_location ? ` in ${r.bin_location}` : ""}${r.grade ? ` (${r.grade})` : ""}`
+          )
+          .join("\n");
 
         return `Grain Inventory — On Hand:\n${lines}`;
       }
 
       case "get_grain_loads": {
         const records = await sql`
-          SELECT crop, bushels, grade, buyer, price_per_bushel, delivery_date, ticket_number
+          SELECT crop, net_weight_kg, gross_weight_kg, grade, destination, delivery_date, ticket_number
           FROM grain_loads
-          WHERE user_id = ${userId} AND crop_year = ${input.crop_year}
+          WHERE farm_id = ${userId} AND crop_year = ${input.crop_year}
           ORDER BY delivery_date DESC
         `;
 
         let filtered = records;
-        if (input.crop) filtered = filtered.filter((r: any) => r.crop?.toLowerCase().includes(input.crop.toLowerCase()));
+        if (input.crop)
+          filtered = filtered.filter((r: any) =>
+            r.crop?.toLowerCase().includes(input.crop.toLowerCase())
+          );
 
-        if (filtered.length === 0) return `No grain deliveries for ${input.crop_year}.`;
+        if (filtered.length === 0)
+          return `No grain deliveries for ${input.crop_year}.`;
 
-        const totalBu = filtered.reduce((s: number, r: any) => s + (parseFloat(r.bushels) || 0), 0);
-        const lines = filtered.slice(0, 20).map((r: any) =>
-          `${r.delivery_date || "?"}: ${r.crop} — ${parseFloat(r.bushels).toLocaleString()} bu to ${r.buyer || "?"}${r.price_per_bushel ? ` @ $${r.price_per_bushel}/bu` : ""}${r.grade ? ` (${r.grade})` : ""}`
-        ).join("\n");
+        const totalKg = filtered.reduce(
+          (s: number, r: any) => s + (parseFloat(r.net_weight_kg) || 0),
+          0
+        );
+        const lines = filtered
+          .slice(0, 20)
+          .map(
+            (r: any) =>
+              `${r.delivery_date || "?"}: ${r.crop} — ${parseFloat(r.net_weight_kg).toLocaleString()} kg to ${r.destination || "?"}${r.grade ? ` (${r.grade})` : ""}${r.ticket_number ? ` #${r.ticket_number}` : ""}`
+          )
+          .join("\n");
 
-        return `Grain Deliveries — ${input.crop_year} (${Math.round(totalBu).toLocaleString()} bu total):\n${lines}`;
+        return `Grain Deliveries — ${input.crop_year} (${Math.round(totalKg).toLocaleString()} kg total):\n${lines}`;
       }
 
       case "get_contracts": {
         const records = await sql`
-          SELECT crop, contract_type, bushels, price_per_bushel, buyer,
-                 delivery_start, delivery_end, status
-          FROM contracts
-          WHERE user_id = ${userId} AND crop_year = ${input.crop_year}
-          ORDER BY delivery_start ASC
+          SELECT crop, contract_type, quantity_bu, price_per_bu, basis,
+                 elevator, delivery_date, notes, created_at
+          FROM inventory_contracts
+          WHERE user_id = ${userId}
+          ORDER BY created_at DESC
         `;
 
         let filtered = records;
-        if (input.status) filtered = filtered.filter((r: any) => r.status?.toLowerCase() === input.status.toLowerCase());
-        if (input.crop) filtered = filtered.filter((r: any) => r.crop?.toLowerCase().includes(input.crop.toLowerCase()));
+        if (input.crop)
+          filtered = filtered.filter((r: any) =>
+            r.crop?.toLowerCase().includes(input.crop.toLowerCase())
+          );
 
-        if (filtered.length === 0) return `No contracts for ${input.crop_year}${input.status ? ` with status "${input.status}"` : ""}.`;
+        if (filtered.length === 0) return "No contracts found.";
 
-        const totalBu = filtered.reduce((s: number, r: any) => s + (parseFloat(r.bushels) || 0), 0);
-        const lines = filtered.map((r: any) =>
-          `${r.crop} ${r.contract_type || "cash"}: ${parseFloat(r.bushels).toLocaleString()} bu @ $${r.price_per_bushel}/bu to ${r.buyer || "?"} | ${r.delivery_start || "?"} to ${r.delivery_end || "?"} | ${r.status || "open"}`
-        ).join("\n");
+        const totalBu = filtered.reduce(
+          (s: number, r: any) => s + (parseFloat(r.quantity_bu) || 0),
+          0
+        );
+        const lines = filtered
+          .map(
+            (r: any) =>
+              `${r.crop} ${r.contract_type || "cash"}: ${parseFloat(r.quantity_bu).toLocaleString()} bu @ $${r.price_per_bu}/bu${r.basis ? ` (basis: ${r.basis})` : ""} → ${r.elevator || "?"} by ${r.delivery_date || "?"}`
+          )
+          .join("\n");
 
-        return `Contracts — ${input.crop_year} (${Math.round(totalBu).toLocaleString()} bu committed):\n${lines}`;
+        return `Contracts (${Math.round(totalBu).toLocaleString()} bu committed):\n${lines}`;
       }
 
       case "get_pnl_summary": {
         try {
-          const res = await fetch(`${baseUrl}/api/finance/pnl?cropYear=${input.crop_year}&view=${input.view || "farm"}`);
+          const res = await fetch(
+            `${baseUrl}/api/finance/pnl?cropYear=${input.crop_year}&view=${input.view || "farm"}`
+          );
           const data = await res.json();
 
-          if (!data.totalRevenue && !data.totalExpenses) return `No P&L data for ${input.crop_year}.`;
+          if (!data.totalRevenue && !data.totalExpenses)
+            return `No P&L data for ${input.crop_year}.`;
 
           let result = `P&L Summary — ${input.crop_year} (${input.view || "farm"} view):\nRevenue: $${data.totalRevenue.toLocaleString()}\nExpenses: $${data.totalExpenses.toLocaleString()}\nNet Income: $${data.netIncome.toLocaleString()}\nMargin: ${data.margin}%`;
 
@@ -305,7 +565,9 @@ export async function executeTool(
 
           if (data.expensesByCategory) {
             result += "\n\nExpense Breakdown:";
-            for (const [, cat] of Object.entries(data.expensesByCategory) as any) {
+            for (const [, cat] of Object.entries(
+              data.expensesByCategory
+            ) as any) {
               result += `\n  ${cat.label}: $${cat.total.toLocaleString()}`;
             }
           }
@@ -323,10 +585,16 @@ export async function executeTool(
         `;
         if (records.length === 0) return "No fields registered in AG360.";
 
-        const totalAcres = records.reduce((s: number, r: any) => s + (parseFloat(r.total_acres) || 0), 0);
-        const lines = records.map((r: any) =>
-          `${r.name}: ${r.total_acres || "?"} ac${r.soil_zone ? ` (${r.soil_zone})` : ""}${r.crop_type ? ` — ${r.crop_type}` : ""}${r.legal_land_description ? ` [${r.legal_land_description}]` : ""}`
-        ).join("\n");
+        const totalAcres = records.reduce(
+          (s: number, r: any) => s + (parseFloat(r.total_acres) || 0),
+          0
+        );
+        const lines = records
+          .map(
+            (r: any) =>
+              `${r.name}: ${r.total_acres || "?"} ac${r.soil_zone ? ` (${r.soil_zone})` : ""}${r.crop_type ? ` — ${r.crop_type}` : ""}${r.legal_land_description ? ` [${r.legal_land_description}]` : ""}`
+          )
+          .join("\n");
 
         return `Field Registry (${records.length} fields, ${Math.round(totalAcres).toLocaleString()} total acres):\n${lines}`;
       }
@@ -338,9 +606,12 @@ export async function executeTool(
         `;
         if (records.length === 0) return "No equipment registered.";
 
-        const lines = records.map((r: any) =>
-          `${r.name || `${r.make} ${r.model}`}${r.year ? ` (${r.year})` : ""} — ${r.equipment_type}`
-        ).join("\n");
+        const lines = records
+          .map(
+            (r: any) =>
+              `${r.name || `${r.make} ${r.model}`}${r.year ? ` (${r.year})` : ""} — ${r.equipment_type}`
+          )
+          .join("\n");
 
         return `Equipment Fleet (${records.length} units):\n${lines}`;
       }
@@ -352,13 +623,21 @@ export async function executeTool(
 
           if (!data.success) return "Could not fetch market prices.";
 
-          const futuresLines = data.futures?.map((f: any) =>
-            `${f.name} (${f.symbol}): ${f.lastPrice} ${f.unitCode} | Change: ${f.priceChange > 0 ? "+" : ""}${f.priceChange} (${f.percentChange}%)`
-          ).join("\n") || "No futures data";
+          const futuresLines =
+            data.futures
+              ?.map(
+                (f: any) =>
+                  `${f.name} (${f.symbol}): ${f.lastPrice} ${f.unitCode} | Change: ${f.priceChange > 0 ? "+" : ""}${f.priceChange} (${f.percentChange}%)`
+              )
+              .join("\n") || "No futures data";
 
-          const cashLines = data.cashBids?.map((b: any) =>
-            `${b.location} | ${b.commodity}: $${b.cashPrice.toFixed(2)}/bu | Basis: ${b.basis.toFixed(2)} | Delivery: ${b.deliveryStart} to ${b.deliveryEnd}`
-          ).join("\n") || "No cash bids";
+          const cashLines =
+            data.cashBids
+              ?.map(
+                (b: any) =>
+                  `${b.location} | ${b.commodity}: $${b.cashPrice.toFixed(2)}/bu | Basis: ${b.basis.toFixed(2)} | Delivery: ${b.deliveryStart} to ${b.deliveryEnd}`
+              )
+              .join("\n") || "No cash bids";
 
           return `Market Prices (${data.source === "mock" ? "DEMO DATA" : "LIVE"} — ${new Date(data.lastUpdated).toLocaleString("en-CA")}):\n\nFutures:\n${futuresLines}\n\nSaskatchewan Cash Bids:\n${cashLines}`;
         } catch {
@@ -388,11 +667,15 @@ export async function executeTool(
           ORDER BY je.entry_date DESC, je.entry_number DESC
           LIMIT ${limit * 4}
         `;
-        if (records.length === 0) return `No journal entries for ${input.crop_year}.`;
+        if (records.length === 0)
+          return `No journal entries for ${input.crop_year}.`;
 
-        const lines = records.map((r: any) =>
-          `${r.entry_date} | ${r.description} | ${r.code} ${r.account_name} | Dr: $${parseFloat(r.debit).toFixed(2)} | Cr: $${parseFloat(r.credit).toFixed(2)}${r.field_name ? ` | Field: ${r.field_name}` : ""}`
-        ).join("\n");
+        const lines = records
+          .map(
+            (r: any) =>
+              `${r.entry_date} | ${r.description} | ${r.code} ${r.account_name} | Dr: $${parseFloat(r.debit).toFixed(2)} | Cr: $${parseFloat(r.credit).toFixed(2)}${r.field_name ? ` | Field: ${r.field_name}` : ""}`
+          )
+          .join("\n");
 
         return `Recent Journal Entries — ${input.crop_year}:\n${lines}`;
       }
