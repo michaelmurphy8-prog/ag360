@@ -41,12 +41,14 @@ export async function POST(req: NextRequest) {
     }
 
     const rows = await sql`
-      INSERT INTO bin_yards (user_id, yard_name, location, notes, sort_order)
-      VALUES (${userId}, ${body.yard_name.trim()}, ${body.location || null}, ${body.notes || null}, ${body.sort_order || 0})
+      INSERT INTO bin_yards (user_id, yard_name, location, notes, sort_order, latitude, longitude)
+      VALUES (${userId}, ${body.yard_name.trim()}, ${body.location || null}, ${body.notes || null}, ${body.sort_order || 0}, ${body.latitude || null}, ${body.longitude || null})
       ON CONFLICT (user_id, yard_name) DO UPDATE SET
         location = EXCLUDED.location,
         notes = EXCLUDED.notes,
         sort_order = EXCLUDED.sort_order,
+        latitude = EXCLUDED.latitude,
+        longitude = EXCLUDED.longitude,
         updated_at = NOW()
       RETURNING *
     `;
@@ -73,6 +75,8 @@ export async function PUT(req: NextRequest) {
         location = ${body.location ?? null},
         notes = ${body.notes ?? null},
         sort_order = COALESCE(${body.sort_order ?? null}, sort_order),
+        latitude = COALESCE(${body.latitude ?? null}, latitude),
+        longitude = COALESCE(${body.longitude ?? null}, longitude),
         updated_at = NOW()
       WHERE id = ${body.id} AND user_id = ${userId}
       RETURNING *
