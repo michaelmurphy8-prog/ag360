@@ -168,7 +168,14 @@ function FormCard({ title, onClose, children, accent }: {
 export default function InventoryPage() {
   const { user, isLoaded } = useUser();
   const [kpiUnit, setKpiUnit] = useState<"bu" | "mt">("bu");
-  const [activeTab, setActiveTab] = useState<"holdings" | "contracts" | "movements" | "grain_loads" | "settlements" | "bin_map">("holdings");
+  const [activeTab, setActiveTab] = useState<"holdings" | "contracts" | "movements" | "grain_loads" | "settlements" | "bin_map">(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab === "bin_map" || tab === "holdings" || tab === "contracts" || tab === "movements" || tab === "grain_loads" || tab === "settlements") return tab;
+    }
+    return "holdings";
+  });
 
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);

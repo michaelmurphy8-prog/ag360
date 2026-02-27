@@ -52,7 +52,7 @@ const navSections: { title?: string; items: NavItem[] }[] = [
         label: "Inventory", icon: Package,
         children: [
           { label: "Inventory", href: "/inventory" },
-          { label: "Bin Map", href: "/inventory/bin-map" },
+          { label: "Bin Map", href: "/inventory?tab=bin_map" },
         ],
       },
       { label: "Machinery", icon: Tractor, href: "/machinery" },
