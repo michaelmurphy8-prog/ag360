@@ -3,18 +3,23 @@ import { neon } from "@neondatabase/serverless";
 
 const sql = neon(process.env.DATABASE_URL!);
 
+// Standardized to crop-colors.ts names
 const KG_PER_BU: Record<string, number> = {
-  canola: 22.68,
+  "hrs wheat": 27.22,
+  "durum": 27.22,
+  "canola": 22.68,
+  "barley": 21.77,
+  "oats": 15.42,
+  "flax": 25.40,
+  "lentils": 27.22,
+  "peas": 27.22,
+  "chickpeas": 27.22,
+  "mustard": 22.68,
+  // Legacy fallbacks
   "cwrs wheat": 27.22,
-  wheat: 27.22,
-  durum: 27.22,
-  barley: 21.77,
-  oats: 15.42,
-  peas: 27.22,
-  lentils: 27.22,
-  flax: 25.40,
-  soybeans: 27.22,
-  corn: 25.40,
+  "wheat": 27.22,
+  "soybeans": 27.22,
+  "corn": 25.40,
 };
 
 function kgToBu(kg: number, crop: string): number {
@@ -30,11 +35,15 @@ export async function GET(req: NextRequest) {
   const cropYear = parseInt(searchParams.get("cropYear") || String(new Date().getFullYear()));
 
   try {
-    // 1. Estimated production from Farm Profile
-    const profileRows = await sql`
-      SELECT profile FROM farm_profiles WHERE user_id = ${userId}
+    // 1. Estimated production from crop_plans table
+    const cropPlanRows = await sql`
+      SELECT crop, acres, target_yield_bu,
+             (acres * target_yield_bu) AS total_production_bu
+      FROM crop_plans
+      WHERE user_id = ${userId}
+        AND crop_year = ${cropYear}
     `;
-    const profile = profileRows[0]?.profile;
+
     const crops: Record<string, {
       estimated_production: number;
       contracted: number;
@@ -44,21 +53,17 @@ export async function GET(req: NextRequest) {
       contracts: any[];
     }> = {};
 
-    if (profile?.crops && Array.isArray(profile.crops)) {
-      for (const c of profile.crops) {
-        const name = c.crop || c.name;
-        if (!name) continue;
-        const acres = Number(c.acres || c.total_acres || 0);
-        const targetYield = Number(c.target_yield || c.yield || 0);
-        crops[name] = {
-          estimated_production: Math.round(acres * targetYield),
-          contracted: 0,
-          contracted_value: 0,
-          delivered: 0,
-          avg_price: 0,
-          contracts: [],
-        };
-      }
+    for (const row of cropPlanRows) {
+      const name = row.crop;
+      if (!name) continue;
+      crops[name] = {
+        estimated_production: Math.round(parseFloat(row.total_production_bu)),
+        contracted: 0,
+        contracted_value: 0,
+        delivered: 0,
+        avg_price: 0,
+        contracts: [],
+      };
     }
 
     // 2. Contracts with value data
