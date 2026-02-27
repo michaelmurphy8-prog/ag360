@@ -5,24 +5,16 @@ import { useUser } from "@clerk/nextjs";
 import { Save, Plus, Trash2, CheckCircle, RefreshCw, ChevronDown } from "lucide-react";
 
 // Standardized to crop-colors.ts — the platform-wide source of truth
-const CROPS = [
-  "HRS Wheat",
-  "Durum",
-  "Canola",
-  "Barley",
-  "Oats",
-  "Flax",
-  "Lentils",
-  "Peas",
-  "Chickpeas",
-  "Mustard",
-];
+import { CANONICAL_CROPS } from "@/lib/crop-colors";
+
+const CROPS = CANONICAL_CROPS;
 
 // Map legacy names to standardized names (for existing saved profiles)
 const CROP_NAME_MAP: Record<string, string> = {
   "CWRS Wheat": "HRS Wheat",
-  Soybeans: "Peas", // fallback — rare on prairies
-  Corn: "Barley", // fallback — rare on prairies
+  "Lentils": "Large Green Lentils",
+  Soybeans: "Peas",
+  Corn: "Barley",
 };
 
 function migrateCropName(name: string): string {
