@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Plus, Pencil, Sprout, DollarSign, LayoutGrid, List, ArrowUpDown, Filter } from "lucide-react";
+import {
+  Plus, Pencil, Sprout, DollarSign, LayoutGrid, List,
+  ArrowUpDown, Filter, MapPin, Wheat, TrendingUp,
+  TrendingDown, BarChart3, Target,
+} from "lucide-react";
 import AddFieldModal from "@/components/fields/AddFieldModal";
 import EditFieldModal from "@/components/fields/EditFieldModal";
 import AddCropModal from "@/components/fields/AddCropModal";
 import AddCostModal from "@/components/fields/AddCostModal";
 import { useRouter } from "next/navigation";
 
+/* ───── Types ──────────────────────────────────────────── */
 interface FieldRow {
   id: string;
   field_name: string;
@@ -49,54 +54,92 @@ interface KPIs {
   netMarginBudget: number;
 }
 
+/* ───── Design Tokens ──────────────────────────────────── */
 const STATUS_COLORS: Record<string, string> = {
-  planned: "bg-gray-100 text-gray-600",
-  seeded: "bg-blue-100 text-blue-700",
-  growing: "bg-green-100 text-green-700",
-  harvested: "bg-amber-100 text-amber-700",
+  planned: "bg-[#334155] text-[#94A3B8]",
+  seeded: "bg-[#1E3A5F] text-[#60A5FA]",
+  growing: "bg-[#14532D] text-[#4ADE80]",
+  harvested: "bg-[#78350F] text-[#FBBF24]",
 };
 
 const CROP_COLORS: Record<string, string> = {
-  Canola: "bg-yellow-400",
-  Wheat: "bg-blue-500",
-  Barley: "bg-violet-500",
-  Oats: "bg-amber-600",
-  Peas: "bg-lime-500",
-  "Lentils - Red": "bg-red-500",
-  "Lentils - Green": "bg-green-500",
-  Chickpeas: "bg-orange-500",
-  Flax: "bg-indigo-500",
-  Corn: "bg-amber-400",
-  Soybeans: "bg-green-600",
-  Durum: "bg-blue-400",
-  Other: "bg-gray-400",
-};
-
-const CROP_DOT_COLORS: Record<string, string> = {
-  Canola: "#facc15",
-  Wheat: "#3b82f6",
-  Barley: "#8b5cf6",
-  Oats: "#d97706",
-  Peas: "#84cc16",
-  "Lentils - Red": "#ef4444",
-  "Lentils - Green": "#22c55e",
-  Chickpeas: "#f97316",
-  Flax: "#6366f1",
-  Corn: "#fbbf24",
-  Soybeans: "#16a34a",
-  Durum: "#60a5fa",
-  Other: "#9ca3af",
+  Canola: "#facc15", Wheat: "#3b82f6", Barley: "#8b5cf6",
+  Oats: "#d97706", Peas: "#84cc16", "Lentils - Red": "#ef4444",
+  "Lentils - Green": "#22c55e", Chickpeas: "#f97316", Flax: "#6366f1",
+  Corn: "#fbbf24", Soybeans: "#16a34a", Durum: "#60a5fa", Other: "#9ca3af",
 };
 
 type SortKey = "name" | "acres" | "crop" | "variance" | "costPerAcre";
 
 function fmt(n: number): string {
-  return n.toLocaleString("en-CA", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  return n.toLocaleString("en-CA", { maximumFractionDigits: 0 });
 }
 function fmtD(n: number): string {
   return n.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/* ───── Mini Donut Chart ───────────────────────────────── */
+function MiniDonut({
+  value, max, color, size = 56, strokeWidth = 5, showLabel = false,
+}: {
+  value: number; max: number; color: string;
+  size?: number; strokeWidth?: number; showLabel?: boolean;
+}) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  const offset = circumference - (pct / 100) * circumference;
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="transform -rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={radius}
+          stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth} fill="none" />
+        <circle cx={size / 2} cy={size / 2} r={radius}
+          stroke={color} strokeWidth={strokeWidth} fill="none"
+          strokeDasharray={circumference} strokeDashoffset={offset}
+          strokeLinecap="round" className="transition-all duration-700" />
+      </svg>
+      {showLabel && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-[11px] font-bold text-white">{Math.round(pct)}%</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ───── KPI Card ───────────────────────────────────────── */
+function KpiCard({
+  icon: Icon, iconColor, label, value, subtitle, donut,
+}: {
+  icon: React.ElementType; iconColor: string; label: string;
+  value: React.ReactNode; subtitle?: string;
+  donut?: { value: number; max: number; color: string; showLabel?: boolean };
+}) {
+  return (
+    <div className="bg-[#0F1629] border border-[#1E293B] rounded-xl p-5 flex items-start justify-between">
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-2">
+          <Icon size={14} style={{ color: iconColor }} />
+          <span className="text-[11px] font-semibold tracking-[1.5px] uppercase text-[#64748B]">
+            {label}
+          </span>
+        </div>
+        <div className="text-2xl font-bold text-white leading-none">{value}</div>
+        {subtitle && <p className="text-[12px] text-[#64748B] mt-1.5">{subtitle}</p>}
+      </div>
+      {donut && (
+        <MiniDonut
+          value={donut.value} max={donut.max} color={donut.color}
+          showLabel={donut.showLabel}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ═══════ MAIN PAGE ═══════════════════════════════════════ */
 export default function FieldsPage() {
   const [fields, setFields] = useState<FieldRow[]>([]);
   const [kpis, setKpis] = useState<KPIs | null>(null);
@@ -110,9 +153,7 @@ export default function FieldsPage() {
   const [editingField, setEditingField] = useState<FieldRow | null>(null);
   const [addingCropToField, setAddingCropToField] = useState<FieldRow | null>(null);
   const [addingCostToCrop, setAddingCostToCrop] = useState<{
-    fieldCropId: string;
-    fieldName: string;
-    cropType: string;
+    fieldCropId: string; fieldName: string; cropType: string;
   } | null>(null);
   const router = useRouter();
 
@@ -135,29 +176,20 @@ export default function FieldsPage() {
     fetchFields();
   }, [cropYear]);
 
-  // Unique crop types for filter
   const cropTypes = useMemo(() => {
     const types = new Set<string>();
-    fields.forEach((f) => {
-      if (f.crop_type) types.add(f.crop_type);
-    });
+    fields.forEach((f) => { if (f.crop_type) types.add(f.crop_type); });
     return Array.from(types).sort();
   }, [fields]);
 
-  // Filtered + sorted
   const displayFields = useMemo(() => {
     let filtered = [...fields];
-    if (filterCrop !== "all") {
-      filtered = filtered.filter((f) => f.crop_type === filterCrop);
-    }
+    if (filterCrop !== "all") filtered = filtered.filter((f) => f.crop_type === filterCrop);
     filtered.sort((a, b) => {
       switch (sortKey) {
-        case "name":
-          return a.field_name.localeCompare(b.field_name);
-        case "acres":
-          return (b.acres || 0) - (a.acres || 0);
-        case "crop":
-          return (a.crop_type || "zzz").localeCompare(b.crop_type || "zzz");
+        case "name": return a.field_name.localeCompare(b.field_name);
+        case "acres": return (b.acres || 0) - (a.acres || 0);
+        case "crop": return (a.crop_type || "zzz").localeCompare(b.crop_type || "zzz");
         case "variance": {
           const va = (parseFloat(String(a.actual_total)) || 0) - (parseFloat(String(a.budget_total)) || 0);
           const vb = (parseFloat(String(b.actual_total)) || 0) - (parseFloat(String(b.budget_total)) || 0);
@@ -168,8 +200,7 @@ export default function FieldsPage() {
           const cb = b.acres > 0 ? (parseFloat(String(b.actual_total)) || 0) / b.acres : 0;
           return cb - ca;
         }
-        default:
-          return 0;
+        default: return 0;
       }
     });
     return filtered;
@@ -177,36 +208,31 @@ export default function FieldsPage() {
 
   const yearOptions = [];
   const currentYear = new Date().getFullYear();
-  for (let y = currentYear + 1; y >= currentYear - 3; y--) {
-    yearOptions.push(y);
-  }
+  for (let y = currentYear + 1; y >= currentYear - 3; y--) yearOptions.push(y);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
+      {/* ── Header ────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#222527]">Fields</h1>
-          <p className="text-[#7A8A7C] text-sm mt-1">
-            Manage your fields and track profitability
+          <h1 className="text-2xl font-bold text-[#F1F5F9]">Fields</h1>
+          <p className="text-[#64748B] text-sm mt-1">
+            Field management &amp; profitability tracking — crop year {cropYear}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {/* Crop Year Selector */}
+        <div className="flex items-center gap-2">
           <select
             value={cropYear}
             onChange={(e) => setCropYear(parseInt(e.target.value))}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium text-[#222527] focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="bg-[#0F1629] border border-[#1E293B] rounded-lg px-3 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-[#34D399]"
           >
             {yearOptions.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
+              <option key={y} value={y}>{y}</option>
             ))}
           </select>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 bg-[#4A7C59] hover:bg-[#3d6b4a] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 bg-[#34D399] hover:bg-[#2CC48D] text-[#0F1629] px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
           >
             <Plus size={16} />
             Add Field
@@ -214,79 +240,97 @@ export default function FieldsPage() {
         </div>
       </div>
 
-      {/* KPI Strip */}
+      {/* ── KPI Strip ─────────────────────────────────── */}
       {kpis && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-          <div className="bg-white border border-[#E4E7E0] rounded-xl p-4">
-            <p className="text-xs text-[#7A8A7C] mb-1">Total Fields</p>
-            <p className="text-xl font-bold text-[#222527]">{kpis.totalFields}</p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {kpis.seededCount} seeded · {kpis.unseededCount} unassigned
-            </p>
-          </div>
-          <div className="bg-white border border-[#E4E7E0] rounded-xl p-4">
-            <p className="text-xs text-[#7A8A7C] mb-1">Total Acres</p>
-            <p className="text-xl font-bold text-[#222527]">{fmt(kpis.totalAcres)}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{fmt(kpis.seededAcres)} seeded</p>
-          </div>
-          <div className="bg-white border border-[#E4E7E0] rounded-xl p-4">
-            <p className="text-xs text-[#7A8A7C] mb-1">Budget Cost</p>
-            <p className="text-xl font-bold text-[#222527]">${fmt(kpis.totalBudgetCost)}</p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              ${kpis.seededAcres > 0 ? fmtD(kpis.totalBudgetCost / kpis.seededAcres) : "0.00"}/ac
-            </p>
-          </div>
-          <div className="bg-white border border-[#E4E7E0] rounded-xl p-4">
-            <p className="text-xs text-[#7A8A7C] mb-1">Actual Cost</p>
-            <p className="text-xl font-bold text-[#222527]">${fmt(kpis.totalActualCost)}</p>
-            <p className="text-xs text-gray-400 mt-0.5">${fmtD(kpis.avgCostPerAcre)}/ac</p>
-          </div>
-          <div className="bg-white border border-[#E4E7E0] rounded-xl p-4">
-            <p className="text-xs text-[#7A8A7C] mb-1">Cost Variance</p>
-            <p className={`text-xl font-bold ${kpis.costVariance > 0 ? "text-red-500" : "text-green-600"}`}>
-              {kpis.costVariance > 0 ? "+" : ""}${fmt(kpis.costVariance)}
-            </p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {kpis.costVariance > 0 ? "Over budget" : "Under budget"}
-            </p>
-          </div>
-          <div className="bg-white border border-[#E4E7E0] rounded-xl p-4">
-            <p className="text-xs text-[#7A8A7C] mb-1">Net Margin (Actual)</p>
-            <p className={`text-xl font-bold ${kpis.netMarginActual >= 0 ? "text-green-600" : "text-red-500"}`}>
-              ${fmt(kpis.netMarginActual)}
-            </p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              ${kpis.seededAcres > 0 ? fmtD(kpis.netMarginActual / kpis.seededAcres) : "0.00"}/ac
-            </p>
-          </div>
+          <KpiCard
+            icon={MapPin} iconColor="#34D399" label="Total Fields"
+            value={kpis.totalFields}
+            subtitle={`${kpis.seededCount} seeded · ${kpis.unseededCount} unassigned`}
+            donut={{ value: kpis.seededCount, max: kpis.totalFields, color: "#34D399", showLabel: true }}
+          />
+          <KpiCard
+            icon={Wheat} iconColor="#60A5FA" label="Total Acres"
+            value={fmt(kpis.totalAcres)}
+            subtitle={`${fmt(kpis.seededAcres)} seeded`}
+            donut={{ value: kpis.seededAcres, max: kpis.totalAcres, color: "#60A5FA", showLabel: true }}
+          />
+          <KpiCard
+            icon={Target} iconColor="#FBBF24" label="Budget Cost"
+            value={<>${fmt(kpis.totalBudgetCost)}</>}
+            subtitle={`$${kpis.seededAcres > 0 ? fmtD(kpis.totalBudgetCost / kpis.seededAcres) : "0.00"}/ac`}
+          />
+          <KpiCard
+            icon={DollarSign} iconColor="#34D399" label="Actual Cost"
+            value={<>${fmt(kpis.totalActualCost)}</>}
+            subtitle={`$${fmtD(kpis.avgCostPerAcre)}/ac`}
+            donut={{
+              value: kpis.totalActualCost,
+              max: kpis.totalBudgetCost || kpis.totalActualCost,
+              color: kpis.totalActualCost > kpis.totalBudgetCost ? "#EF4444" : "#34D399",
+              showLabel: true,
+            }}
+          />
+          <KpiCard
+            icon={kpis.costVariance > 0 ? TrendingUp : TrendingDown}
+            iconColor={kpis.costVariance > 0 ? "#EF4444" : "#34D399"}
+            label="Cost Variance"
+            value={
+              <span className={kpis.costVariance > 0 ? "text-red-400" : "text-emerald-400"}>
+                {kpis.costVariance > 0 ? "+" : ""}${fmt(kpis.costVariance)}
+              </span>
+            }
+            subtitle={kpis.costVariance > 0 ? "Over budget" : "Under budget"}
+          />
+          <KpiCard
+            icon={BarChart3}
+            iconColor={kpis.netMarginActual >= 0 ? "#34D399" : "#EF4444"}
+            label="Net Margin"
+            value={
+              <span className={kpis.netMarginActual >= 0 ? "text-emerald-400" : "text-red-400"}>
+                ${fmt(kpis.netMarginActual)}
+              </span>
+            }
+            subtitle={`$${kpis.seededAcres > 0 ? fmtD(kpis.netMarginActual / kpis.seededAcres) : "0.00"}/ac`}
+            donut={{
+              value: Math.abs(kpis.netMarginActual),
+              max: kpis.totalActualRevenue || 1,
+              color: kpis.netMarginActual >= 0 ? "#34D399" : "#EF4444",
+            }}
+          />
         </div>
       )}
 
-      {/* Crop Breakdown Bar */}
+      {/* ── Crop Mix Bar ──────────────────────────────── */}
       {Object.keys(cropBreakdown).length > 0 && kpis && kpis.seededAcres > 0 && (
-        <div className="bg-white border border-[#E4E7E0] rounded-xl p-4 mb-6">
-          <p className="text-xs text-[#7A8A7C] mb-3 font-medium">Crop Mix — {cropYear}</p>
-          <div className="flex rounded-lg overflow-hidden h-4 mb-3">
+        <div className="bg-[#0F1629] border border-[#1E293B] rounded-xl p-5 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Sprout size={14} className="text-[#34D399]" />
+            <span className="text-[11px] font-semibold tracking-[1.5px] uppercase text-[#64748B]">
+              Crop Mix — {cropYear}
+            </span>
+          </div>
+          <div className="flex rounded-lg overflow-hidden h-3 mb-3">
             {Object.entries(cropBreakdown)
               .sort((a, b) => b[1].acres - a[1].acres)
               .map(([crop, data]) => (
                 <div
                   key={crop}
-                  className={`${CROP_COLORS[crop] || "bg-gray-400"} transition-all`}
-                  style={{ width: `${(data.acres / kpis.seededAcres) * 100}%` }}
-                  title={`${crop}: ${fmt(data.acres)} ac (${((data.acres / kpis.seededAcres) * 100).toFixed(0)}%)`}
+                  className="transition-all"
+                  style={{
+                    width: `${(data.acres / kpis.seededAcres) * 100}%`,
+                    backgroundColor: CROP_COLORS[crop] || "#9ca3af",
+                  }}
+                  title={`${crop}: ${fmt(data.acres)} ac`}
                 />
               ))}
           </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
+          <div className="flex flex-wrap gap-x-5 gap-y-1.5">
             {Object.entries(cropBreakdown)
               .sort((a, b) => b[1].acres - a[1].acres)
               .map(([crop, data]) => (
-                <div key={crop} className="flex items-center gap-1.5 text-xs text-[#7A8A7C]">
-                  <div
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{ backgroundColor: CROP_DOT_COLORS[crop] || "#9ca3af" }}
-                  />
+                <div key={crop} className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CROP_COLORS[crop] || "#9ca3af" }} />
                   {crop}: {fmt(data.acres)} ac ({data.count})
                 </div>
               ))}
@@ -294,32 +338,26 @@ export default function FieldsPage() {
         </div>
       )}
 
-      {/* Toolbar: Filter, Sort, View Toggle */}
+      {/* ── Toolbar ───────────────────────────────────── */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          {/* Crop filter */}
           <div className="flex items-center gap-1.5">
-            <Filter size={14} className="text-[#7A8A7C]" />
+            <Filter size={14} className="text-[#64748B]" />
             <select
               value={filterCrop}
               onChange={(e) => setFilterCrop(e.target.value)}
-              className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-[#222527] focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="bg-[#0F1629] border border-[#1E293B] rounded-lg px-2 py-1.5 text-xs text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#34D399]"
             >
               <option value="all">All Crops</option>
-              {cropTypes.map((ct) => (
-                <option key={ct} value={ct}>
-                  {ct}
-                </option>
-              ))}
+              {cropTypes.map((ct) => (<option key={ct} value={ct}>{ct}</option>))}
             </select>
           </div>
-          {/* Sort */}
           <div className="flex items-center gap-1.5">
-            <ArrowUpDown size={14} className="text-[#7A8A7C]" />
+            <ArrowUpDown size={14} className="text-[#64748B]" />
             <select
               value={sortKey}
               onChange={(e) => setSortKey(e.target.value as SortKey)}
-              className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-[#222527] focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="bg-[#0F1629] border border-[#1E293B] rounded-lg px-2 py-1.5 text-xs text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#34D399]"
             >
               <option value="name">Name</option>
               <option value="acres">Acres</option>
@@ -329,40 +367,35 @@ export default function FieldsPage() {
             </select>
           </div>
         </div>
-        {/* View toggle */}
-        <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+        <div className="flex rounded-lg border border-[#1E293B] overflow-hidden">
           <button
             onClick={() => setViewMode("card")}
-            className={`px-3 py-1.5 transition-colors ${
-              viewMode === "card" ? "bg-[#222527] text-white" : "bg-white text-gray-600 hover:bg-gray-50"
-            }`}
+            className={`px-3 py-1.5 transition-colors ${viewMode === "card" ? "bg-[#34D399] text-[#0F1629]" : "bg-[#0F1629] text-[#64748B] hover:text-[#94A3B8]"}`}
           >
             <LayoutGrid size={15} />
           </button>
           <button
             onClick={() => setViewMode("table")}
-            className={`px-3 py-1.5 transition-colors ${
-              viewMode === "table" ? "bg-[#222527] text-white" : "bg-white text-gray-600 hover:bg-gray-50"
-            }`}
+            className={`px-3 py-1.5 transition-colors ${viewMode === "table" ? "bg-[#34D399] text-[#0F1629]" : "bg-[#0F1629] text-[#64748B] hover:text-[#94A3B8]"}`}
           >
             <List size={15} />
           </button>
         </div>
       </div>
 
-      {/* Fields List */}
+      {/* ── Content ───────────────────────────────────── */}
       {loading ? (
-        <p className="text-[#7A8A7C]">Loading fields...</p>
+        <p className="text-[#64748B]">Loading fields...</p>
       ) : fields.length === 0 ? (
-        <div className="border border-dashed border-gray-300 rounded-xl p-12 text-center">
-          <p className="text-[#7A8A7C] text-lg">No fields yet</p>
-          <p className="text-gray-400 text-sm mt-2">Click &quot;Add Field&quot; to get started</p>
+        <div className="border border-dashed border-[#1E293B] rounded-xl p-12 text-center">
+          <p className="text-[#94A3B8] text-lg">No fields yet</p>
+          <p className="text-[#64748B] text-sm mt-2">Click &quot;Add Field&quot; to get started</p>
         </div>
       ) : viewMode === "card" ? (
-        /* ===== CARD VIEW ===== */
+        /* ═══ CARD VIEW ═══ */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {displayFields.map((field) => {
-            const cropColor = field.crop_type ? CROP_COLORS[field.crop_type] || "bg-gray-400" : null;
+            const cropColor = field.crop_type ? CROP_COLORS[field.crop_type] || "#9ca3af" : null;
             const budget = parseFloat(String(field.budget_total)) || 0;
             const actual = parseFloat(String(field.actual_total)) || 0;
             const variance = actual - budget;
@@ -370,33 +403,35 @@ export default function FieldsPage() {
             const margin = actualRev - actual;
             const expectedProd = (parseFloat(String(field.expected_yield_bu_ac)) || 0) *
               (parseFloat(String(field.seeded_acres)) || parseFloat(String(field.acres)) || 0);
+            const budgetPct = budget > 0 ? Math.min((actual / budget) * 100, 100) : 0;
 
             return (
               <div
                 key={field.id}
                 onClick={() => router.push(`/fields/${field.id}`)}
-                className="bg-white border border-[#E4E7E0] rounded-xl shadow-sm overflow-hidden cursor-pointer hover:border-[#4A7C59] transition-colors"
+                className="bg-[#0F1629] border border-[#1E293B] rounded-xl overflow-hidden cursor-pointer hover:border-[#34D399]/40 transition-all group"
               >
-                <div className={`h-1.5 w-full ${cropColor || "bg-gray-200"}`} />
+                {/* Crop colour bar */}
+                <div className="h-1 w-full" style={{ backgroundColor: cropColor || "#1E293B" }} />
+
                 <div className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="text-[#222527] font-semibold text-lg">{field.field_name}</h3>
-                      <p className="text-[#7A8A7C] text-sm mt-0.5">{field.acres} acres</p>
+                      <h3 className="text-[#F1F5F9] font-semibold text-base group-hover:text-[#34D399] transition-colors">
+                        {field.field_name}
+                      </h3>
+                      <p className="text-[#64748B] text-sm mt-0.5">{field.acres} acres</p>
                       {field.lld_quarter && (
-                        <p className="text-gray-400 text-xs mt-0.5">
+                        <p className="text-[#475569] text-xs mt-0.5">
                           {field.lld_quarter}-{field.lld_section}-{field.lld_township}-{field.lld_range}-W{field.lld_meridian} ({field.lld_province})
                         </p>
                       )}
                     </div>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingField(field);
-                      }}
-                      className="text-gray-400 hover:text-[#4A7C59] transition-colors p-1"
+                      onClick={(e) => { e.stopPropagation(); setEditingField(field); }}
+                      className="text-[#475569] hover:text-[#34D399] transition-colors p-1"
                     >
-                      <Pencil size={15} />
+                      <Pencil size={14} />
                     </button>
                   </div>
 
@@ -404,67 +439,74 @@ export default function FieldsPage() {
                     <div className="mt-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className={`w-2.5 h-2.5 rounded-full ${cropColor}`} />
-                          <span className="text-sm text-[#222527] font-medium">{field.crop_type}</span>
-                          {field.variety && <span className="text-xs text-gray-400">{field.variety}</span>}
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cropColor! }} />
+                          <span className="text-sm text-[#F1F5F9] font-medium">{field.crop_type}</span>
+                          {field.variety && <span className="text-xs text-[#64748B]">{field.variety}</span>}
                         </div>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[field.crop_status || "planned"]}`}>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[field.crop_status || "planned"]}`}>
                           {(field.crop_status || "planned").charAt(0).toUpperCase() + (field.crop_status || "planned").slice(1)}
                         </span>
                       </div>
 
-                      {/* Expected production */}
                       {field.expected_yield_bu_ac && (
-                        <p className="text-xs text-gray-400 mt-2">
+                        <p className="text-xs text-[#64748B] mt-2">
                           Est. {fmt(expectedProd)} bu ({field.expected_yield_bu_ac} bu/ac)
                         </p>
                       )}
 
-                      {/* Cost Summary */}
-                      <div className="mt-2 bg-gray-50 rounded-lg px-3 py-2 space-y-1">
-                        {budget > 0 && (
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-500">Budget</span>
-                            <span className="font-medium text-gray-700">${fmtD(budget)}</span>
-                          </div>
-                        )}
-                        {actual > 0 && (
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-500">Actual</span>
-                            <span className="font-medium text-gray-700">${fmtD(actual)}</span>
-                          </div>
-                        )}
-                        {budget > 0 && actual > 0 && (
-                          <div className="flex justify-between text-xs border-t border-gray-200 pt-1 mt-1">
-                            <span className="text-gray-500">Variance</span>
-                            <span className={`font-medium ${variance > 0 ? "text-red-500" : "text-green-600"}`}>
-                              {variance > 0 ? "+" : ""}${fmtD(variance)}
+                      {/* Budget utilization bar */}
+                      {budget > 0 && (
+                        <div className="mt-3">
+                          <div className="flex items-center justify-between text-[11px] text-[#64748B] mb-1">
+                            <span>Budget utilization</span>
+                            <span className={budgetPct > 100 ? "text-red-400" : "text-[#94A3B8]"}>
+                              {budgetPct.toFixed(0)}%
                             </span>
                           </div>
-                        )}
-                        {actualRev > 0 && (
-                          <div className="flex justify-between text-xs border-t border-gray-200 pt-1 mt-1">
-                            <span className="text-gray-500">Net Margin</span>
-                            <span className={`font-medium ${margin >= 0 ? "text-green-600" : "text-red-500"}`}>
-                              ${fmtD(margin)}
-                            </span>
+                          <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: `${Math.min(budgetPct, 100)}%`,
+                                backgroundColor: budgetPct > 100 ? "#EF4444" : budgetPct > 85 ? "#FBBF24" : "#34D399",
+                              }}
+                            />
                           </div>
-                        )}
-                        {(budget === 0 && actual === 0) && (
-                          <p className="text-xs text-gray-400">No costs entered</p>
-                        )}
+                        </div>
+                      )}
+
+                      {/* Financials grid */}
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <div className="bg-white/[0.03] rounded-lg px-3 py-2">
+                          <p className="text-[10px] text-[#64748B]">Budget</p>
+                          <p className="text-sm font-semibold text-[#F1F5F9]">${fmtD(budget)}</p>
+                        </div>
+                        <div className="bg-white/[0.03] rounded-lg px-3 py-2">
+                          <p className="text-[10px] text-[#64748B]">Actual</p>
+                          <p className="text-sm font-semibold text-[#F1F5F9]">${fmtD(actual)}</p>
+                        </div>
+                        <div className="bg-white/[0.03] rounded-lg px-3 py-2">
+                          <p className="text-[10px] text-[#64748B]">Variance</p>
+                          <p className={`text-sm font-semibold ${variance > 0 ? "text-red-400" : "text-emerald-400"}`}>
+                            {variance > 0 ? "+" : ""}${fmtD(variance)}
+                          </p>
+                        </div>
+                        <div className="bg-white/[0.03] rounded-lg px-3 py-2">
+                          <p className="text-[10px] text-[#64748B]">Net Margin</p>
+                          <p className={`text-sm font-semibold ${margin >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                            ${fmtD(margin)}
+                          </p>
+                        </div>
                       </div>
 
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setAddingCostToCrop({
-                            fieldCropId: field.crop_id!,
-                            fieldName: field.field_name,
-                            cropType: field.crop_type!,
+                            fieldCropId: field.crop_id!, fieldName: field.field_name, cropType: field.crop_type!,
                           });
                         }}
-                        className="w-full mt-2 flex items-center justify-center gap-1.5 text-xs text-[#4A7C59] hover:text-[#3d6b4a] font-medium border border-[#4A7C59] rounded-lg py-1.5 transition-colors"
+                        className="w-full mt-3 flex items-center justify-center gap-1.5 text-xs text-[#34D399] font-semibold border border-[#34D399]/30 hover:bg-[#34D399]/10 rounded-lg py-2 transition-colors"
                       >
                         <DollarSign size={12} />
                         Add Cost
@@ -472,11 +514,8 @@ export default function FieldsPage() {
                     </div>
                   ) : (
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setAddingCropToField(field);
-                      }}
-                      className="mt-3 flex items-center gap-1.5 text-xs text-[#4A7C59] hover:text-[#3d6b4a] font-medium"
+                      onClick={(e) => { e.stopPropagation(); setAddingCropToField(field); }}
+                      className="mt-4 flex items-center gap-1.5 text-xs text-[#34D399] font-semibold hover:text-[#2CC48D]"
                     >
                       <Sprout size={13} />
                       Assign {cropYear} Crop
@@ -488,23 +527,20 @@ export default function FieldsPage() {
           })}
         </div>
       ) : (
-        /* ===== TABLE VIEW ===== */
-        <div className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden">
+        /* ═══ TABLE VIEW ═══ */
+        <div className="bg-[#0F1629] border border-[#1E293B] rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-[#E4E7E0]">
-                  <th className="text-left px-4 py-3 font-semibold text-[#222527]">Field</th>
-                  <th className="text-right px-4 py-3 font-semibold text-[#222527]">Acres</th>
-                  <th className="text-left px-4 py-3 font-semibold text-[#222527]">Crop</th>
-                  <th className="text-center px-4 py-3 font-semibold text-[#222527]">Status</th>
-                  <th className="text-right px-4 py-3 font-semibold text-[#222527]">Budget</th>
-                  <th className="text-right px-4 py-3 font-semibold text-[#222527]">Actual</th>
-                  <th className="text-right px-4 py-3 font-semibold text-[#222527]">Variance</th>
-                  <th className="text-right px-4 py-3 font-semibold text-[#222527]">$/Acre</th>
+                <tr className="border-b border-[#1E293B]">
+                  {["Field", "Acres", "Crop", "Status", "Budget", "Actual", "Variance", "$/Acre"].map((h, i) => (
+                    <th key={h} className={`px-4 py-3 text-[11px] font-semibold tracking-[1px] uppercase text-[#64748B] ${i === 0 || i === 2 ? "text-left" : i === 3 ? "text-center" : "text-right"}`}>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-[#1E293B]/60">
                 {displayFields.map((field) => {
                   const budget = parseFloat(String(field.budget_total)) || 0;
                   const actual = parseFloat(String(field.actual_total)) || 0;
@@ -515,54 +551,40 @@ export default function FieldsPage() {
                     <tr
                       key={field.id}
                       onClick={() => router.push(`/fields/${field.id}`)}
-                      className="cursor-pointer hover:bg-gray-50 transition-colors"
+                      className="cursor-pointer hover:bg-white/[0.02] transition-colors"
                     >
                       <td className="px-4 py-3">
-                        <p className="font-medium text-[#222527]">{field.field_name}</p>
+                        <p className="font-medium text-[#F1F5F9]">{field.field_name}</p>
                         {field.lld_quarter && (
-                          <p className="text-xs text-gray-400">
+                          <p className="text-[11px] text-[#475569]">
                             {field.lld_quarter}-{field.lld_section}-{field.lld_township}-{field.lld_range}-W{field.lld_meridian}
                           </p>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right text-[#222527]">{field.acres}</td>
+                      <td className="px-4 py-3 text-right text-[#94A3B8]">{field.acres}</td>
                       <td className="px-4 py-3">
                         {field.crop_type ? (
                           <div className="flex items-center gap-2">
-                            <div
-                              className="w-2.5 h-2.5 rounded-full"
-                              style={{ backgroundColor: CROP_DOT_COLORS[field.crop_type] || "#9ca3af" }}
-                            />
-                            <span>{field.crop_type}</span>
-                            {field.variety && <span className="text-xs text-gray-400">{field.variety}</span>}
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CROP_COLORS[field.crop_type] || "#9ca3af" }} />
+                            <span className="text-[#F1F5F9]">{field.crop_type}</span>
                           </div>
                         ) : (
-                          <span className="text-gray-400">—</span>
+                          <span className="text-[#475569]">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {field.crop_status ? (
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[field.crop_status]}`}>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[field.crop_status]}`}>
                             {field.crop_status.charAt(0).toUpperCase() + field.crop_status.slice(1)}
                           </span>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
+                        ) : <span className="text-[#475569]">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-right text-[#222527]">
-                        {budget > 0 ? `$${fmtD(budget)}` : "—"}
+                      <td className="px-4 py-3 text-right text-[#94A3B8]">{budget > 0 ? `$${fmtD(budget)}` : "—"}</td>
+                      <td className="px-4 py-3 text-right text-[#94A3B8]">{actual > 0 ? `$${fmtD(actual)}` : "—"}</td>
+                      <td className={`px-4 py-3 text-right font-medium ${variance > 0 ? "text-red-400" : variance < 0 ? "text-emerald-400" : "text-[#475569]"}`}>
+                        {budget > 0 || actual > 0 ? `${variance > 0 ? "+" : ""}$${fmtD(variance)}` : "—"}
                       </td>
-                      <td className="px-4 py-3 text-right text-[#222527]">
-                        {actual > 0 ? `$${fmtD(actual)}` : "—"}
-                      </td>
-                      <td className={`px-4 py-3 text-right font-medium ${variance > 0 ? "text-red-500" : variance < 0 ? "text-green-600" : "text-gray-400"}`}>
-                        {budget > 0 || actual > 0
-                          ? `${variance > 0 ? "+" : ""}$${fmtD(variance)}`
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right text-[#222527]">
-                        {actual > 0 ? `$${fmtD(cpa)}` : "—"}
-                      </td>
+                      <td className="px-4 py-3 text-right text-[#94A3B8]">{actual > 0 ? `$${fmtD(cpa)}` : "—"}</td>
                     </tr>
                   );
                 })}
@@ -572,37 +594,11 @@ export default function FieldsPage() {
         </div>
       )}
 
-      {/* Modals */}
-      {showAddModal && (
-        <AddFieldModal
-          onClose={() => setShowAddModal(false)}
-          onFieldAdded={fetchFields}
-        />
-      )}
-      {editingField && (
-        <EditFieldModal
-          field={editingField}
-          onClose={() => setEditingField(null)}
-          onFieldUpdated={fetchFields}
-        />
-      )}
-      {addingCropToField && (
-        <AddCropModal
-          fieldId={addingCropToField.id}
-          fieldName={addingCropToField.field_name}
-          onClose={() => setAddingCropToField(null)}
-          onCropAdded={fetchFields}
-        />
-      )}
-      {addingCostToCrop && (
-        <AddCostModal
-          fieldCropId={addingCostToCrop.fieldCropId}
-          fieldName={addingCostToCrop.fieldName}
-          cropType={addingCostToCrop.cropType}
-          onClose={() => setAddingCostToCrop(null)}
-          onCostAdded={fetchFields}
-        />
-      )}
+      {/* ── Modals ────────────────────────────────────── */}
+      {showAddModal && <AddFieldModal onClose={() => setShowAddModal(false)} onFieldAdded={fetchFields} />}
+      {editingField && <EditFieldModal field={editingField} onClose={() => setEditingField(null)} onFieldUpdated={fetchFields} />}
+      {addingCropToField && <AddCropModal fieldId={addingCropToField.id} fieldName={addingCropToField.field_name} onClose={() => setAddingCropToField(null)} onCropAdded={fetchFields} />}
+      {addingCostToCrop && <AddCostModal fieldCropId={addingCostToCrop.fieldCropId} fieldName={addingCostToCrop.fieldName} cropType={addingCostToCrop.cropType} onClose={() => setAddingCostToCrop(null)} onCostAdded={fetchFields} />}
     </div>
   );
 }
