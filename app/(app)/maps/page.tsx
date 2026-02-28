@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import {
-  MapPin, Wheat, DollarSign, BarChart3, Package, ArrowRight, Maximize2, Minimize2,
+  MapPin, Wheat, DollarSign, BarChart3, Package, ArrowRight,
+  Maximize2, Minimize2, Satellite, Moon, Mountain, CloudRain,
+  Thermometer, Wind, Droplets, Warehouse, Eye, EyeOff,
 } from "lucide-react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -32,6 +34,14 @@ interface KPIs {
   netMarginActual: number; netMarginBudget: number;
 }
 interface FieldWithCoords extends FieldRow { latitude: number; longitude: number; }
+interface YardMarker {
+  id: string; yard_name: string; latitude: number; longitude: number;
+  bin_count: number; total_capacity_bu: number; total_stored_bu: number;
+}
+interface WeatherPoint {
+  latitude: number; longitude: number; temperature: number;
+  windspeed: number; precipitation: number;
+}
 
 /* ───── Constants ──────────────────────────────────────── */
 const CROP_COLORS: Record<string, string> = {
@@ -86,6 +96,9 @@ export default function MapsPage() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const binMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const weatherMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const popupRef = useRef<mapboxgl.Popup | null>(null);
 
   const [fields, setFields] = useState<FieldWithCoords[]>([]);
   const [kpis, setKpis] = useState<KPIs | null>(null);
@@ -95,6 +108,11 @@ export default function MapsPage() {
   const [colorMode, setColorMode] = useState<ColorMode>("crop");
   const [mapStyle, setMapStyle] = useState<"satellite" | "dark" | "terrain">("satellite");
   const [panelCollapsed, setPanelCollapsed] = useState(false);
+  const [showBins, setShowBins] = useState(true);
+  const [showWeather, setShowWeather] = useState(false);
+  const [yards, setYards] = useState<YardMarker[]>([]);
+  const [weather, setWeather] = useState<WeatherPoint[]>([]);
+  const [mapHeight, setMapHeight] = useState(700);
   const cropYear = new Date().getFullYear();
 
   const STYLES: Record<string, string> = {
@@ -103,7 +121,23 @@ export default function MapsPage() {
     terrain: "mapbox://styles/mapbox/outdoors-v12",
   };
 
-  /* ── Fetch ────────────────────────────────────── */
+  /* ── Dynamic height ────────────────────────────── */
+  useEffect(() => {
+    const calc = () => {
+      const main = document.querySelector("main");
+      if (main) {
+        const rect = main.getBoundingClientRect();
+        setMapHeight(window.innerHeight - rect.top);
+      } else {
+        setMapHeight(window.innerHeight);
+      }
+    };
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, []);
+
+  /* ── Fetch fields ──────────────────────────────── */
   useEffect(() => {
     (async () => {
       try {
@@ -122,10 +156,59 @@ export default function MapsPage() {
     })();
   }, []);
 
-  /* ── Map init (same pattern as BinMap) ─────────── */
+  /* ── Fetch yards/bins ──────────────────────────── */
   useEffect(() => {
-    if (!mapContainerRef.current) return;
-    if (mapRef.current) return;
+    if (!user) return;
+    (async () => {
+      try {
+        const res = await fetch("/api/inventory/yards", { headers: { "x-user-id": user.id } });
+        const data = await res.json();
+        const yds: YardMarker[] = (data.yards || [])
+          .filter((y: any) => y.latitude && y.longitude)
+          .map((y: any) => ({
+            id: y.id, yard_name: y.yard_name,
+            latitude: parseFloat(y.latitude), longitude: parseFloat(y.longitude),
+            bin_count: y.bin_count || 0,
+            total_capacity_bu: parseFloat(y.total_capacity_bu) || 0,
+            total_stored_bu: parseFloat(y.total_stored_bu) || 0,
+          }));
+        setYards(yds);
+      } catch (e) { console.error("Yards fetch error:", e); }
+    })();
+  }, [user]);
+
+  /* ── Fetch weather for field locations ──────────── */
+  const fetchWeather = useCallback(async () => {
+    if (fields.length === 0) return;
+    try {
+      // Use first field as weather point (expand to multiple later)
+      const pts = fields.slice(0, 5);
+      const results: WeatherPoint[] = [];
+      for (const f of pts) {
+        const res = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${f.latitude}&longitude=${f.longitude}&current=temperature_2m,wind_speed_10m,precipitation&timezone=America/Regina`
+        );
+        const data = await res.json();
+        if (data.current) {
+          results.push({
+            latitude: f.latitude, longitude: f.longitude,
+            temperature: data.current.temperature_2m,
+            windspeed: data.current.wind_speed_10m,
+            precipitation: data.current.precipitation,
+          });
+        }
+      }
+      setWeather(results);
+    } catch (e) { console.error("Weather fetch error:", e); }
+  }, [fields]);
+
+  useEffect(() => {
+    if (showWeather && weather.length === 0) fetchWeather();
+  }, [showWeather, weather.length, fetchWeather]);
+
+  /* ── Map init ──────────────────────────────────── */
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
@@ -146,30 +229,65 @@ export default function MapsPage() {
     mapRef.current.setStyle(STYLES[mapStyle]);
   }, [mapStyle]);
 
-  /* ── Markers ───────────────────────────────────── */
+  /* ── Resize on panel toggle or height change ───── */
+  useEffect(() => {
+    if (mapRef.current) setTimeout(() => mapRef.current?.resize(), 100);
+  }, [panelCollapsed, mapHeight]);
+
+  /* ── Field markers ─────────────────────────────── */
   useEffect(() => {
     const map = mapRef.current;
     if (!map || fields.length === 0) return;
 
-    // Wait for style to be loaded
     const place = () => {
       markersRef.current.forEach(m => m.remove());
       markersRef.current = [];
+      if (popupRef.current) { popupRef.current.remove(); popupRef.current = null; }
 
       const bounds = new mapboxgl.LngLatBounds();
 
       fields.forEach(field => {
         const color = getFieldColor(field, colorMode);
         const sz = Math.max(22, Math.min(40, field.acres / 8));
+        const margin = (parseFloat(String(field.actual_revenue)) || 0) - (parseFloat(String(field.actual_total)) || 0);
 
         const el = document.createElement("div");
-        Object.assign(el.style, {
-          width: `${sz}px`, height: `${sz}px`, borderRadius: "50%",
-          backgroundColor: color, border: selectedField?.id === field.id ? "3px solid #F1F5F9" : "2px solid rgba(0,0,0,0.3)",
-          cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.4)", transition: "transform 0.2s",
+        Object.assign(el.style, { width: `${sz}px`, height: `${sz}px`, cursor: "pointer" });
+
+        const dot = document.createElement("div");
+        Object.assign(dot.style, {
+          width: "100%", height: "100%", borderRadius: "50%",
+          backgroundColor: color,
+          border: selectedField?.id === field.id ? "3px solid #F1F5F9" : "2px solid rgba(0,0,0,0.3)",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.4)", transition: "transform 0.15s ease",
         });
-        el.onmouseenter = () => { el.style.transform = "scale(1.3)"; el.style.zIndex = "10"; };
-        el.onmouseleave = () => { el.style.transform = "scale(1)"; el.style.zIndex = "1"; };
+        el.appendChild(dot);
+
+        // Tooltip on hover
+        el.onmouseenter = () => {
+          dot.style.transform = "scale(1.3)";
+          el.style.zIndex = "10";
+          if (popupRef.current) popupRef.current.remove();
+          const popup = new mapboxgl.Popup({
+            closeButton: false, closeOnClick: false, offset: 15,
+            className: "field-tooltip",
+          }).setLngLat([field.longitude, field.latitude]).setHTML(`
+            <div style="background:#0F1629;border:1px solid #1E293B;border-radius:8px;padding:8px 12px;color:#F1F5F9;font-family:inherit;min-width:140px;">
+              <div style="font-weight:600;font-size:13px;margin-bottom:2px;">${field.field_name}</div>
+              <div style="font-size:11px;color:#94A3B8;">${field.crop_type || "Unassigned"} · ${field.acres} ac</div>
+              <div style="display:flex;gap:12px;margin-top:6px;">
+                <div><span style="font-size:9px;color:#64748B;">REVENUE</span><div style="font-size:12px;font-weight:600;">$${fmt(parseFloat(String(field.actual_revenue)) || 0)}</div></div>
+                <div><span style="font-size:9px;color:#64748B;">MARGIN</span><div style="font-size:12px;font-weight:600;color:${margin >= 0 ? '#34D399' : '#EF4444'};">$${fmt(margin)}</div></div>
+              </div>
+            </div>
+          `).addTo(map);
+          popupRef.current = popup;
+        };
+        el.onmouseleave = () => {
+          dot.style.transform = "scale(1)";
+          el.style.zIndex = "1";
+          if (popupRef.current) { popupRef.current.remove(); popupRef.current = null; }
+        };
         el.onclick = () => {
           setSelectedField(field);
           map.flyTo({ center: [field.longitude, field.latitude], zoom: 11, duration: 800 });
@@ -190,6 +308,108 @@ export default function MapsPage() {
     else map.once("style.load", place);
   }, [fields, colorMode, selectedField]);
 
+  /* ── Bin markers ───────────────────────────────── */
+  useEffect(() => {
+    const map = mapRef.current;
+    binMarkersRef.current.forEach(m => m.remove());
+    binMarkersRef.current = [];
+
+    if (!map || !showBins || yards.length === 0) return;
+
+    const place = () => {
+      yards.forEach(yard => {
+        const fillPct = yard.total_capacity_bu > 0 ? (yard.total_stored_bu / yard.total_capacity_bu) * 100 : 0;
+        const fillColor = fillPct > 80 ? "#EF4444" : fillPct > 50 ? "#FBBF24" : "#34D399";
+
+        const el = document.createElement("div");
+        Object.assign(el.style, { width: "28px", height: "28px", cursor: "pointer" });
+
+        const box = document.createElement("div");
+        Object.assign(box.style, {
+          width: "100%", height: "100%", borderRadius: "6px",
+          backgroundColor: "#1E293B", border: `2px solid ${fillColor}`,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "transform 0.15s ease",
+        });
+        box.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${fillColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"/><path d="M3 9h18"/><path d="M9 3v18"/></svg>`;
+        el.appendChild(box);
+
+        el.onmouseenter = () => {
+          box.style.transform = "scale(1.2)";
+          if (popupRef.current) popupRef.current.remove();
+          const popup = new mapboxgl.Popup({
+            closeButton: false, closeOnClick: false, offset: 15,
+          }).setLngLat([yard.longitude, yard.latitude]).setHTML(`
+            <div style="background:#0F1629;border:1px solid #1E293B;border-radius:8px;padding:8px 12px;color:#F1F5F9;font-family:inherit;">
+              <div style="font-weight:600;font-size:13px;margin-bottom:2px;">${yard.yard_name}</div>
+              <div style="font-size:11px;color:#94A3B8;">${yard.bin_count} bins</div>
+              <div style="margin-top:6px;">
+                <div style="display:flex;justify-content:space-between;font-size:10px;color:#64748B;margin-bottom:2px;">
+                  <span>Fill Level</span><span>${Math.round(fillPct)}%</span>
+                </div>
+                <div style="background:rgba(255,255,255,0.06);border-radius:4px;height:4px;overflow:hidden;">
+                  <div style="height:100%;width:${fillPct}%;background:${fillColor};border-radius:4px;"></div>
+                </div>
+                <div style="font-size:10px;color:#64748B;margin-top:4px;">${fmt(yard.total_stored_bu)} / ${fmt(yard.total_capacity_bu)} bu</div>
+              </div>
+            </div>
+          `).addTo(map);
+          popupRef.current = popup;
+        };
+        el.onmouseleave = () => {
+          box.style.transform = "scale(1)";
+          if (popupRef.current) { popupRef.current.remove(); popupRef.current = null; }
+        };
+        el.onclick = () => { window.location.href = "/inventory"; };
+
+        const marker = new mapboxgl.Marker({ element: el })
+          .setLngLat([yard.longitude, yard.latitude])
+          .addTo(map);
+        binMarkersRef.current.push(marker);
+      });
+    };
+
+    if (map.isStyleLoaded()) place();
+    else map.once("style.load", place);
+  }, [yards, showBins]);
+
+  /* ── Weather markers ───────────────────────────── */
+  useEffect(() => {
+    const map = mapRef.current;
+    weatherMarkersRef.current.forEach(m => m.remove());
+    weatherMarkersRef.current = [];
+
+    if (!map || !showWeather || weather.length === 0) return;
+
+    const place = () => {
+      weather.forEach(w => {
+        const el = document.createElement("div");
+        Object.assign(el.style, {
+          backgroundColor: "rgba(15,22,41,0.85)", border: "1px solid #1E293B",
+          borderRadius: "10px", padding: "6px 10px", color: "#F1F5F9",
+          fontSize: "11px", fontFamily: "inherit", pointerEvents: "none",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.3)", whiteSpace: "nowrap",
+          display: "flex", alignItems: "center", gap: "8px",
+        });
+        const tempColor = w.temperature > 25 ? "#EF4444" : w.temperature > 10 ? "#FBBF24" : w.temperature > 0 ? "#60A5FA" : "#94A3B8";
+        el.innerHTML = `
+          <span style="font-weight:700;font-size:14px;color:${tempColor}">${w.temperature}°C</span>
+          <span style="color:#64748B;font-size:10px;">${w.windspeed} km/h</span>
+          ${w.precipitation > 0 ? `<span style="color:#60A5FA;font-size:10px;">${w.precipitation}mm</span>` : ""}
+        `;
+
+        const marker = new mapboxgl.Marker({ element: el, anchor: "bottom-left" })
+          .setLngLat([w.longitude + 0.02, w.latitude + 0.02])
+          .addTo(map);
+        weatherMarkersRef.current.push(marker);
+      });
+    };
+
+    if (map.isStyleLoaded()) place();
+    else map.once("style.load", place);
+  }, [weather, showWeather]);
+
   /* ── Legend ─────────────────────────────────────── */
   const legendItems = useMemo(() => {
     if (colorMode === "crop")
@@ -201,60 +421,104 @@ export default function MapsPage() {
     return [{ color:"#22c55e",label:"< 75%",detail:"On track" },{ color:"#4ade80",label:"75-90%",detail:"Watch" },{ color:"#fbbf24",label:"90-100%",detail:"Near" },{ color:"#ef4444",label:"> 100%",detail:"Over" }];
   }, [colorMode, cropBreakdown, fields]);
 
-  // Don't conditionally return — map container must always be in DOM
-
   /* ═══════ RENDER ═══════════════════════════════════════ */
   return (
-    <div style={{ display: "flex", gap: 0 }}>
+    <div style={{ margin: "-24px", display: "flex", height: mapHeight }}>
 
       {/* ═══ MAP ═════════════════════════════════════════ */}
       <div style={{ flex: 1, position: "relative" }}>
-        <div ref={mapContainerRef} style={{ width: "100%", height: 700 }} />
+        <div ref={mapContainerRef} style={{ width: "100%", height: mapHeight }} />
 
-        {/* Controls */}
+        {/* ── Top Controls ─────────────────────────────── */}
         <div style={{ position: "absolute", top: 16, left: 60, zIndex: 10, display: "flex", gap: 8 }}>
+          {/* Map Style */}
           <div className="flex rounded-lg border border-black/20 overflow-hidden shadow-lg">
-            {(["satellite","dark","terrain"] as const).map(s => (
-              <button key={s} onClick={() => setMapStyle(s)}
-                className={`px-3 py-1.5 text-xs font-semibold ${mapStyle===s ? "bg-[#34D399] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white"}`}>
-                {s==="satellite"?"🛰 Satellite":s==="dark"?"🌙 Dark":"⛰ Terrain"}
+            {([
+              { key: "satellite" as const, icon: Satellite, label: "Satellite" },
+              { key: "dark" as const, icon: Moon, label: "Dark" },
+              { key: "terrain" as const, icon: Mountain, label: "Terrain" },
+            ]).map(s => (
+              <button key={s.key} onClick={() => setMapStyle(s.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  mapStyle===s.key ? "bg-[#34D399] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white"
+                }`}>
+                <s.icon size={12}/> {s.label}
               </button>
             ))}
           </div>
+
+          {/* Color Mode */}
           <div className="flex rounded-lg border border-black/20 overflow-hidden shadow-lg">
             {(["crop","status","margin","budget"] as const).map(m => (
               <button key={m} onClick={() => setColorMode(m)}
-                className={`px-3 py-1.5 text-xs font-semibold ${colorMode===m ? "bg-[#60A5FA] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white"}`}>
+                className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  colorMode===m ? "bg-[#60A5FA] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white"
+                }`}>
                 {m.charAt(0).toUpperCase()+m.slice(1)}
               </button>
             ))}
           </div>
+
+          {/* Layer Toggles */}
+          <div className="flex rounded-lg border border-black/20 overflow-hidden shadow-lg">
+            <button onClick={() => setShowBins(!showBins)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
+                showBins ? "bg-[#F59E0B] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white"
+              }`}>
+              <Warehouse size={12}/> Bins
+            </button>
+            <button onClick={() => setShowWeather(!showWeather)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
+                showWeather ? "bg-[#60A5FA] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white"
+              }`}>
+              <CloudRain size={12}/> Weather
+            </button>
+          </div>
         </div>
 
-        {/* Legend */}
-        <div className="absolute bottom-6 left-4 z-10 bg-[#0F1629]/90 border border-[#1E293B] rounded-xl p-3 shadow-lg max-w-[200px]">
+        {/* ── Legend ────────────────────────────────────── */}
+        <div className="absolute bottom-6 left-4 z-10 bg-[#0F1629]/90 border border-[#1E293B] rounded-xl p-3 shadow-lg max-w-[220px]">
           <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[#64748B] mb-2">
             {colorMode==="crop"?"Crop Type":colorMode==="status"?"Field Status":colorMode==="margin"?"Net Margin":"Budget Usage"}
           </p>
           {legendItems.map(i => (
             <div key={i.label} className="flex items-center gap-2 mb-1">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: i.color }} />
+              <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: i.color }} />
               <span className="text-xs text-[#F1F5F9] flex-1">{i.label}</span>
               <span className="text-[10px] text-[#64748B]">{i.detail}</span>
             </div>
           ))}
+          {showBins && yards.length > 0 && (
+            <>
+              <div className="border-t border-[#1E293B] my-2" />
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-3 h-3 rounded bg-[#1E293B] border border-[#34D399] flex-shrink-0" />
+                <span className="text-xs text-[#F1F5F9] flex-1">Bin Yards</span>
+                <span className="text-[10px] text-[#64748B]">{yards.length}</span>
+              </div>
+            </>
+          )}
+          {showWeather && weather.length > 0 && (
+            <>
+              <div className="border-t border-[#1E293B] my-2" />
+              <div className="flex items-center gap-2">
+                <Thermometer size={12} className="text-[#60A5FA]" />
+                <span className="text-xs text-[#F1F5F9]">Live Weather</span>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Toggle */}
+        {/* ── Panel Toggle ─────────────────────────────── */}
         <button onClick={() => setPanelCollapsed(!panelCollapsed)}
-          className="absolute top-4 right-4 z-10 bg-[#0F1629]/90 border border-[#1E293B] rounded-lg p-2 shadow-lg text-[#94A3B8] hover:text-white">
+          className="absolute top-4 right-4 z-10 bg-[#0F1629]/90 border border-[#1E293B] rounded-lg p-2 shadow-lg text-[#94A3B8] hover:text-white transition-colors">
           {panelCollapsed ? <Maximize2 size={16}/> : <Minimize2 size={16}/>}
         </button>
       </div>
 
-      {/* ═══ PANEL ═══════════════════════════════════════ */}
+      {/* ═══ INTELLIGENCE PANEL ══════════════════════════ */}
       {!panelCollapsed && (
-        <div style={{ width: 380, flexShrink: 0, background: "#0B1120", borderLeft: "1px solid #1E293B", overflowY: "auto", height: "100vh" }}>
+        <div style={{ width: 380, flexShrink: 0, background: "#0B1120", borderLeft: "1px solid #1E293B", overflowY: "auto", height: mapHeight }}>
           <div className="p-5">
             <h1 className="text-lg font-bold text-[#F1F5F9]">Farm Command Center</h1>
             <p className="text-xs text-[#64748B] mt-0.5 mb-5">{cropYear} crop year · {fields.length} fields mapped</p>
@@ -262,26 +526,20 @@ export default function MapsPage() {
             {/* KPIs */}
             {kpis && (
               <div className="grid grid-cols-2 gap-2 mb-5">
-                <div className="bg-[#0F1629] border border-[#1E293B] rounded-lg p-3">
-                  <div className="flex items-center gap-1.5 mb-1"><MapPin size={11} className="text-[#34D399]"/><span className="text-[10px] text-[#64748B] uppercase">Fields</span></div>
-                  <p className="text-lg font-bold text-white">{kpis.totalFields}</p>
-                  <p className="text-[10px] text-[#475569]">{kpis.seededCount} seeded</p>
-                </div>
-                <div className="bg-[#0F1629] border border-[#1E293B] rounded-lg p-3">
-                  <div className="flex items-center gap-1.5 mb-1"><Wheat size={11} className="text-[#60A5FA]"/><span className="text-[10px] text-[#64748B] uppercase">Acres</span></div>
-                  <p className="text-lg font-bold text-white">{fmt(kpis.totalAcres)}</p>
-                  <p className="text-[10px] text-[#475569]">{fmt(kpis.seededAcres)} seeded</p>
-                </div>
-                <div className="bg-[#0F1629] border border-[#1E293B] rounded-lg p-3">
-                  <div className="flex items-center gap-1.5 mb-1"><DollarSign size={11} className="text-[#FBBF24]"/><span className="text-[10px] text-[#64748B] uppercase">Costs</span></div>
-                  <p className="text-lg font-bold text-white">${fmt(kpis.totalActualCost)}</p>
-                  <p className="text-[10px] text-[#475569]">${fmtD(kpis.avgCostPerAcre)}/ac</p>
-                </div>
-                <div className="bg-[#0F1629] border border-[#1E293B] rounded-lg p-3">
-                  <div className="flex items-center gap-1.5 mb-1"><BarChart3 size={11} className={kpis.netMarginActual>=0?"text-[#34D399]":"text-[#EF4444]"}/><span className="text-[10px] text-[#64748B] uppercase">Margin</span></div>
-                  <p className={`text-lg font-bold ${kpis.netMarginActual>=0?"text-emerald-400":"text-red-400"}`}>${fmt(kpis.netMarginActual)}</p>
-                  <p className="text-[10px] text-[#475569]">${kpis.seededAcres>0?fmtD(kpis.netMarginActual/kpis.seededAcres):"0.00"}/ac</p>
-                </div>
+                {[
+                  { icon: MapPin, iconColor: "text-[#34D399]", label: "Fields", value: String(kpis.totalFields), sub: `${kpis.seededCount} seeded` },
+                  { icon: Wheat, iconColor: "text-[#60A5FA]", label: "Acres", value: fmt(kpis.totalAcres), sub: `${fmt(kpis.seededAcres)} seeded` },
+                  { icon: DollarSign, iconColor: "text-[#FBBF24]", label: "Costs", value: `$${fmt(kpis.totalActualCost)}`, sub: `$${fmtD(kpis.avgCostPerAcre)}/ac` },
+                  { icon: BarChart3, iconColor: kpis.netMarginActual>=0?"text-[#34D399]":"text-[#EF4444]", label: "Margin",
+                    value: `$${fmt(kpis.netMarginActual)}`, sub: `$${kpis.seededAcres>0?fmtD(kpis.netMarginActual/kpis.seededAcres):"0.00"}/ac`,
+                    valueColor: kpis.netMarginActual>=0?"text-emerald-400":"text-red-400" },
+                ].map(k => (
+                  <div key={k.label} className="bg-[#0F1629] border border-[#1E293B] rounded-lg p-3">
+                    <div className="flex items-center gap-1.5 mb-1"><k.icon size={11} className={k.iconColor}/><span className="text-[10px] text-[#64748B] uppercase">{k.label}</span></div>
+                    <p className={`text-lg font-bold ${k.valueColor||"text-white"}`}>{k.value}</p>
+                    <p className="text-[10px] text-[#475569]">{k.sub}</p>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -301,6 +559,25 @@ export default function MapsPage() {
                     <span className="text-[#64748B]">{fmt(d.acres)} ac</span>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Weather Summary */}
+            {showWeather && weather.length > 0 && (
+              <div className="mb-5">
+                <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[#64748B] mb-2">Current Conditions</p>
+                <div className="bg-[#0F1629] border border-[#1E293B] rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Thermometer size={14} className="text-[#60A5FA]" />
+                      <span className="text-lg font-bold text-white">{weather[0].temperature}°C</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-[#94A3B8]">
+                      <span className="flex items-center gap-1"><Wind size={11}/> {weather[0].windspeed} km/h</span>
+                      <span className="flex items-center gap-1"><Droplets size={11}/> {weather[0].precipitation}mm</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -352,16 +629,16 @@ export default function MapsPage() {
                       </>
                     )}
                     <button onClick={() => router.push(`/fields/${selectedField.id}`)}
-                      className="w-full flex items-center justify-between bg-[#34D399]/10 border border-[#34D399]/20 rounded-lg px-3 py-2 text-sm font-semibold text-[#34D399] hover:bg-[#34D399]/20 mb-2">
+                      className="w-full flex items-center justify-between bg-[#34D399]/10 border border-[#34D399]/20 rounded-lg px-3 py-2 text-sm font-semibold text-[#34D399] hover:bg-[#34D399]/20 transition-colors mb-2">
                       <span>Open Field Detail</span><ArrowRight size={14}/>
                     </button>
                     <div className="grid grid-cols-2 gap-2">
                       <button onClick={() => window.location.href=selectedField.crop_type?`/marketing?crop=${encodeURIComponent(selectedField.crop_type)}`:"/marketing"}
-                        className="flex items-center gap-1.5 bg-white/[0.03] border border-[#1E293B] rounded-lg px-2 py-1.5 text-xs text-[#94A3B8] hover:text-white hover:border-[#34D399]/40">
+                        className="flex items-center gap-1.5 bg-white/[0.03] border border-[#1E293B] rounded-lg px-2 py-1.5 text-xs text-[#94A3B8] hover:text-white hover:border-[#34D399]/40 transition-colors">
                         <DollarSign size={12}/> Contracts
                       </button>
                       <button onClick={() => window.location.href=selectedField.crop_type?`/inventory?crop=${encodeURIComponent(selectedField.crop_type)}`:"/inventory"}
-                        className="flex items-center gap-1.5 bg-white/[0.03] border border-[#1E293B] rounded-lg px-2 py-1.5 text-xs text-[#94A3B8] hover:text-white hover:border-[#34D399]/40">
+                        className="flex items-center gap-1.5 bg-white/[0.03] border border-[#1E293B] rounded-lg px-2 py-1.5 text-xs text-[#94A3B8] hover:text-white hover:border-[#34D399]/40 transition-colors">
                         <Package size={12}/> Inventory
                       </button>
                     </div>
@@ -385,10 +662,10 @@ export default function MapsPage() {
                   <button key={field.id} onClick={() => {
                     setSelectedField(field);
                     mapRef.current?.flyTo({ center:[field.longitude,field.latitude], zoom:11, duration:800 });
-                  }} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left mb-1.5 ${
+                  }} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left mb-1.5 transition-colors ${
                     selectedField?.id===field.id?"bg-[#34D399]/10 border border-[#34D399]/20":"bg-[#0F1629] border border-[#1E293B] hover:border-[#34D399]/30"
                   }`}>
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CROP_COLORS[field.crop_type||""]||"#475569" }}/>
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: CROP_COLORS[field.crop_type||""]||"#475569" }}/>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-[#F1F5F9] truncate">{field.field_name}</p>
                       <p className="text-[10px] text-[#64748B]">{field.crop_type||"Unassigned"} · {field.acres} ac</p>
