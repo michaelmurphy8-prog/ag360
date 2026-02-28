@@ -85,7 +85,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, color: T.text, fontSize: 13, outline: "none", boxSizing: "border-box" };
 
 // ═══════════════════════════════════════════════════════════
-export default function MarketingPage() {
+import { Suspense } from "react";
+
+function MarketingPageInner() {
   const { user } = useUser();
   const router = useRouter();
   const [data, setData] = useState<MarketingData | null>(null);
@@ -592,5 +594,13 @@ const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
         </div>
       )}
     </div>
+  );
+}
+
+export default function MarketingPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-96 text-[#64748B]">Loading...</div>}>
+      <MarketingPageInner />
+    </Suspense>
   );
 }
