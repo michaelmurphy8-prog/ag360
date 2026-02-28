@@ -543,51 +543,58 @@ export default function FieldDetailPage() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <button
-          onClick={() => router.push("/marketing")}
+          onClick={() => window.location.href = crop ? `/marketing?crop=${encodeURIComponent(crop.crop_type)}` : "/marketing"}
           className="bg-[#0F1629] border border-[#1E293B] rounded-xl p-4 hover:border-[#34D399]/40 transition-all text-left group"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center">
-              <FileText size={18} className="text-[#F59E0B]" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[#F1F5F9] group-hover:text-[#34D399] transition-colors">Contracts</p>
-              <p className="text-xs text-[#64748B]">
-                {crop ? `View ${crop.crop_type} contracts` : "No crop assigned"}
-              </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center">
+                <FileText size={18} className="text-[#F59E0B]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[#F1F5F9] group-hover:text-[#34D399] transition-colors">Contracts</p>
+                <p className="text-xs text-[#64748B]">
+                  {crop ? `View ${crop.crop_type} contracts` : "No crop assigned"}
+                </p>
+              </div>
             </div>
           </div>
         </button>
 
         <button
-          onClick={() => router.push("/inventory")}
+          onClick={() => window.location.href = crop ? `/inventory?crop=${encodeURIComponent(crop.crop_type)}` : "/inventory"}
           className="bg-[#0F1629] border border-[#1E293B] rounded-xl p-4 hover:border-[#34D399]/40 transition-all text-left group"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[#60A5FA]/10 flex items-center justify-center">
-              <Package size={18} className="text-[#60A5FA]" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[#F1F5F9] group-hover:text-[#34D399] transition-colors">Inventory Bins</p>
-              <p className="text-xs text-[#64748B]">View linked storage</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-[#60A5FA]/10 flex items-center justify-center">
+                <Package size={18} className="text-[#60A5FA]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[#F1F5F9] group-hover:text-[#34D399] transition-colors">Inventory Bins</p>
+                <p className="text-xs text-[#64748B]">{crop ? `View ${crop.crop_type} storage` : "View linked storage"}</p>
+              </div>
             </div>
           </div>
         </button>
 
         <button
-          onClick={() => router.push("/agronomy")}
+          onClick={() => window.location.href = "/agronomy?tab=spray"}
           className="bg-[#0F1629] border border-[#1E293B] rounded-xl p-4 hover:border-[#34D399]/40 transition-all text-left group"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[#34D399]/10 flex items-center justify-center">
-              <Bug size={18} className="text-[#34D399]" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[#F1F5F9] group-hover:text-[#34D399] transition-colors">Spray Records</p>
-              <p className="text-xs text-[#64748B]">View field applications</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-[#34D399]/10 flex items-center justify-center">
+                <Bug size={18} className="text-[#34D399]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[#F1F5F9] group-hover:text-[#34D399] transition-colors">Spray Records</p>
+                <p className="text-xs text-[#64748B]">View spray calendar</p>
+              </div>
             </div>
           </div>
         </button>
+
       </div>
 
       {/* ── Modals ────────────────────────────────────── */}

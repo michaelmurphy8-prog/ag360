@@ -45,7 +45,14 @@ const inputClass = "w-full text-sm border border-white/[0.10] rounded-lg px-2 py
 
 export default function AgronomyPage() {
   const { user } = useUser()
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab && ['dashboard', 'playbook', 'costs', 'scout', 'protection', 'spray'].includes(tab)) return tab;
+    }
+    return 'dashboard';
+  })
   const [province, setProvince] = useState('SK')
   const [zone, setZone] = useState<SoilZone>('Black')
   const [profileLoaded, setProfileLoaded] = useState(false)

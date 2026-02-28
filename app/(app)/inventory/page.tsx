@@ -176,7 +176,13 @@ export default function InventoryPage() {
     }
     return "holdings";
   });
-
+  const [cropFilter] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("crop") || "all";
+    }
+    return "all";
+  });
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
@@ -723,7 +729,14 @@ export default function InventoryPage() {
                 </div>
               </FormCard>
             )}
-            {holdings.length === 0 ? (
+            {cropFilter !== "all" && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#34D399]/10 border border-[#34D399]/20 text-sm text-[#34D399]">
+                <Filter size={14} />
+                Filtered to: <span className="font-semibold">{cropFilter}</span>
+                <a href="/inventory" className="ml-auto text-xs underline text-[#64748B] hover:text-[#F1F5F9]">Clear</a>
+              </div>
+            )}
+            {(cropFilter !== "all" ? holdings.filter(h => h.crop === cropFilter) : holdings).length === 0 ? (
               <div className="text-center py-12">
                 <Package size={28} className="mx-auto text-[#475569] mb-2" />
                 <p className="text-sm text-[#64748B]">No holdings yet — add a bin or check your Farm Profile inventory.</p>
@@ -744,7 +757,7 @@ export default function InventoryPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.04]">
-                    {holdings.map((h, i) => (
+                     {(cropFilter !== "all" ? holdings.filter(h => h.crop === cropFilter) : holdings).map((h, i) => (
                       <tr key={h.id || i} className="hover:bg-white/[0.02] transition-colors">
                         <td className="py-3 pr-6 font-semibold text-[#F1F5F9]">{h.crop}</td>
                         <td className="py-3 pr-6 text-[#94A3B8]">{h.location}</td>

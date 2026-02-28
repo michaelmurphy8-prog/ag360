@@ -14,7 +14,7 @@ import {
   AreaChart, Area, LineChart, Line,
 } from "recharts";
 import { getCropColor, buToMt } from "@/lib/crop-colors";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // ─── Theme ──────────────────────────────────────────────
 const T = {
@@ -93,7 +93,6 @@ export default function MarketingPage() {
   const [cropYear, setCropYear] = useState(String(new Date().getFullYear()));
   const [unit, setUnit] = useState<"bu" | "mt">("bu");
 const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
-  const [tab, setTab] = useState<"overview" | "contracts" | "price" | "hedge">("overview");
 
   // Contracts
   const [contracts, setContracts] = useState<ContractRow[]>([]);
@@ -101,7 +100,10 @@ const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [filterCrop, setFilterCrop] = useState("all");
+  const searchParams = useSearchParams();
+  const cropParam = searchParams.get("crop");
+  const [filterCrop, setFilterCrop] = useState(cropParam || "all");
+  const [tab, setTab] = useState<"overview" | "contracts" | "price" | "hedge">(cropParam ? "contracts" : "overview");
   const [filterType, setFilterType] = useState("all");
   const [searchQ, setSearchQ] = useState("");
   const [formCrop, setFormCrop] = useState("");
