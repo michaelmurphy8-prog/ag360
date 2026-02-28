@@ -110,6 +110,8 @@ export default function MapsPage() {
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [showBins, setShowBins] = useState(true);
   const [showWeather, setShowWeather] = useState(false);
+  const [showRadar, setShowRadar] = useState(false);
+  const [radarTimestamp, setRadarTimestamp] = useState<string>("");
   const [yards, setYards] = useState<YardMarker[]>([]);
   const [weather, setWeather] = useState<WeatherPoint[]>([]);
   const [mapHeight, setMapHeight] = useState(700);
@@ -205,6 +207,60 @@ export default function MapsPage() {
   useEffect(() => {
     if (showWeather && weather.length === 0) fetchWeather();
   }, [showWeather, weather.length, fetchWeather]);
+  /* ── Radar layer ───────────────────────────────── */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const addRadar = async () => {
+      try {
+        const res = await fetch("https://api.rainviewer.com/public/weather-maps.json");
+        const data = await res.json();
+        const latest = data.radar?.past?.slice(-1)[0];
+        if (!latest) return;
+
+        const ts = String(latest.time);
+        setRadarTimestamp(new Date(latest.time * 1000).toLocaleTimeString("en-CA", { hour: "2-digit", minute: "2-digit" }));
+
+        // Remove old layer/source if exists
+        if (map.getLayer("radar-layer")) map.removeLayer("radar-layer");
+        if (map.getSource("radar-source")) map.removeSource("radar-source");
+
+        if (showRadar) {
+          map.addSource("radar-source", {
+            type: "raster",
+            tiles: [`https://tilecache.rainviewer.com/v2/radar/${ts}/256/{z}/{x}/{y}/4/1_1.png`],
+            tileSize: 256,
+          });
+          map.addLayer({
+            id: "radar-layer",
+            type: "raster",
+            source: "radar-source",
+            paint: { "raster-opacity": 0.6 },
+          });
+        }
+      } catch (e) { console.error("Radar fetch error:", e); }
+    };
+
+    const apply = () => {
+      if (map.isStyleLoaded()) addRadar();
+      else map.once("style.load", addRadar);
+    };
+
+    apply();
+
+    // Auto-refresh radar every 5 minutes
+    let interval: NodeJS.Timeout | null = null;
+    if (showRadar) {
+      interval = setInterval(apply, 300000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+      if (map.getLayer("radar-layer")) map.removeLayer("radar-layer");
+      if (map.getSource("radar-source")) map.removeSource("radar-source");
+    };
+  }, [showRadar, mapStyle]);
 
   /* ── Map init ──────────────────────────────────── */
   useEffect(() => {
@@ -341,18 +397,9 @@ export default function MapsPage() {
           const popup = new mapboxgl.Popup({
             closeButton: false, closeOnClick: false, offset: 15,
           }).setLngLat([yard.longitude, yard.latitude]).setHTML(`
-            <div style="background:#0F1629;border:1px solid #1E293B;border-radius:8px;padding:8px 12px;color:#F1F5F9;font-family:inherit;">
-              <div style="font-weight:600;font-size:13px;margin-bottom:2px;">${yard.yard_name}</div>
-              <div style="font-size:11px;color:#94A3B8;">${yard.bin_count} bins</div>
-              <div style="margin-top:6px;">
-                <div style="display:flex;justify-content:space-between;font-size:10px;color:#64748B;margin-bottom:2px;">
-                  <span>Fill Level</span><span>${Math.round(fillPct)}%</span>
-                </div>
-                <div style="background:rgba(255,255,255,0.06);border-radius:4px;height:4px;overflow:hidden;">
-                  <div style="height:100%;width:${fillPct}%;background:${fillColor};border-radius:4px;"></div>
-                </div>
-                <div style="font-size:10px;color:#64748B;margin-top:4px;">${fmt(yard.total_stored_bu)} / ${fmt(yard.total_capacity_bu)} bu</div>
-              </div>
+            <div style="background:#0F1629;border:1px solid #1E293B;border-radius:8px;padding:6px 10px;color:#F1F5F9;font-family:inherit;">
+              <div style="font-weight:600;font-size:13px;">${yard.yard_name}</div>
+              <div style="font-size:12px;color:${fillColor};font-weight:600;margin-top:2px;">${Math.round(fillPct)}% full</div>
             </div>
           `).addTo(map);
           popupRef.current = popup;
@@ -473,6 +520,12 @@ export default function MapsPage() {
               }`}>
               <CloudRain size={12}/> Weather
             </button>
+            <button onClick={() => setShowRadar(!showRadar)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
+                showRadar ? "bg-[#8B5CF6] text-white" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white"
+              }`}>
+              <Eye size={12}/> Radar
+            </button>
           </div>
         </div>
 
@@ -504,6 +557,24 @@ export default function MapsPage() {
               <div className="flex items-center gap-2">
                 <Thermometer size={12} className="text-[#60A5FA]" />
                 <span className="text-xs text-[#F1F5F9]">Live Weather</span>
+              </div>
+            </>
+          )}
+          {showRadar && (
+            <>
+              <div className="border-t border-[#1E293B] my-2" />
+              <div className="flex items-center gap-2">
+                <Eye size={12} className="text-[#8B5CF6]" />
+                <span className="text-xs text-[#F1F5F9] flex-1">Radar</span>
+                {radarTimestamp && <span className="text-[10px] text-[#64748B]">{radarTimestamp}</span>}
+              </div>
+              <div className="flex items-center gap-1 mt-1.5">
+                {["#00FF00","#FFFF00","#FFA500","#FF0000","#FF00FF"].map((c, i) => (
+                  <div key={i} style={{ flex: 1, height: 4, backgroundColor: c, borderRadius: 2, opacity: 0.7 }} />
+                ))}
+              </div>
+              <div className="flex justify-between text-[8px] text-[#64748B] mt-0.5">
+                <span>Light</span><span>Heavy</span>
               </div>
             </>
           )}
