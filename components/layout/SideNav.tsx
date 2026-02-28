@@ -42,6 +42,7 @@ const navSections: { title?: string; items: NavItem[] }[] = [
         label: "Operations", icon: Wrench,
         children: [
           { label: "Overview", href: "/operations" },
+          { label: "Maps", href: "/maps" },
           { label: "Fields", href: "/fields" },
           { label: "Import Data", href: "/imports" },
         ],
