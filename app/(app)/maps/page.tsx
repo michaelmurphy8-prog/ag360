@@ -7,7 +7,7 @@ import {
   MapPin, Wheat, DollarSign, BarChart3, Package, ArrowRight,
   Maximize2, Minimize2, Satellite, Moon, Mountain, CloudRain,
   Thermometer, Wind, Droplets, Warehouse, Eye, PenTool, Save,
-  X, Trash2, Square,
+  X, Trash2, Square, Upload, Download, AlertTriangle, Grid3x3,
 } from "lucide-react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -15,6 +15,9 @@ import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import * as turfArea from "@turf/area";
 import { fieldToCoords } from "@/lib/lld-geocode";
+import { detectOverlaps, generateLLDRectangle, type OverlapResult, type GeoJSONFeature } from "@/lib/boundary-utils";
+import BoundaryImportModal from "@/components/maps/BoundaryImportModal";
+import BoundaryExportModal from "@/components/maps/BoundaryExportModal";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 
@@ -132,6 +135,9 @@ export default function MapsPage() {
   const [drawingAcres, setDrawingAcres] = useState(0);
   const [drawingHectares, setDrawingHectares] = useState(0);
   const [savingBoundary, setSavingBoundary] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [overlaps, setOverlaps] = useState<OverlapResult[]>([]);
 
   const cropYear = new Date().getFullYear();
 
@@ -171,6 +177,15 @@ export default function MapsPage() {
   }, [cropYear]);
 
   useEffect(() => { fetchFields(); }, [fetchFields]);
+
+  // Detect overlaps when fields change
+  useEffect(() => {
+    if (fields.filter(f => f.boundary).length >= 2) {
+      detectOverlaps(fields).then(setOverlaps);
+    } else {
+      setOverlaps([]);
+    }
+  }, [fields]);
 
   /* ── Fetch yards/bins ──────────────────────────── */
   useEffect(() => {
@@ -590,6 +605,42 @@ export default function MapsPage() {
     } catch (e) { console.error(e); }
     finally { setSavingBoundary(false); }
   };
+  // Import handler
+  const handleImportAssign = async (fieldId: string, boundary: GeoJSONFeature, acres: number) => {
+    const res = await fetch("/api/fields/boundary", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field_id: fieldId, boundary, boundary_acres: acres }),
+    });
+    const result = await res.json();
+    if (!result.success) throw new Error("Save failed");
+    await fetchFields();
+  };
+
+  // LLD snap handler
+  const snapToLLD = async () => {
+    if (!selectedField) return;
+    const rect = generateLLDRectangle(
+      selectedField.lld_quarter,
+      selectedField.lld_section,
+      selectedField.lld_township,
+      selectedField.lld_range,
+      selectedField.lld_meridian,
+    );
+    if (!rect) return;
+    setSavingBoundary(true);
+    try {
+      const { calcAcres: ca } = await import("@/lib/boundary-utils");
+      const acres = ca(rect);
+      await fetch("/api/fields/boundary", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ field_id: selectedField.id, boundary: rect, boundary_acres: acres }),
+      });
+      await fetchFields();
+    } catch (e) { console.error(e); }
+    finally { setSavingBoundary(false); }
+  };
 
   /* ── Legend ─────────────────────────────────────── */
   const legendItems = useMemo(() => {
@@ -794,6 +845,33 @@ export default function MapsPage() {
               </div>
             )}
 
+            {/* Import/Export */}
+            <div className="flex gap-2 mb-4">
+              <button onClick={() => setShowImportModal(true)}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-white/[0.03] border border-[#1E293B] rounded-lg px-3 py-2 text-xs text-[#94A3B8] hover:text-white hover:border-[#60A5FA]/40 transition-colors">
+                <Upload size={12}/> Import
+              </button>
+              <button onClick={() => setShowExportModal(true)}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-white/[0.03] border border-[#1E293B] rounded-lg px-3 py-2 text-xs text-[#94A3B8] hover:text-white hover:border-[#34D399]/40 transition-colors">
+                <Download size={12}/> Export
+              </button>
+            </div>
+
+            {/* Overlap Warnings */}
+            {overlaps.length > 0 && (
+              <div className="mb-4">
+                <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[#FBBF24] mb-2 flex items-center gap-1.5">
+                  <AlertTriangle size={10}/> Boundary Overlaps
+                </p>
+                {overlaps.map((o, i) => (
+                  <div key={i} className="bg-[#FBBF24]/5 border border-[#FBBF24]/20 rounded-lg px-3 py-2 mb-1.5 text-xs">
+                    <p className="text-[#FBBF24] font-semibold">{o.fieldName1} ↔ {o.fieldName2}</p>
+                    <p className="text-[#64748B]">{o.overlapAcres} acres overlap</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="border-t border-[#1E293B] my-4"/>
 
             {/* Selected Field */}
@@ -848,10 +926,18 @@ export default function MapsPage() {
                     {/* Boundary Actions */}
                     <div className="space-y-2 mb-3">
                       {!isDrawing && (
-                        <button onClick={startDrawing}
-                          className="w-full flex items-center justify-center gap-2 bg-[#60A5FA]/10 border border-[#60A5FA]/20 rounded-lg px-3 py-2 text-sm font-semibold text-[#60A5FA] hover:bg-[#60A5FA]/20 transition-colors">
-                          <PenTool size={14}/> {selectedField.boundary ? "Redraw Boundary" : "Draw Boundary"}
-                        </button>
+                        <>
+                          <button onClick={startDrawing}
+                            className="w-full flex items-center justify-center gap-2 bg-[#60A5FA]/10 border border-[#60A5FA]/20 rounded-lg px-3 py-2 text-sm font-semibold text-[#60A5FA] hover:bg-[#60A5FA]/20 transition-colors">
+                            <PenTool size={14}/> {selectedField.boundary ? "Redraw Boundary" : "Draw Boundary"}
+                          </button>
+                          {!selectedField.boundary && (
+                            <button onClick={snapToLLD} disabled={savingBoundary}
+                              className="w-full flex items-center justify-center gap-2 bg-white/[0.03] border border-[#1E293B] rounded-lg px-3 py-1.5 text-xs text-[#94A3B8] hover:text-white hover:border-[#60A5FA]/40 transition-colors disabled:opacity-50">
+                              <Grid3x3 size={12}/> Snap to LLD Quarter Section
+                            </button>
+                          )}
+                        </>
                       )}
                       {selectedField.boundary && !isDrawing && (
                         <button onClick={deleteBoundary} disabled={savingBoundary}
@@ -919,6 +1005,21 @@ export default function MapsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modals */}
+      {showImportModal && (
+        <BoundaryImportModal
+          fields={fields}
+          onClose={() => setShowImportModal(false)}
+          onAssign={handleImportAssign}
+        />
+      )}
+      {showExportModal && (
+        <BoundaryExportModal
+          fields={fields}
+          onClose={() => setShowExportModal(false)}
+        />
       )}
     </div>
   );
