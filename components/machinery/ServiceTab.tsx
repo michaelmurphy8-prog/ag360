@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Wrench, Calendar, AlertTriangle, Clock, DollarSign, TrendingUp, ChevronRight, CheckCircle, Plus } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Wrench, Calendar, AlertTriangle, Clock, DollarSign, TrendingUp, CheckCircle, Plus, ScanLine } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import AddServiceLogModal from "./AddServiceLogModal";
 import ScheduleServiceModal from "./ScheduleServiceModal";
 import DowntimeModal from "./DowntimeModal";
 
 interface Asset {
   id: string; name: string; make: string; model: string;
-  year: number; hoursTotal: number | null; status: string;
+  year: number; hoursTotal: number | null; kmTotal?: number | null; assetClass?: string | null; status: string;
 }
 
 interface ServiceLog {
@@ -54,10 +55,8 @@ function priorityColor(p: string) {
 
 function categoryBadge(cat: string) {
   const colors: Record<string, string> = {
-    preventive: "bg-[#34D399]/10 text-[#34D399]",
-    repair: "bg-[#F59E0B]/10 text-[#F59E0B]",
-    inspection: "bg-[#60A5FA]/10 text-[#60A5FA]",
-    warranty: "bg-[#8B5CF6]/10 text-[#8B5CF6]",
+    preventive: "bg-[#34D399]/10 text-[#34D399]", repair: "bg-[#F59E0B]/10 text-[#F59E0B]",
+    inspection: "bg-[#60A5FA]/10 text-[#60A5FA]", warranty: "bg-[#8B5CF6]/10 text-[#8B5CF6]",
     general: "bg-white/[0.04] text-[#94A3B8]",
   };
   return colors[cat] || colors.general;
@@ -75,11 +74,15 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [downtimeLogs, setDowntimeLogs] = useState<DowntimeEntry[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [costChartData, setCostChartData] = useState<{ month: string; cost: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [subTab, setSubTab] = useState<"logs" | "schedule" | "downtime">("schedule");
   const [showLogModal, setShowLogModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showDowntimeModal, setShowDowntimeModal] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<any>(null);
+  const scanFileRef = useRef<HTMLInputElement>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -95,6 +98,22 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
       if (schedData.success) setSchedules(schedData.schedules);
       if (downData.success) setDowntimeLogs(downData.logs);
       if (statsData.success) setStats(statsData.stats);
+
+      // Build cost chart
+      if (logsData.success && logsData.logs.length > 0) {
+        const monthly = new Map<string, number>();
+        logsData.logs.forEach((l: any) => {
+          if (l.cost) {
+            const m = new Date(l.date).toISOString().slice(0, 7);
+            monthly.set(m, (monthly.get(m) || 0) + Number(l.cost));
+          }
+        });
+        const sorted = [...monthly.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+        setCostChartData(sorted.map(([month, cost]) => ({
+          month: new Date(month + "-01").toLocaleDateString("en-CA", { month: "short", year: "2-digit" }),
+          cost: Math.round(cost),
+        })));
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, []);
@@ -103,41 +122,54 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
 
   const handleResolveDowntime = async (id: string) => {
     await fetch("/api/machinery/downtime", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, restoreStatus: "ACTIVE" }),
     });
     fetchAll();
   };
 
   const handleMarkComplete = async (sched: Schedule) => {
-    // Log the service
     await fetch("/api/machinery/service", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        assetId: sched.assetId,
-        date: new Date().toISOString(),
-        type: sched.serviceType,
-        serviceCategory: "preventive",
+        assetId: sched.assetId, date: new Date().toISOString(),
+        type: sched.serviceType, serviceCategory: "preventive",
         hoursAtService: sched.current_hours,
         notes: `Completed scheduled service: ${sched.serviceType}`,
       }),
     });
-    // Update schedule
     const newDueHours = sched.intervalHours && sched.current_hours ? sched.current_hours + sched.intervalHours : null;
     const newDueDate = sched.intervalDays ? new Date(Date.now() + sched.intervalDays * 86400000).toISOString() : null;
     await fetch("/api/machinery/schedule", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id: sched.id, status: "OK",
-        lastCompletedAt: new Date().toISOString(),
-        lastCompletedHours: sched.current_hours,
-        dueAtHours: newDueHours, dueAtDate: newDueDate,
+        id: sched.id, status: "OK", lastCompletedAt: new Date().toISOString(),
+        lastCompletedHours: sched.current_hours, dueAtHours: newDueHours, dueAtDate: newDueDate,
       }),
     });
     fetchAll();
+  };
+
+  const handleScanDocument = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScanning(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/machinery/scan-receipt", { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.success && data.extracted) {
+        setScanResult(data.extracted);
+        setShowLogModal(true);
+      } else {
+        alert("Could not extract service data from this document. Try a clearer image or PDF.");
+      }
+    } catch (err) { console.error(err); alert("Scan failed"); }
+    finally {
+      setScanning(false);
+      if (scanFileRef.current) scanFileRef.current.value = "";
+    }
   };
 
   const activeDowntime = downtimeLogs.filter(d => !d.endTime);
@@ -206,6 +238,11 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
             ))}
           </div>
           <div className="flex gap-2">
+            <input ref={scanFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleScanDocument} />
+            <button onClick={() => scanFileRef.current?.click()} disabled={scanning}
+              className="flex items-center gap-1.5 text-xs font-semibold text-[#8B5CF6] border border-[#8B5CF6]/30 px-3 py-1.5 rounded-full hover:bg-[#8B5CF6]/10 transition-colors disabled:opacity-50">
+              <ScanLine size={11} /> {scanning ? "Scanning..." : "Scan Document"}
+            </button>
             <button onClick={() => setShowDowntimeModal(true)}
               className="flex items-center gap-1.5 text-xs font-semibold text-[#EF4444] border border-[#EF4444]/30 px-3 py-1.5 rounded-full hover:bg-[#EF4444]/10 transition-colors">
               <AlertTriangle size={11} /> Report Down
@@ -214,7 +251,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
               className="flex items-center gap-1.5 text-xs font-semibold text-[#60A5FA] border border-[#60A5FA]/30 px-3 py-1.5 rounded-full hover:bg-[#60A5FA]/10 transition-colors">
               <Calendar size={11} /> Schedule
             </button>
-            <button onClick={() => setShowLogModal(true)}
+            <button onClick={() => { setScanResult(null); setShowLogModal(true); }}
               className="flex items-center gap-1.5 text-xs font-semibold text-[#080C15] bg-[#34D399] px-3 py-1.5 rounded-full hover:bg-[#6EE7B7] transition-colors">
               <Plus size={11} /> Log Service
             </button>
@@ -229,7 +266,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
             {subTab === "schedule" && (
               <div className="divide-y divide-white/[0.04]">
                 {schedules.length === 0 ? (
-                  <div className="px-6 py-12 text-center text-sm text-[#64748B]">No scheduled services yet. Click "Schedule" to add one.</div>
+                  <div className="px-6 py-12 text-center text-sm text-[#64748B]">No scheduled services yet. Click &quot;Schedule&quot; to add one.</div>
                 ) : schedules.map(s => {
                   const hoursUntil = s.dueAtHours && s.current_hours ? s.dueAtHours - s.current_hours : null;
                   return (
@@ -272,7 +309,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
             {subTab === "logs" && (
               <div className="divide-y divide-white/[0.04]">
                 {logs.length === 0 ? (
-                  <div className="px-6 py-12 text-center text-sm text-[#64748B]">No service history yet. Click "Log Service" to record one.</div>
+                  <div className="px-6 py-12 text-center text-sm text-[#64748B]">No service history yet. Click &quot;Log Service&quot; to record one.</div>
                 ) : logs.map(l => (
                   <div key={l.id} className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
                     <div className="flex items-center gap-4 flex-1">
@@ -367,6 +404,28 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
         )}
       </div>
 
+      {/* Service Cost Trend */}
+      {costChartData.length > 1 && (
+        <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
+          <p className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px] mb-4">Service Cost Trend</p>
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={costChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: "#64748B" }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `$${v.toLocaleString()}`} />
+                <Tooltip
+                  contentStyle={{ background: "#1E293B", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
+                  labelStyle={{ color: "#94A3B8" }}
+                  formatter={(value: any) => [`$${Number(value).toLocaleString()}`, "Cost"]}
+                />
+                <Line type="monotone" dataKey="cost" stroke="#F59E0B" strokeWidth={2} dot={{ r: 3, fill: "#F59E0B" }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       {/* Top Cost Units */}
       {stats && stats.topCostUnits.length > 0 && (
         <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
@@ -389,7 +448,14 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
       )}
 
       {/* Modals */}
-      {showLogModal && <AddServiceLogModal assets={assets} onClose={() => setShowLogModal(false)} onSuccess={() => { setShowLogModal(false); fetchAll(); }} />}
+      {showLogModal && (
+        <AddServiceLogModal
+          assets={assets}
+          scanData={scanResult}
+          onClose={() => { setShowLogModal(false); setScanResult(null); }}
+          onSuccess={() => { setShowLogModal(false); setScanResult(null); fetchAll(); }}
+        />
+      )}
       {showScheduleModal && <ScheduleServiceModal assets={assets} onClose={() => setShowScheduleModal(false)} onSuccess={() => { setShowScheduleModal(false); fetchAll(); }} />}
       {showDowntimeModal && <DowntimeModal assets={assets} onClose={() => setShowDowntimeModal(false)} onSuccess={() => { setShowDowntimeModal(false); fetchAll(); }} />}
     </div>

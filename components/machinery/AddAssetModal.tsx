@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { X, Tractor } from 'lucide-react';
 
 interface AddAssetModalProps {
   onClose: () => void;
@@ -11,18 +12,11 @@ export default function AddAssetModal({ onClose, onSuccess }: AddAssetModalProps
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
-    make: '',
-    model: '',
-    year: new Date().getFullYear().toString(),
-    serial_number: '',
-    purchase_value: '',
-    current_value: '',
-    asset_type: 'fixed',
-    asset_class: 'tractor',
-    status: 'ACTIVE',
-    hours_km: '',
-    next_service_hours_km: '',
-    notes: '',
+    make: '', model: '', year: new Date().getFullYear().toString(),
+    serial_number: '', purchase_value: '', current_value: '',
+    asset_type: 'fixed', asset_class: 'tractor', status: 'ACTIVE',
+    hours_km: '', km_total: '', next_service_hours_km: '', notes: '',
+    warranty_expiry: '', warranty_notes: '', dealer_name: '', dealer_phone: '',
   });
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
@@ -37,85 +31,79 @@ export default function AddAssetModal({ onClose, onSuccess }: AddAssetModalProps
     setSaving(true);
     setError('');
     try {
-      const res = await fetch('/api/machinery/bulk-upload', {
+      const res = await fetch('/api/machinery/assets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rows: [form] }),
+        body: JSON.stringify(form),
       });
       const data = await res.json();
-      if (data.success) {
-        onSuccess();
-        onClose();
-      } else {
-        setError(data.errors?.[0] || 'Save failed');
-      }
-    } catch {
-      setError('Network error — please try again');
-    } finally {
-      setSaving(false);
-    }
+      if (data.success) { onSuccess(); onClose(); }
+      else setError(data.error || 'Save failed');
+    } catch { setError('Network error — please try again'); }
+    finally { setSaving(false); }
   }
 
-  const inputClass = "w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 bg-white";
-  const labelClass = "block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1";
+  const isPowerUnit = ['truck', 'pickup', 'car', 'van'].includes(form.asset_class);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Add Asset</h2>
-            <p className="text-sm text-gray-500 mt-0.5">Add a single asset to your fleet</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="bg-[#111827] border border-white/[0.06] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#34D399]/10 flex items-center justify-center">
+              <Tractor size={16} className="text-[#34D399]" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-[#F1F5F9]">Add Asset</h2>
+              <p className="text-xs text-[#64748B]">Add a single asset to your fleet</p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+          <button onClick={onClose} className="text-[#64748B] hover:text-white"><X size={18} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">⚠ {error}</div>
-          )}
+          {error && <div className="bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-xl p-3 text-sm text-[#EF4444]">{error}</div>}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Make *</label>
-              <input name="make" value={form.make} onChange={handleChange} placeholder="e.g. John Deere" className={inputClass} />
+              <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Make *</label>
+              <input name="make" value={form.make} onChange={handleChange} placeholder="e.g. John Deere"
+                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none" />
             </div>
             <div>
-              <label className={labelClass}>Model *</label>
-              <input name="model" value={form.model} onChange={handleChange} placeholder="e.g. 8R 410" className={inputClass} />
+              <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Model *</label>
+              <input name="model" value={form.model} onChange={handleChange} placeholder="e.g. 8R 410"
+                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none" />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Year *</label>
-              <input name="year" value={form.year} onChange={handleChange} placeholder="e.g. 2021" className={inputClass} />
+              <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Year *</label>
+              <input name="year" value={form.year} onChange={handleChange} placeholder="e.g. 2021"
+                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none" />
             </div>
             <div>
-              <label className={labelClass}>Serial Number</label>
-              <input name="serial_number" value={form.serial_number} onChange={handleChange} placeholder="Optional" className={inputClass} />
+              <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Serial Number</label>
+              <input name="serial_number" value={form.serial_number} onChange={handleChange} placeholder="Optional"
+                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none" />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Asset Class</label>
-              <select name="asset_class" value={form.asset_class} onChange={handleChange} className={inputClass}>
-                <option value="tractor">Tractor</option>
-                <option value="combine">Combine</option>
-                <option value="header">Header</option>
-                <option value="sprayer">Sprayer</option>
-                <option value="seeder">Seeder</option>
-                <option value="truck">Truck</option>
-                <option value="auger">Auger</option>
-                <option value="construction">Construction</option>
-                <option value="implement">Implement</option>
-                <option value="other">Other</option>
+              <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Asset Class</label>
+              <select name="asset_class" value={form.asset_class} onChange={handleChange}
+                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none">
+                {["tractor","combine","header","sprayer","seeder","truck","auger","construction","implement","other"].map(c =>
+                  <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                )}
               </select>
             </div>
             <div>
-              <label className={labelClass}>Asset Type</label>
-              <select name="asset_type" value={form.asset_type} onChange={handleChange} className={inputClass}>
+              <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Asset Type</label>
+              <select name="asset_type" value={form.asset_type} onChange={handleChange}
+                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none">
                 <option value="fixed">Fixed</option>
                 <option value="variable">Variable</option>
               </select>
@@ -124,45 +112,82 @@ export default function AddAssetModal({ onClose, onSuccess }: AddAssetModalProps
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Purchase Value ($CAD)</label>
-              <input name="purchase_value" value={form.purchase_value} onChange={handleChange} placeholder="e.g. 425000" className={inputClass} />
+              <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Purchase Value ($CAD)</label>
+              <input name="purchase_value" value={form.purchase_value} onChange={handleChange} placeholder="e.g. 425000"
+                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none" />
             </div>
             <div>
-              <label className={labelClass}>Current Value ($CAD)</label>
-              <input name="current_value" value={form.current_value} onChange={handleChange} placeholder="e.g. 285000" className={inputClass} />
+              <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Current Value ($CAD)</label>
+              <input name="current_value" value={form.current_value} onChange={handleChange} placeholder="e.g. 285000"
+                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none" />
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className={`grid gap-4 ${isPowerUnit ? "grid-cols-4" : "grid-cols-3"}`}>
             <div>
-              <label className={labelClass}>Status</label>
-              <select name="status" value={form.status} onChange={handleChange} className={inputClass}>
-                <option value="ACTIVE">Active</option>
-                <option value="WATCH">Watch</option>
-                <option value="DOWN">Down</option>
-                <option value="SOLD">Sold</option>
-                <option value="RETIRED">Retired</option>
+              <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Status</label>
+              <select name="status" value={form.status} onChange={handleChange}
+                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none">
+                {["ACTIVE","WATCH","DOWN","SOLD","RETIRED"].map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div>
-              <label className={labelClass}>Hours / KM</label>
-              <input name="hours_km" value={form.hours_km} onChange={handleChange} placeholder="e.g. 1842" className={inputClass} />
+              <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Hours</label>
+              <input name="hours_km" value={form.hours_km} onChange={handleChange} placeholder="e.g. 1842"
+                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none" />
             </div>
+            {isPowerUnit && (
+              <div>
+                <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">KM (Odometer)</label>
+                <input name="km_total" value={form.km_total} onChange={handleChange} placeholder="e.g. 48000"
+                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none" />
+              </div>
+            )}
             <div>
-              <label className={labelClass}>Next Service (hrs/km)</label>
-              <input name="next_service_hours_km" value={form.next_service_hours_km} onChange={handleChange} placeholder="e.g. 2000" className={inputClass} />
+              <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Next Service (hrs)</label>
+              <input name="next_service_hours_km" value={form.next_service_hours_km} onChange={handleChange} placeholder="e.g. 2000"
+                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none" />
+            </div>
+          </div>
+
+          {/* Warranty & Dealer */}
+          <div className="bg-white/[0.02] rounded-xl p-4 border border-white/[0.04]">
+            <p className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide mb-3">Warranty & Dealer</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[11px] text-[#64748B]">Warranty Expiry</label>
+                <input type="date" name="warranty_expiry" value={form.warranty_expiry} onChange={handleChange}
+                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-[11px] text-[#64748B]">Warranty Notes</label>
+                <input name="warranty_notes" value={form.warranty_notes} onChange={handleChange} placeholder="e.g. Powertrain 5yr/5000hrs"
+                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-[11px] text-[#64748B]">Dealer Name</label>
+                <input name="dealer_name" value={form.dealer_name} onChange={handleChange} placeholder="e.g. Redhead Equipment"
+                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-[11px] text-[#64748B]">Dealer Phone</label>
+                <input name="dealer_phone" value={form.dealer_phone} onChange={handleChange} placeholder="e.g. 306-555-1234"
+                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none" />
+              </div>
             </div>
           </div>
 
           <div>
-            <label className={labelClass}>Notes</label>
-            <textarea name="notes" value={form.notes} onChange={handleChange} placeholder="Optional notes" rows={2} className={inputClass + " resize-none"} />
+            <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Notes</label>
+            <textarea name="notes" value={form.notes} onChange={handleChange} placeholder="Optional notes" rows={2}
+              className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9] focus:border-[#34D399]/40 focus:outline-none resize-none" />
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
-          <button onClick={handleSubmit} disabled={saving} className="px-6 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors">
+        <div className="px-6 py-4 border-t border-white/[0.06] flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-[#94A3B8] hover:text-white transition-colors">Cancel</button>
+          <button onClick={handleSubmit} disabled={saving}
+            className="px-5 py-2 text-sm font-semibold bg-[#34D399] text-[#080C15] rounded-full hover:bg-[#6EE7B7] transition-colors disabled:opacity-50">
             {saving ? 'Saving...' : 'Add Asset'}
           </button>
         </div>

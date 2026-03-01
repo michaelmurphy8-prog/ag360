@@ -38,28 +38,29 @@ interface Attachment {
 interface Props {
   assets: Asset[];
   preselectedAssetId?: string;
+  scanData?: any;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function AddServiceLogModal({ assets, preselectedAssetId, onClose, onSuccess }: Props) {
+export default function AddServiceLogModal({ assets, preselectedAssetId, scanData, onClose, onSuccess }: Props) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
-    assetId: preselectedAssetId || "",
-    date: new Date().toISOString().split("T")[0],
-    type: "",
-    serviceCategory: "preventive",
-    cost: "",
-    hoursAtService: "",
-    kmAtService: "",
-    laborHours: "",
-    partsUsed: "",
-    vendor: "",
-    performedBy: "",
-    notes: "",
+    assetId: scanData?.matched_asset_id || preselectedAssetId || "",
+    date: scanData?.date || new Date().toISOString().split("T")[0],
+    type: scanData?.service_type || "",
+    serviceCategory: scanData?.category || "preventive",
+    cost: scanData?.cost?.toString() || "",
+    hoursAtService: scanData?.hours_at_service?.toString() || "",
+    kmAtService: scanData?.km_at_service?.toString() || "",
+    laborHours: scanData?.labor_hours?.toString() || "",
+    partsUsed: scanData?.parts_used || "",
+    vendor: scanData?.vendor || "",
+    performedBy: scanData?.performed_by || "",
+    notes: scanData?.notes || "",
   });
 
   const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
@@ -131,6 +132,20 @@ export default function AddServiceLogModal({ assets, preselectedAssetId, onClose
         </div>
 
         <div className="p-6 space-y-4">
+          {/* Scan result banner */}
+          {scanData && (
+            <div className={`rounded-lg p-3 border text-xs ${
+              scanData.confidence === 'high' ? 'bg-[#34D399]/10 border-[#34D399]/20 text-[#34D399]' :
+              scanData.confidence === 'medium' ? 'bg-[#F59E0B]/10 border-[#F59E0B]/20 text-[#F59E0B]' :
+              'bg-[#EF4444]/10 border-[#EF4444]/20 text-[#EF4444]'
+            }`}>
+              <p className="font-semibold">AI Scanned — {scanData.confidence} confidence</p>
+              {scanData.raw_unit_description && (
+                <p className="mt-1 text-[#94A3B8]">Document describes unit as: "{scanData.raw_unit_description}"</p>
+              )}
+              <p className="mt-1 text-[#64748B]">Please verify all fields before saving.</p>
+            </div>
+          )}
           {/* Unit */}
           <div>
             <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Unit *</label>

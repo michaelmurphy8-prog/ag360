@@ -159,7 +159,29 @@ export const LILY_TOOLS = [
   {
     name: "get_equipment",
     description:
-      "Get the farm's equipment fleet. Returns name, make, model, year, type. Use when farmer asks about their machinery or equipment.",
+      "Get the farm's full equipment fleet with service status. Returns name, make, model, year, class, hours, km, status, warranty info, and last service. ALWAYS call this before giving any maintenance, repair, parts, or machinery advice.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        asset_name: { type: "string", description: "Filter by asset name or model (optional)" },
+      },
+    },
+  },
+  {
+    name: "get_service_history",
+    description:
+      "Get detailed service and maintenance history for farm equipment. Returns service logs with dates, types, costs, parts used, hours/km at service. Use when farmer asks about service history, maintenance records, or repair costs.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        asset_name: { type: "string", description: "Filter by asset name (optional)" },
+      },
+    },
+  },
+  {
+    name: "get_service_schedules",
+    description:
+      "Get upcoming and overdue service schedules. Returns scheduled maintenance with due dates, hours, status (OK/DUE_SOON/OVERDUE), and priority. Use when farmer asks about upcoming maintenance or what's overdue.",
     input_schema: {
       type: "object" as const,
       properties: {},
@@ -600,20 +622,99 @@ ${lines.join("\n\n")}`;
       }
 
       case "get_equipment": {
-        const records = await sql`
-          SELECT name, make, model, year, equipment_type
-          FROM equipment WHERE user_id = ${userId} AND is_active = true ORDER BY equipment_type ASC
-        `;
-        if (records.length === 0) return "No equipment registered.";
+        const nameFilter = input.asset_name;
+        const records = nameFilter
+          ? await sql`
+              SELECT id, name, make, model, year, "assetClass", "assetType", status,
+                     "hoursTotal", "kmTotal", "currentValue", "serialNumber",
+                     "warrantyExpiry", "warrantyNotes", "dealerName", "dealerPhone", "nextService"
+              FROM "Asset" WHERE "orgId" = ${userId}
+                AND (LOWER(name) LIKE ${'%' + nameFilter.toLowerCase() + '%'} OR LOWER(make) LIKE ${'%' + nameFilter.toLowerCase() + '%'} OR LOWER(model) LIKE ${'%' + nameFilter.toLowerCase() + '%'})
+              ORDER BY "assetClass" ASC
+            `
+          : await sql`
+              SELECT id, name, make, model, year, "assetClass", "assetType", status,
+                     "hoursTotal", "kmTotal", "currentValue", "serialNumber",
+                     "warrantyExpiry", "warrantyNotes", "dealerName", "dealerPhone", "nextService"
+              FROM "Asset" WHERE "orgId" = ${userId} ORDER BY "assetClass" ASC
+            `;
+        if (records.length === 0) return "No equipment registered in AG360. Add assets in the Machinery module.";
 
-        const lines = records
-          .map(
-            (r: any) =>
-              `${r.name || `${r.make} ${r.model}`}${r.year ? ` (${r.year})` : ""} — ${r.equipment_type}`
-          )
-          .join("\n");
+        const lastServices = await sql`
+          SELECT DISTINCT ON ("assetId") "assetId", date, type, cost, "hoursAtService", "kmAtService"
+          FROM "MaintenanceLog" WHERE "orgId" = ${userId}
+          ORDER BY "assetId", date DESC
+        `;
+        const lastServiceMap = new Map(lastServices.map((s: any) => [s.assetId, s]));
+
+        const lines = records.map((r: any) => {
+          const ls = lastServiceMap.get(r.id);
+          let line = `${r.name} — ${r.make} ${r.model} (${r.year}) | Class: ${r.assetClass} | Status: ${r.status}`;
+          if (r.hoursTotal) line += ` | Hours: ${Number(r.hoursTotal).toLocaleString()}`;
+          if (r.kmTotal) line += ` | KM: ${Number(r.kmTotal).toLocaleString()}`;
+          if (r.currentValue) line += ` | Value: $${Math.round(Number(r.currentValue)).toLocaleString()}`;
+          if (r.serialNumber) line += ` | S/N: ${r.serialNumber}`;
+          if (r.warrantyExpiry) line += ` | Warranty: expires ${new Date(r.warrantyExpiry).toLocaleDateString('en-CA')}`;
+          if (r.dealerName) line += ` | Dealer: ${r.dealerName}${r.dealerPhone ? ' (' + r.dealerPhone + ')' : ''}`;
+          if (ls) line += ` | Last service: ${ls.type} on ${new Date(ls.date).toLocaleDateString('en-CA')}${ls.hoursAtService ? ' @ ' + ls.hoursAtService + 'hrs' : ''}${ls.cost ? ' ($' + Number(ls.cost).toLocaleString() + ')' : ''}`;
+          return line;
+        }).join("\n");
 
         return `Equipment Fleet (${records.length} units):\n${lines}`;
+      }
+
+      case "get_service_history": {
+        const nameFilter = input.asset_name;
+        const records = nameFilter
+          ? await sql`
+              SELECT ml.date, ml.type, ml."serviceCategory", ml.cost, ml."hoursAtService", ml."kmAtService",
+                     ml."partsUsed", ml."laborHours", ml.vendor, ml."performedBy", ml.notes,
+                     a.name as asset_name, a.make, a.model
+              FROM "MaintenanceLog" ml JOIN "Asset" a ON a.id = ml."assetId"
+              WHERE a."orgId" = ${userId} AND (LOWER(a.name) LIKE ${'%' + nameFilter.toLowerCase() + '%'} OR LOWER(a.make) LIKE ${'%' + nameFilter.toLowerCase() + '%'} OR LOWER(a.model) LIKE ${'%' + nameFilter.toLowerCase() + '%'})
+              ORDER BY ml.date DESC LIMIT 50
+            `
+          : await sql`
+              SELECT ml.date, ml.type, ml."serviceCategory", ml.cost, ml."hoursAtService", ml."kmAtService",
+                     ml."partsUsed", ml."laborHours", ml.vendor, ml."performedBy", ml.notes,
+                     a.name as asset_name, a.make, a.model
+              FROM "MaintenanceLog" ml JOIN "Asset" a ON a.id = ml."assetId"
+              WHERE a."orgId" = ${userId}
+              ORDER BY ml.date DESC LIMIT 50
+            `;
+        if (records.length === 0) return "No service history recorded yet. Log services in Machinery > Service & Maintenance.";
+
+        const lines = records.map((r: any) => {
+          let line = `${new Date(r.date).toLocaleDateString('en-CA')} | ${r.asset_name} (${r.make} ${r.model}) | ${r.type} [${r.serviceCategory}]`;
+          if (r.cost) line += ` | Cost: $${Number(r.cost).toLocaleString()}`;
+          if (r.hoursAtService) line += ` | @ ${r.hoursAtService} hrs`;
+          if (r.kmAtService) line += ` | @ ${r.kmAtService} km`;
+          if (r.partsUsed) line += ` | Parts: ${r.partsUsed}`;
+          if (r.vendor) line += ` | Vendor: ${r.vendor}`;
+          if (r.performedBy) line += ` | By: ${r.performedBy}`;
+          return line;
+        }).join("\n");
+
+        return `Service History (${records.length} records):\n${lines}`;
+      }
+
+      case "get_service_schedules": {
+        const records = await sql`
+          SELECT ss.*, a.name as asset_name, a.make, a.model, a."hoursTotal"
+          FROM "ServiceSchedule" ss JOIN "Asset" a ON a.id = ss."assetId"
+          WHERE ss."orgId" = ${userId}
+          ORDER BY CASE ss.status WHEN 'OVERDUE' THEN 1 WHEN 'DUE_SOON' THEN 2 ELSE 3 END
+        `;
+        if (records.length === 0) return "No service schedules set up. Add them in Machinery > Service & Maintenance.";
+
+        const lines = records.map((r: any) => {
+          let line = `${r.asset_name} (${r.make} ${r.model}) | ${r.serviceType} | Status: ${r.status} | Priority: ${r.priority}`;
+          if (r.dueAtHours && r.hoursTotal) line += ` | Due at ${r.dueAtHours} hrs (current: ${r.hoursTotal}, ${Number(r.dueAtHours) - Number(r.hoursTotal)} hrs remaining)`;
+          if (r.dueAtDate) line += ` | Due: ${new Date(r.dueAtDate).toLocaleDateString('en-CA')}`;
+          return line;
+        }).join("\n");
+
+        return `Service Schedules (${records.length}):\n${lines}`;
       }
 
       case "get_market_prices": {
