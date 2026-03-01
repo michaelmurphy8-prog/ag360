@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { entry_date, description, memo, source, crop_year, field_name, crop, lines } = body;
+    const { entry_date, description, memo, source, crop_year, field_name, crop, lines, vendor, document_number, document_type, payment_status, payment_terms, due_date, ai_scanned, paid_date } = body;
 
     if (!entry_date || !description || !lines || lines.length < 2) {
       return NextResponse.json({ error: "Entry needs a date, description, and at least 2 lines" }, { status: 400 });
@@ -86,8 +86,8 @@ export async function POST(req: NextRequest) {
 
     // Create the journal entry
     const [entry] = await sql`
-      INSERT INTO journal_entries (user_id, entry_date, description, memo, source, crop_year, field_name, crop)
-      VALUES (${userId}, ${entry_date}, ${description}, ${memo || null}, ${source || "manual"}, ${crop_year || 2025}, ${field_name || null}, ${crop || null})
+      INSERT INTO journal_entries (user_id, entry_date, description, memo, source, crop_year, field_name, crop, vendor, document_number, document_type, payment_status, payment_terms, due_date, ai_scanned, paid_date)
+      VALUES (${userId}, ${entry_date}, ${description}, ${memo || null}, ${source || "manual"}, ${crop_year || 2025}, ${field_name || null}, ${crop || null}, ${vendor || null}, ${document_number || null}, ${document_type || "manual"}, ${payment_status || "paid"}, ${payment_terms || null}, ${due_date || null}, ${ai_scanned || false}, ${paid_date || null})
       RETURNING *
     `;
 

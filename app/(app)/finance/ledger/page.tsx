@@ -5,12 +5,13 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   BookOpen, Plus, X, CheckCircle, AlertTriangle, Loader2, Search,
   ChevronDown, Trash2, Edit2, Filter, RotateCcw, Calendar, ArrowUpRight,
-  ArrowDownRight, Scale, FileText, DollarSign, TrendingUp, TrendingDown,
+  ArrowDownRight, Scale, FileText, DollarSign, TrendingUp, TrendingDown, ScanLine,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Sector,
 } from "recharts";
+import ScanDocumentModal from "@/components/finance/ScanDocumentModal";
 
 // ─── Design Tokens ───────────────────────────────────────────
 const T = {
@@ -330,6 +331,7 @@ export default function LedgerPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"journal" | "coa">("journal");
+  const [showScan, setShowScan] = useState(false);
 
   // Filters
   const [searchQ, setSearchQ] = useState("");
@@ -505,6 +507,14 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
             {isBalanced ? <CheckCircle size={12} /> : <AlertTriangle size={12} />}
             {isBalanced ? "Balanced" : "Out of Balance"}
           </div>
+          <button
+            onClick={() => setShowScan(true)}
+            className={btnPrimary}
+            style={{ backgroundColor: T.purple, color: "#fff" }}
+          >
+            <ScanLine size={14} />
+            Scan Document
+          </button>
           <button
             onClick={() => { resetForm(); setShowForm(true); }}
             className={btnPrimary}
@@ -863,6 +873,14 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
           </div>
         </div>
       )}
+      <ScanDocumentModal
+        open={showScan}
+        onClose={() => setShowScan(false)}
+        accounts={accounts}
+        cropYear={2025}
+        userId={user?.id || ""}
+        onEntryCreated={() => { setShowScan(false); window.location.reload(); }}
+      />
     </div>
   );
 }
