@@ -297,9 +297,13 @@ export default function MapsPage() {
     const renderBoundaries = () => {
       // Clean up old boundary layers
       fields.forEach(f => {
-        if (map.getLayer(`boundary-fill-${f.id}`)) map.removeLayer(`boundary-fill-${f.id}`);
-        if (map.getLayer(`boundary-line-${f.id}`)) map.removeLayer(`boundary-line-${f.id}`);
-        if (map.getSource(`boundary-${f.id}`)) map.removeSource(`boundary-${f.id}`);
+        try {
+          if (map.style && map.isStyleLoaded()) {
+            if (map.getLayer(`boundary-fill-${f.id}`)) map.removeLayer(`boundary-fill-${f.id}`);
+            if (map.getLayer(`boundary-line-${f.id}`)) map.removeLayer(`boundary-line-${f.id}`);
+            if (map.getSource(`boundary-${f.id}`)) map.removeSource(`boundary-${f.id}`);
+          }
+        } catch { /* style not ready */ }
       });
 
       // Add boundary layers for fields that have them
@@ -346,6 +350,16 @@ export default function MapsPage() {
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+
+    const safeRemoveRadar = () => {
+      try {
+        if (map.style && map.isStyleLoaded()) {
+          if (map.getLayer("radar-layer")) map.removeLayer("radar-layer");
+          if (map.getSource("radar-source")) map.removeSource("radar-source");
+        }
+      } catch { /* style not ready */ }
+    };
+
     const addRadar = async () => {
       try {
         const res = await fetch("https://api.rainviewer.com/public/weather-maps.json");
@@ -353,19 +367,19 @@ export default function MapsPage() {
         const latest = data.radar?.past?.slice(-1)[0];
         if (!latest) return;
         setRadarTimestamp(new Date(latest.time * 1000).toLocaleTimeString("en-CA", { hour: "2-digit", minute: "2-digit" }));
-        if (map.getLayer("radar-layer")) map.removeLayer("radar-layer");
-        if (map.getSource("radar-source")) map.removeSource("radar-source");
+        safeRemoveRadar();
         if (showRadar) {
           map.addSource("radar-source", { type: "raster", tiles: [`https://tilecache.rainviewer.com/v2/radar/${latest.time}/256/{z}/{x}/{y}/4/1_1.png`], tileSize: 256 });
           map.addLayer({ id: "radar-layer", type: "raster", source: "radar-source", paint: { "raster-opacity": 0.6 } });
         }
       } catch (e) { console.error(e); }
     };
+
     const apply = () => { if (map.isStyleLoaded()) addRadar(); else map.once("style.load", addRadar); };
     apply();
     let iv: NodeJS.Timeout | null = null;
     if (showRadar) iv = setInterval(apply, 300000);
-    return () => { if (iv) clearInterval(iv); if (map.getLayer("radar-layer")) map.removeLayer("radar-layer"); if (map.getSource("radar-source")) map.removeSource("radar-source"); };
+    return () => { if (iv) clearInterval(iv); safeRemoveRadar(); };
   }, [showRadar, mapStyle]);
 
   /* ── Field markers ─────────────────────────────── */
