@@ -13,7 +13,7 @@ if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }
       id, name, make, model, year,
       "serialNumber", "currentValue", "purchasePrice",
       "assetType", "assetClass", status,
-      "hoursTotal", "nextService", notes
+      "hoursTotal", "kmTotal", "nextService", notes
     FROM "Asset"
     WHERE "orgId" = ${userId}
     ORDER BY "createdAt" DESC
