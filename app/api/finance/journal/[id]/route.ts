@@ -32,6 +32,48 @@ export async function PATCH(
       return NextResponse.json({ error: "Entry not found" }, { status: 404 });
     }
 
+    // If marking as paid, create a payment journal entry (AP → Cash)
+    if (payment_status === "paid") {
+      // Get the original entry's total from its debit lines (excluding cash/AP lines)
+      const origLines = await sql`
+        SELECT jl.debit, jl.credit, a.code, a.account_type
+        FROM journal_lines jl
+        JOIN accounts a ON a.id = jl.account_id
+        WHERE jl.journal_entry_id = ${id}::uuid
+      `;
+
+      // Find the AP credit amount (that's what we're paying off)
+      const apLine = origLines.find((l: any) => l.code === '2000' && parseFloat(l.credit) > 0);
+      if (apLine) {
+        const paymentAmount = parseFloat(apLine.credit);
+
+        // Get account IDs for AP and Cash
+        const [apAccount] = await sql`SELECT id FROM accounts WHERE user_id = ${userId} AND code = '2000' LIMIT 1`;
+        const [cashAccount] = await sql`SELECT id FROM accounts WHERE user_id = ${userId} AND code = '1000' LIMIT 1`;
+
+        if (apAccount && cashAccount) {
+          // Create payment journal entry
+          const [paymentEntry] = await sql`
+            INSERT INTO journal_entries (user_id, entry_date, description, memo, source, crop_year, vendor, document_type, payment_status, source_id)
+            VALUES (${userId}, ${paid_date || new Date().toISOString().slice(0, 10)}, ${'Payment — ' + (updated.vendor || updated.description)}, ${'Payment for entry #' + updated.entry_number}, 'payment', ${updated.crop_year || 2025}, ${updated.vendor || null}, 'payment', 'paid', ${id}::uuid)
+            RETURNING *
+          `;
+
+          // DR: Accounts Payable (clears liability)
+          await sql`
+            INSERT INTO journal_lines (journal_entry_id, account_id, description, debit, credit, sort_order)
+            VALUES (${paymentEntry.id}, ${apAccount.id}, ${'Clear AP — ' + (updated.vendor || '')}, ${paymentAmount}, ${0}, ${0})
+          `;
+
+          // CR: Cash (money leaves bank)
+          await sql`
+            INSERT INTO journal_lines (journal_entry_id, account_id, description, debit, credit, sort_order)
+            VALUES (${paymentEntry.id}, ${cashAccount.id}, ${'Payment — ' + (updated.vendor || '')}, ${0}, ${paymentAmount}, ${1})
+          `;
+        }
+      }
+    }
+
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Journal PATCH error:", error);
