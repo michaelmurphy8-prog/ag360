@@ -325,12 +325,185 @@ function entryEdgeColor(lines: JournalLine[]): string {
 // ═════════════════════════════════════════════════════════════
 //  LEDGER PAGE — FINTECH GRADE
 // ═════════════════════════════════════════════════════════════
+// ─── Payables Tab ────────────────────────────────────────────
+function PayablesTab({ entries, fmt, onMarkPaid }: { entries: any[]; fmt: (n: number) => string; onMarkPaid: (id: string) => void }) {
+  const payables = entries.filter((e: any) => e.payment_status === "unpaid" || e.payment_status === "draft");
+  const paidRecent = entries.filter((e: any) => e.payment_status === "paid" && e.paid_date);
+  
+  const today = new Date().toISOString().slice(0, 10);
+  
+  const overdue = payables.filter((e: any) => e.due_date && e.due_date < today);
+  const dueSoon = payables.filter((e: any) => {
+    if (!e.due_date || e.due_date < today) return false;
+    const diff = (new Date(e.due_date).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24);
+    return diff <= 7;
+  });
+  const upcoming = payables.filter((e: any) => {
+    if (!e.due_date) return true;
+    const diff = (new Date(e.due_date).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24);
+    return diff > 7;
+  });
+
+  const totalOutstanding = payables.reduce((s: number, e: any) => {
+    const total = e.lines?.reduce((ls: number, l: any) => ls + (parseFloat(l.debit) || 0), 0) || 0;
+    return s + total;
+  }, 0);
+  const totalOverdue = overdue.reduce((s: number, e: any) => {
+    const total = e.lines?.reduce((ls: number, l: any) => ls + (parseFloat(l.debit) || 0), 0) || 0;
+    return s + total;
+  }, 0);
+  const totalDueSoon = dueSoon.reduce((s: number, e: any) => {
+    const total = e.lines?.reduce((ls: number, l: any) => ls + (parseFloat(l.debit) || 0), 0) || 0;
+    return s + total;
+  }, 0);
+
+  const getEntryTotal = (e: any) => {
+    return e.lines?.reduce((s: number, l: any) => s + (parseFloat(l.debit) || 0), 0) || 0;
+  };
+
+  const getDaysLabel = (dueDate: string) => {
+    if (!dueDate) return "No due date";
+    const diff = Math.round((new Date(dueDate).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24));
+    if (diff < 0) return `${Math.abs(diff)} days overdue`;
+    if (diff === 0) return "Due today";
+    return `Due in ${diff} days`;
+  };
+
+  const statusStyle = (e: any) => {
+    if (!e.due_date) return { color: T.text3, bg: "rgba(255,255,255,0.04)", label: "No Due Date" };
+    const diff = (new Date(e.due_date).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24);
+    if (diff < 0) return { color: T.red, bg: T.redDim, label: "Overdue" };
+    if (diff <= 7) return { color: T.amber, bg: T.amberDim, label: "Due Soon" };
+    return { color: T.green, bg: T.greenDim, label: "Upcoming" };
+  };
+
+  const renderRow = (e: any) => {
+    const s = statusStyle(e);
+    const total = getEntryTotal(e);
+    return (
+      <div
+        key={e.id}
+        className="flex items-center gap-4 px-4 py-3 border-b hover:bg-white/[0.02] transition-colors"
+        style={{ borderColor: T.border }}
+      >
+        {/* Status dot */}
+        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.color }} />
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium truncate" style={{ color: T.text1 }}>{e.description}</span>
+            {e.vendor && (
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.04)", color: T.text3 }}>
+                {e.vendor}
+              </span>
+            )}
+            {e.document_type === "quote" && (
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full" style={{ background: T.purpleDim, color: T.purple }}>
+                Quote
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 mt-0.5">
+            <span className="text-[11px] font-mono" style={{ color: T.text4 }}>
+              {e.entry_date?.slice(0, 10) || e.date?.slice(0, 10)}
+            </span>
+            {e.document_number && (
+              <span className="text-[11px]" style={{ color: T.text4 }}>#{e.document_number}</span>
+            )}
+            {e.due_date && (
+              <span className="text-[11px] font-medium" style={{ color: s.color }}>
+                {getDaysLabel(e.due_date)}
+              </span>
+            )}
+          </div>
+        </div>
+        {/* Amount */}
+        <div className="text-right mr-2">
+          <span className="text-sm font-mono font-semibold" style={{ color: T.text1 }}>{fmt(total)}</span>
+          {e.payment_terms && e.payment_terms !== "paid" && (
+            <div className="text-[10px] font-mono mt-0.5" style={{ color: T.text4 }}>
+              {e.payment_terms.replace("_", " ")}
+            </div>
+          )}
+        </div>
+        {/* Status badge */}
+        <div
+          className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold flex-shrink-0"
+          style={{ background: s.bg, color: s.color }}
+        >
+          {s.label}
+        </div>
+        {/* Mark paid button */}
+        <button
+          onClick={() => {
+            if (confirm(`Mark "${e.description}" as paid?`)) onMarkPaid(e.id);
+          }}
+          className="flex items-center gap-1 text-[11px] font-medium px-3 py-1.5 rounded-lg transition-all hover:bg-white/[0.06] flex-shrink-0"
+          style={{ color: T.green, border: `1px solid ${T.green}30` }}
+        >
+          <CheckCircle size={11} />
+          Mark Paid
+        </button>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* KPIs */}
+      <div className="grid grid-cols-4 gap-4">
+        <LedgerKpi label="Total Outstanding" value={fmt(totalOutstanding)} icon={DollarSign} iconColor={T.sky} bgColor={T.skyDim} />
+        <LedgerKpi label="Overdue" value={fmt(totalOverdue)} icon={AlertTriangle} iconColor={T.red} bgColor={T.redDim} />
+        <LedgerKpi label="Due This Week" value={fmt(totalDueSoon)} icon={Calendar} iconColor={T.amber} bgColor={T.amberDim} />
+        <LedgerKpi label="Unpaid Bills" value={String(payables.length)} icon={FileText} iconColor={T.purple} bgColor={T.purpleDim} />
+      </div>
+
+      {payables.length === 0 ? (
+        <div className="text-center py-16">
+          <CheckCircle size={32} className="mx-auto mb-3" style={{ color: T.green }} />
+          <p className="text-sm font-medium" style={{ color: T.text1 }}>All caught up!</p>
+          <p className="text-xs mt-1" style={{ color: T.text3 }}>No outstanding payables. Scan an invoice to track payments.</p>
+        </div>
+      ) : (
+        <div className="rounded-xl border overflow-hidden" style={{ borderColor: T.border, background: T.card }}>
+          {/* Section: Overdue */}
+          {overdue.length > 0 && (
+            <>
+              <div className="px-4 py-2 text-[10px] uppercase tracking-[2px] font-mono font-semibold flex items-center gap-2" style={{ background: "rgba(248,113,113,0.04)", color: T.red }}>
+                <AlertTriangle size={11} /> Overdue ({overdue.length})
+              </div>
+              {overdue.map(renderRow)}
+            </>
+          )}
+          {/* Section: Due Soon */}
+          {dueSoon.length > 0 && (
+            <>
+              <div className="px-4 py-2 text-[10px] uppercase tracking-[2px] font-mono font-semibold flex items-center gap-2" style={{ background: "rgba(251,191,36,0.04)", color: T.amber }}>
+                <Calendar size={11} /> Due This Week ({dueSoon.length})
+              </div>
+              {dueSoon.map(renderRow)}
+            </>
+          )}
+          {/* Section: Upcoming */}
+          {upcoming.length > 0 && (
+            <>
+              <div className="px-4 py-2 text-[10px] uppercase tracking-[2px] font-mono font-semibold flex items-center gap-2" style={{ background: "rgba(255,255,255,0.02)", color: T.text3 }}>
+                <FileText size={11} /> Upcoming ({upcoming.length})
+              </div>
+              {upcoming.map(renderRow)}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 export default function LedgerPage() {
   const { user } = useUser();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"journal" | "coa">("journal");
+  const [tab, setTab] = useState<"journal" | "coa" | "payables">("journal");
   const [showScan, setShowScan] = useState(false);
 
   // Filters
@@ -530,6 +703,7 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
       <div className="flex gap-1 mb-6 bg-white/[0.03] p-1 rounded-xl w-fit border border-white/[0.06]">
         {[
           { id: "journal" as const, label: "Journal Entries" },
+          { id: "payables" as const, label: "Payables" },
           { id: "coa" as const, label: "Chart of Accounts" },
         ].map((t) => (
           <button
@@ -702,6 +876,18 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
             </div>
           )}
         </>
+      ) : tab === "payables" ? (
+        /* ── Payables Tracker ───────────────────────── */
+        <PayablesTab entries={entries} fmt={fmt} onMarkPaid={async (id: string) => {
+          try {
+            await fetch(`/api/finance/journal/${id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ payment_status: "paid", paid_date: new Date().toISOString().slice(0, 10) }),
+            });
+            window.location.reload();
+          } catch {}
+        }} />
       ) : (
         /* ── Chart of Accounts ──────────────────────── */
         <div className="space-y-4">
