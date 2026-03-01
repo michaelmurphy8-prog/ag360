@@ -24,8 +24,8 @@ interface NavItem {
 const navSections: { title?: string; items: NavItem[] }[] = [
   {
     items: [
-      { label: "Overview", icon: LayoutDashboard, href: "/overview" },
       { label: "Grain360", icon: Wheat, href: "/grain360" },
+      { label: "Overview", icon: LayoutDashboard, href: "/overview" },
     ],
   },
   {
@@ -184,7 +184,7 @@ export default function SideNav() {
       </div>
 
       {/* ── Navigation ────────────────────────────────── */}
-      <nav className="flex-1 px-2.5 py-3 overflow-y-auto space-y-4 scrollbar-thin">
+      <nav className="flex-1 px-2.5 py-3 overflow-y-auto space-y-1.5 scrollbar-thin">
         {navSections.map((section, si) => (
           <div key={si}>
             {section.title && (
