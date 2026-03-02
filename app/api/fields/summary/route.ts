@@ -27,6 +27,8 @@ export async function GET(req: NextRequest) {
         f.lld_meridian,
         f.lld_province,
         f.notes,
+        f.latitude,
+        f.longitude,
         f.boundary,
         f.boundary_acres,
         f.created_at,
