@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
-import { Wheat, Tractor, TrendingUp, Users, Sprout } from 'lucide-react'
+import { Wheat, Tractor, TrendingUp, Users, Sprout, AlertTriangle, Clock, DollarSign, FileText } from 'lucide-react'
 
 // ─── Types ───────────────────────────────────────────────────
 interface SeedingEntry {
@@ -68,6 +68,7 @@ const alertColors = {
 export default function OverviewPage() {
   const { user } = useUser()
   const [reminders, setReminders] = useState<{ entry: SeedingEntry; status: WindowStatus; daysIn: number }[]>([])
+const [payables, setPayables] = useState<any[]>([])
 
   // Fetch seeding log for agronomy reminders
   useEffect(() => {
@@ -98,6 +99,30 @@ export default function OverviewPage() {
       })
       .catch(() => {})
   }, [user?.id])
+  // Fetch unpaid payables for bills-due widget
+  useEffect(() => {
+    if (!user?.id) return
+    fetch('/api/finance/journal')
+      .then(res => res.json())
+      .then(data => {
+        const raw = Array.isArray(data) ? data : data?.entries || []
+        const unpaid = raw.filter((e: any) => e.payment_status === 'unpaid' || e.payment_status === 'draft')
+        setPayables(unpaid)
+      })
+      .catch(() => {})
+  }, [user?.id])
+
+  const today = new Date().toISOString().slice(0, 10)
+  const overdueCount = payables.filter((e: any) => e.due_date && e.due_date < today).length
+  const dueSoonCount = payables.filter((e: any) => {
+    if (!e.due_date || e.due_date < today) return false
+    const diff = (new Date(e.due_date).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24)
+    return diff <= 7
+  }).length
+  const totalOwing = payables.reduce((s: number, e: any) => {
+    const t = (e.lines || []).reduce((ls: number, l: any) => ls + (parseFloat(l.debit) || 0), 0)
+    return s + t
+  }, 0)
 
   return (
     <div className="space-y-8">
@@ -172,6 +197,86 @@ export default function OverviewPage() {
         </div>
       )}
 
+{/* ── Bills Due ──────────────────────────────────────── */}
+      {payables.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <DollarSign size={16} className="text-[#F59E0B]" />
+              <h2 className="font-mono text-[11px] font-semibold text-[#94A3B8] tracking-[2px] uppercase">
+                Bills Due
+              </h2>
+            </div>
+            <Link href="/finance/ledger" className="text-xs text-[#34D399] hover:text-[#6EE7B7] transition-colors">
+              View Payables →
+            </Link>
+          </div>
+
+          {/* Summary strip */}
+          <div className="flex gap-3">
+            {overdueCount > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#F87171]/[0.06] border border-[#F87171]/[0.15]">
+                <AlertTriangle size={13} className="text-[#F87171]" />
+                <span className="text-xs font-semibold text-[#F87171]">{overdueCount} overdue</span>
+              </div>
+            )}
+            {dueSoonCount > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#F59E0B]/[0.06] border border-[#F59E0B]/[0.15]">
+                <Clock size={13} className="text-[#F59E0B]" />
+                <span className="text-xs font-semibold text-[#F59E0B]">{dueSoonCount} due this week</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+              <FileText size={13} className="text-[#94A3B8]" />
+              <span className="text-xs text-[#94A3B8]">{payables.length} unpaid · <span className="font-semibold text-[#F1F5F9]">${totalOwing.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span> total</span>
+            </div>
+          </div>
+
+          {/* Top 3 bills */}
+          <div className="space-y-2">
+            {payables
+              .sort((a: any, b: any) => (a.due_date || '9999') < (b.due_date || '9999') ? -1 : 1)
+              .slice(0, 3)
+              .map((e: any) => {
+                const isOverdue = e.due_date && e.due_date < today
+                const total = (e.lines || []).reduce((s: number, l: any) => s + (parseFloat(l.debit) || 0), 0)
+                const daysUntil = e.due_date
+                  ? Math.round((new Date(e.due_date).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24))
+                  : null
+                return (
+                  <div
+                    key={e.id}
+                    className="flex items-center gap-3 rounded-xl p-3.5"
+                    style={{
+                      background: isOverdue ? 'rgba(248,113,113,0.04)' : 'rgba(245,158,11,0.04)',
+                      border: `1px solid ${isOverdue ? 'rgba(248,113,113,0.12)' : 'rgba(245,158,11,0.12)'}`,
+                    }}
+                  >
+                    <div
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ background: isOverdue ? '#F87171' : '#F59E0B' }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-[#F1F5F9] truncate">{e.description}</span>
+                        {e.vendor && (
+                          <span className="text-[10px] font-mono text-[#64748B] px-1.5 py-0.5 rounded bg-white/[0.04]">{e.vendor}</span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-[#64748B] mt-0.5">
+                        {e.due_date ? (daysUntil !== null && daysUntil < 0 ? `${Math.abs(daysUntil)} days overdue` : daysUntil === 0 ? 'Due today' : `Due in ${daysUntil} days`) : 'No due date'}
+                        {e.payment_terms && e.payment_terms !== 'paid' && ` · ${e.payment_terms.replace('_', ' ')}`}
+                      </p>
+                    </div>
+                    <span className="text-sm font-mono font-semibold text-[#F1F5F9]">
+                      ${total.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )
+              })}
+          </div>
+        </div>
+      )}
       {/* ── Modules + Alerts Grid ──────────────────────────── */}
       <div className="grid grid-cols-3 gap-6">
 
