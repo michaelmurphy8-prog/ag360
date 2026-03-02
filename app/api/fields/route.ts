@@ -40,18 +40,21 @@ export async function POST(req: NextRequest) {
       lld_range,
       lld_meridian,
       lld_province,
+      latitude,
+      longitude,
       notes,
     } = body;
-
     const result = await sql`
       INSERT INTO fields (
         farm_id, field_name, acres,
         lld_quarter, lld_section, lld_township,
-        lld_range, lld_meridian, lld_province, notes
+        lld_range, lld_meridian, lld_province,
+        latitude, longitude, notes
       ) VALUES (
         ${userId}, ${field_name}, ${acres},
         ${lld_quarter}, ${lld_section}, ${lld_township},
-        ${lld_range}, ${lld_meridian}, ${lld_province || "SK"}, ${notes}
+        ${lld_range}, ${lld_meridian}, ${lld_province || "SK"},
+        ${latitude || null}, ${longitude || null}, ${notes}
       )
       RETURNING *
     `;

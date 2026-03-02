@@ -19,6 +19,8 @@ export default function AddFieldModal({ onClose, onFieldAdded }: AddFieldModalPr
     lld_range: "",
     lld_meridian: "",
     lld_province: "SK",
+    latitude: "",
+    longitude: "",
     notes: "",
   });
 
@@ -41,6 +43,8 @@ export default function AddFieldModal({ onClose, onFieldAdded }: AddFieldModalPr
           lld_township: form.lld_township ? parseInt(form.lld_township) : null,
           lld_range: form.lld_range ? parseInt(form.lld_range) : null,
           lld_meridian: form.lld_meridian ? parseInt(form.lld_meridian) : null,
+          latitude: form.latitude ? parseFloat(form.latitude) : null,
+          longitude: form.longitude ? parseFloat(form.longitude) : null,
         }),
       });
 
@@ -176,6 +180,34 @@ export default function AddFieldModal({ onClose, onFieldAdded }: AddFieldModalPr
               </select>
             </div>
             <p className="text-xs text-gray-400 mt-1">Quarter · Section · Township · Range · Meridian</p>
+          </div>
+
+          {/* Coordinates */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              GPS Coordinates <span className="text-xs text-gray-400 font-normal">(optional — alternative to LLD)</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                name="latitude"
+                value={form.latitude}
+                onChange={handleChange}
+                placeholder="Latitude (e.g. 50.4452)"
+                type="number"
+                step="any"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+              <input
+                name="longitude"
+                value={form.longitude}
+                onChange={handleChange}
+                placeholder="Longitude (e.g. -104.6189)"
+                type="number"
+                step="any"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Center point of field — use if LLD is not available</p>
           </div>
 
           {/* Notes */}
