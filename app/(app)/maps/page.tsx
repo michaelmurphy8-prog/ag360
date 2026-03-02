@@ -128,12 +128,14 @@ export default function MapsPage() {
       const color = SCOUT_COLORS[r.report_type] || "#94A3B8";
       const size = SEV_SIZES[r.severity] || 12;
       const el = document.createElement("div");
-      el.style.cssText = `width:${size}px;height:${size}px;background:${color};border:2px solid #fff;border-radius:50%;cursor:pointer;box-shadow:0 0 8px ${color}80;transition:transform 0.15s;`;
-      el.onmouseenter = () => { el.style.transform = "scale(1.4)"; };
-      el.onmouseleave = () => { el.style.transform = "scale(1)"; };
+      el.style.cssText = `width:${size + 8}px;height:${size + 8}px;display:flex;align-items:center;justify-content:center;cursor:pointer;`;
+      const dot = document.createElement("div");
+      dot.style.cssText = `width:${size}px;height:${size}px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px ${color}80;transition:transform 0.15s;`;
+      el.appendChild(dot);
+      el.onmouseenter = () => { dot.style.transform = "scale(1.4)"; };
+      el.onmouseleave = () => { dot.style.transform = "scale(1)"; };
 
-      const popup = new mapboxgl.Popup({ closeButton: true, closeOnClick: true, offset: 12, maxWidth: "260px" })
-        .setHTML(`
+      const popupHTML = `
           <div style="font-family:system-ui;color:#F1F5F9;padding:4px 0;">
             <div style="font-size:13px;font-weight:700;margin-bottom:4px;">${r.title}</div>
             <div style="display:flex;gap:8px;margin-bottom:4px;">
@@ -144,12 +146,24 @@ export default function MapsPage() {
             ${r.field_name ? `<div style="font-size:10px;color:#64748B;margin-top:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>${r.field_name}</div>` : ""}
             <div style="font-size:10px;color:#475569;margin-top:4px;">${new Date(r.scouted_at).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}</div>
           </div>
-        `);
+        `;
+
+      const lngLat: [number, number] = [r.longitude, r.latitude];
+
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        // Close any existing popup
+        if (popupRef.current) popupRef.current.remove();
+        popupRef.current = new mapboxgl.Popup({ closeButton: true, closeOnClick: true, offset: 12, maxWidth: "260px" })
+          .setLngLat(lngLat)
+          .setHTML(popupHTML)
+          .addTo(mapRef.current!);
+      });
 
       const marker = new mapboxgl.Marker({ element: el })
-        .setLngLat([r.longitude, r.latitude])
-        .setPopup(popup)
+        .setLngLat(lngLat)
         .addTo(map);
+      scoutMarkersRef.current.push(marker);
       scoutMarkersRef.current.push(marker);
     });
   }, [scoutReports, showScoutPins]);
@@ -512,7 +526,7 @@ export default function MapsPage() {
           showWind={showWind} setShowWind={setShowWind}
         />
         {/* Scout mode button */}
-        <div style={{ position: "absolute", top: 16, right: panelCollapsed ? 16 : 420, zIndex: 10, display: "flex", gap: 8 }}>
+        <div style={{ position: "absolute", top: 56, left: 60, zIndex: 10, display: "flex", gap: 8 }}>
           <button
             onClick={() => setScoutMode(!scoutMode)}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-lg transition-colors ${
@@ -529,7 +543,7 @@ export default function MapsPage() {
           </button>
         </div>
         {scoutMode && (
-          <div style={{ position: "absolute", top: 52, right: panelCollapsed ? 16 : 420, zIndex: 10 }}
+          <div style={{ position: "absolute", top: 92, left: 60, zIndex: 10 }}
             className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#34D399] text-[#0F1629] shadow-lg animate-pulse">
             Click anywhere on the map to drop a scout pin
           </div>
