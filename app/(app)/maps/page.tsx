@@ -530,6 +530,38 @@ export default function MapsPage() {
     finally { setSavingBoundary(false); }
   };
 
+  const editBoundary = () => {
+    const map = mapRef.current;
+    if (!map || !selectedField?.boundary) return;
+
+    // Initialize draw if needed (same as startDrawing)
+    if (!drawRef.current) {
+      const draw = new MapboxDraw({
+        displayControlsDefault: false, controls: {},
+        defaultMode: "simple_select",
+        styles: [
+          { id: "gl-draw-polygon-fill", type: "fill", filter: ["all", ["==", "$type", "Polygon"]], paint: { "fill-color": "#60A5FA", "fill-opacity": 0.15 } },
+          { id: "gl-draw-polygon-stroke", type: "line", filter: ["all", ["==", "$type", "Polygon"]], paint: { "line-color": "#60A5FA", "line-width": 2, "line-dasharray": [2, 2] } },
+          { id: "gl-draw-polygon-midpoint", type: "circle", filter: ["all", ["==", "$type", "Point"], ["==", "meta", "midpoint"]], paint: { "circle-radius": 4, "circle-color": "#60A5FA" } },
+          { id: "gl-draw-polygon-vertex-active", type: "circle", filter: ["all", ["==", "$type", "Point"], ["==", "meta", "vertex"]], paint: { "circle-radius": 6, "circle-color": "#fff", "circle-stroke-width": 2, "circle-stroke-color": "#60A5FA" } },
+          { id: "gl-draw-line", type: "line", filter: ["all", ["==", "$type", "LineString"]], paint: { "line-color": "#60A5FA", "line-width": 2, "line-dasharray": [2, 2] } },
+          { id: "gl-draw-point", type: "circle", filter: ["all", ["==", "$type", "Point"], ["!=", "meta", "midpoint"]], paint: { "circle-radius": 6, "circle-color": "#fff", "circle-stroke-width": 2, "circle-stroke-color": "#60A5FA" } },
+        ],
+      });
+      map.addControl(draw, "top-left");
+      drawRef.current = draw;
+    }
+
+    // Load existing boundary into draw
+    drawRef.current.deleteAll();
+    const boundary = selectedField.boundary as any;
+    const featureId = drawRef.current.add(boundary);
+
+    // Switch to direct_select (vertex edit) mode
+    const id = Array.isArray(featureId) ? featureId[0] : featureId;
+    drawRef.current.changeMode("direct_select", { featureId: id });
+    setIsDrawing(true);
+  };
   const deleteBoundary = async () => {
     if (!selectedField) return;
     setSavingBoundary(true);
@@ -637,7 +669,7 @@ export default function MapsPage() {
           weather={weather} showWeather={showWeather} overlaps={overlaps}
           mapRef={mapRef} mapHeight={mapHeight}
           isDrawing={isDrawing} savingBoundary={savingBoundary}
-          onStartDraw={startDrawing} onDeleteBoundary={deleteBoundary} onSnapLLD={snapToLLD}
+          onStartDraw={startDrawing} onEditBoundary={editBoundary} onDeleteBoundary={deleteBoundary} onSnapLLD={snapToLLD}
           onShowImport={() => setShowImportModal(true)} onShowExport={() => setShowExportModal(true)}
         />
       )}

@@ -48,6 +48,7 @@ interface Props {
   isDrawing: boolean;
   savingBoundary: boolean;
   onStartDraw: () => void;
+  onEditBoundary: () => void;
   onDeleteBoundary: () => void;
   onSnapLLD: () => void;
   onShowImport: () => void;
@@ -57,7 +58,7 @@ interface Props {
 export default function IntelligencePanel({
   fields, kpis, cropBreakdown, cropYear, selectedField, setSelectedField,
   weather, showWeather, overlaps, mapRef, mapHeight,
-  isDrawing, savingBoundary, onStartDraw, onDeleteBoundary, onSnapLLD,
+  isDrawing, savingBoundary, onStartDraw, onEditBoundary, onDeleteBoundary, onSnapLLD,
   onShowImport, onShowExport,
 }: Props) {
   const router = useRouter();
@@ -215,6 +216,12 @@ export default function IntelligencePanel({
                         className="w-full flex items-center justify-center gap-2 bg-[#60A5FA]/10 border border-[#60A5FA]/20 rounded-lg px-3 py-2 text-sm font-semibold text-[#60A5FA] hover:bg-[#60A5FA]/20 transition-colors">
                         <PenTool size={14} /> {selectedField.boundary ? "Redraw Boundary" : "Draw Boundary"}
                       </button>
+                      {selectedField.boundary && (
+                        <button onClick={onEditBoundary}
+                          className="w-full flex items-center justify-center gap-2 bg-[#34D399]/10 border border-[#34D399]/20 rounded-lg px-3 py-2 text-sm font-semibold text-[#34D399] hover:bg-[#34D399]/20 transition-colors">
+                          <PenTool size={14} /> Edit Vertices
+                        </button>
+                      )}
                       {!selectedField.boundary && (
                         <button onClick={onSnapLLD} disabled={savingBoundary}
                           className="w-full flex items-center justify-center gap-2 bg-white/[0.03] border border-[#1E293B] rounded-lg px-3 py-1.5 text-xs text-[#94A3B8] hover:text-white hover:border-[#60A5FA]/40 transition-colors disabled:opacity-50">
