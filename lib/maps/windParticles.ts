@@ -124,67 +124,60 @@ export class WindParticleLayer {
     const bounds = this.map.getBounds();
     if (!bounds) return;
 
-    const config: WindGridConfig = {
-      latMin: Math.max(bounds.getSouth() - 0.5, -90),
-      latMax: Math.min(bounds.getNorth() + 0.5, 90),
-      lngMin: bounds.getWest() - 0.5,
-      lngMax: bounds.getEast() + 0.5,
-      step: this.getGridStep(),
-    };
+    const latMin = Math.max(bounds.getSouth() - 0.5, -90);
+    const latMax = Math.min(bounds.getNorth() + 0.5, 90);
+    const lngMin = bounds.getWest() - 0.5;
+    const lngMax = bounds.getEast() + 0.5;
+
+    // Build a small grid that fits in ONE API call (max ~40 points)
+    const GRID_SIZE = 6; // 6x6 = 36 points max
+    const latStep = (latMax - latMin) / (GRID_SIZE - 1);
+    const lngStep = (lngMax - lngMin) / (GRID_SIZE - 1);
 
     const lats: number[] = [];
     const lngs: number[] = [];
-    for (let lat = config.latMin; lat <= config.latMax; lat += config.step) lats.push(Math.round(lat * 100) / 100);
-    for (let lng = config.lngMin; lng <= config.lngMax; lng += config.step) lngs.push(Math.round(lng * 100) / 100);
+    for (let i = 0; i < GRID_SIZE; i++) lats.push(Math.round((latMin + i * latStep) * 100) / 100);
+    for (let i = 0; i < GRID_SIZE; i++) lngs.push(Math.round((lngMin + i * lngStep) * 100) / 100);
 
-    // Cap grid size to avoid huge API requests
-    const maxPoints = 50;
-    const latsSampled = lats.length > maxPoints ? lats.filter((_, i) => i % Math.ceil(lats.length / maxPoints) === 0) : lats;
-    const lngsSampled = lngs.length > maxPoints ? lngs.filter((_, i) => i % Math.ceil(lngs.length / maxPoints) === 0) : lngs;
+    const coordPairs: { lat: number; lng: number }[] = [];
+    for (const lat of lats) {
+      for (const lng of lngs) {
+        coordPairs.push({ lat, lng });
+      }
+    }
 
     try {
+      const latParam = coordPairs.map((c) => c.lat).join(",");
+      const lngParam = coordPairs.map((c) => c.lng).join(",");
+
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${latParam}&longitude=${lngParam}&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto`;
+
+      const res = await fetch(url);
+      if (!res.ok) {
+        console.error("Wind API error:", res.status);
+        return;
+      }
+      const data = await res.json();
+
+      const results = Array.isArray(data) ? data : [data];
       const grid: WindDataPoint[] = [];
-      const coordPairs: { lat: number; lng: number }[] = [];
-      for (const lat of latsSampled) {
-        for (const lng of lngsSampled) {
-          coordPairs.push({ lat, lng });
-        }
-      }
 
-      // Open-Meteo multi-point: batch up to 50 per request
-      const batchSize = 50;
-      for (let i = 0; i < coordPairs.length; i += batchSize) {
-        const batch = coordPairs.slice(i, i + batchSize);
-        const latParam = batch.map((c) => c.lat).join(",");
-        const lngParam = batch.map((c) => c.lng).join(",");
+      results.forEach((r: any, idx: number) => {
+        if (!r?.current) return;
+        const speed = r.current.wind_speed_10m || 0;
+        const dir = r.current.wind_direction_10m || 0;
+        const dirRad = ((270 - dir) * Math.PI) / 180;
+        const u = speed * Math.cos(dirRad);
+        const v = speed * Math.sin(dirRad);
 
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${latParam}&longitude=${lngParam}&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=auto`;
-
-        const res = await fetch(url);
-        if (!res.ok) continue;
-        const data = await res.json();
-
-        const results = Array.isArray(data) ? data : [data];
-
-        results.forEach((r: any, idx: number) => {
-          if (!r?.current) return;
-          const speed = r.current.wind_speed_10m || 0;
-          const dir = r.current.wind_direction_10m || 0;
-          // Convert speed + direction to u/v components
-          // Meteorological convention: direction is where wind comes FROM
-          const dirRad = ((270 - dir) * Math.PI) / 180;
-          const u = speed * Math.cos(dirRad);
-          const v = speed * Math.sin(dirRad);
-
-          grid.push({
-            lat: batch[idx].lat,
-            lng: batch[idx].lng,
-            u,
-            v,
-            speed,
-          });
+        grid.push({
+          lat: coordPairs[idx].lat,
+          lng: coordPairs[idx].lng,
+          u,
+          v,
+          speed,
         });
-      }
+      });
 
       this.windGrid = grid;
     } catch (err) {
