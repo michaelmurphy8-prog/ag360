@@ -21,6 +21,7 @@ import MapLegend from "@/components/maps/MapLegend";
 import IntelligencePanel from "@/components/maps/IntelligencePanel";
 import BoundaryImportModal from "@/components/maps/BoundaryImportModal";
 import BoundaryExportModal from "@/components/maps/BoundaryExportModal";
+import { WindParticleLayer } from "@/lib/maps/windParticles";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 
@@ -42,6 +43,8 @@ export default function MapsPage() {
   const [showBins, setShowBins] = useState(true);
   const [showWeather, setShowWeather] = useState(false);
   const [showRadar, setShowRadar] = useState(false);
+  const [showWind, setShowWind] = useState(false);
+  const windLayerRef = useRef<WindParticleLayer | null>(null);
   const [radarTimestamp, setRadarTimestamp] = useState("");
   const [mapHeight, setMapHeight] = useState(700);
 
@@ -67,6 +70,28 @@ export default function MapsPage() {
 
   /* ── Weather trigger ───────────────────────────── */
   useEffect(() => { if (showWeather && weather.length === 0) fetchWeather(); }, [showWeather, weather.length, fetchWeather]);
+/* ── Wind particles toggle ─────────────────────── */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (showWind) {
+      if (!windLayerRef.current) {
+        windLayerRef.current = new WindParticleLayer(map);
+      }
+      windLayerRef.current.start();
+    } else {
+      if (windLayerRef.current) {
+        windLayerRef.current.stop();
+        windLayerRef.current = null;
+      }
+    }
+    return () => {
+      if (windLayerRef.current) {
+        windLayerRef.current.stop();
+        windLayerRef.current = null;
+      }
+    };
+  }, [showWind]);
 
   /* ── Map init ──────────────────────────────────── */
   useEffect(() => {
@@ -407,6 +432,7 @@ export default function MapsPage() {
           showBins={showBins} setShowBins={setShowBins}
           showWeather={showWeather} setShowWeather={setShowWeather}
           showRadar={showRadar} setShowRadar={setShowRadar}
+          showWind={showWind} setShowWind={setShowWind}
         />
 
         {isDrawing && selectedField && (

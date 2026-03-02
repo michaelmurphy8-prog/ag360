@@ -1,6 +1,6 @@
 "use client";
 
-import { Satellite, Moon, Mountain, Warehouse, CloudRain, Eye } from "lucide-react";
+import { Satellite, Moon, Mountain, Warehouse, CloudRain, Eye, Navigation } from "lucide-react";
 import type { MapStyleKey, ColorMode } from "@/lib/maps-types";
 
 interface Props {
@@ -14,11 +14,13 @@ interface Props {
   setShowWeather: (w: boolean) => void;
   showRadar: boolean;
   setShowRadar: (r: boolean) => void;
+  showWind: boolean;
+  setShowWind: (w: boolean) => void;
 }
 
 export default function MapControls({
   mapStyle, setMapStyle, colorMode, setColorMode,
-  showBins, setShowBins, showWeather, setShowWeather, showRadar, setShowRadar,
+  showBins, setShowBins, showWeather, setShowWeather, showRadar, setShowRadar, showWind, setShowWind,
 }: Props) {
   return (
     <div style={{ position: "absolute", top: 16, left: 60, zIndex: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -64,6 +66,12 @@ export default function MapControls({
             showRadar ? "bg-[#8B5CF6] text-white" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white"
           }`}>
           <Eye size={12} /> Radar
+        </button>
+        <button onClick={() => setShowWind(!showWind)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
+            showWind ? "bg-[#34D399] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white"
+          }`}>
+          <Navigation size={12} /> Wind
         </button>
       </div>
     </div>
