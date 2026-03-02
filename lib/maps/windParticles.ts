@@ -40,12 +40,12 @@ export class WindParticleLayer {
   private resizeObserver: ResizeObserver | null = null;
 
   // Tuning parameters
-  private PARTICLE_COUNT = 3000;
-  private PARTICLE_MIN_AGE = 20;
-  private PARTICLE_MAX_AGE = 100;
-  private SPEED_FACTOR = 0.3;
+  private PARTICLE_COUNT = 1500;
+  private PARTICLE_MIN_AGE = 60;
+  private PARTICLE_MAX_AGE = 200;
+  private SPEED_FACTOR = 0.12;
   private LINE_WIDTH = 1.2;
-  private FADE_OPACITY = 0.93;
+  private FADE_OPACITY = 0.97;
 
   constructor(map: mapboxgl.Map) {
     this.map = map;
@@ -92,6 +92,7 @@ export class WindParticleLayer {
     this.canvas.style.left = "0";
     this.canvas.style.pointerEvents = "none";
     this.canvas.style.zIndex = "5";
+    this.canvas.style.background = "transparent";
     this.canvas.width = container.offsetWidth * window.devicePixelRatio;
     this.canvas.height = container.offsetHeight * window.devicePixelRatio;
     this.canvas.style.width = container.offsetWidth + "px";
@@ -215,49 +216,80 @@ export class WindParticleLayer {
   }
 
   /** Interpolate wind at a given screen position */
+  /** Interpolate wind at a given screen position using bilinear grid interpolation */
   private getWindAt(x: number, y: number): { u: number; v: number; speed: number } {
     if (this.windGrid.length === 0) return { u: 0, v: 0, speed: 0 };
 
     const lngLat = this.map.unproject([x, y]);
     const { lng, lat } = lngLat;
 
-    // Find nearest 2 grid points and weighted interpolate
-    let minDist = Infinity;
-    let nearest: WindDataPoint | null = null;
-    let second: WindDataPoint | null = null;
-    let minDist2 = Infinity;
+    // Find the 4 surrounding grid points for bilinear interpolation
+    let minLat = -Infinity, maxLat = Infinity;
+    let minLng = -Infinity, maxLng = Infinity;
 
-    for (const p of this.windGrid) {
-      const d = Math.abs(p.lat - lat) + Math.abs(p.lng - lng);
-      if (d < minDist) {
-        minDist2 = minDist;
-        second = nearest;
-        minDist = d;
-        nearest = p;
-      } else if (d < minDist2) {
-        minDist2 = d;
-        second = p;
+    // Get unique sorted lat/lng values from grid
+    const gridLats = [...new Set(this.windGrid.map((p) => p.lat))].sort((a, b) => a - b);
+    const gridLngs = [...new Set(this.windGrid.map((p) => p.lng))].sort((a, b) => a - b);
+
+    // Find bounding lat indices
+    let latIdx = 0;
+    for (let i = 0; i < gridLats.length - 1; i++) {
+      if (lat >= gridLats[i] && lat <= gridLats[i + 1]) {
+        latIdx = i;
+        break;
       }
     }
+    // Clamp to grid
+    if (lat <= gridLats[0]) latIdx = 0;
+    if (lat >= gridLats[gridLats.length - 1]) latIdx = Math.max(0, gridLats.length - 2);
 
-    if (!nearest) return { u: 0, v: 0, speed: 0 };
-    if (!second) return { u: nearest.u, v: nearest.v, speed: nearest.speed };
+    let lngIdx = 0;
+    for (let i = 0; i < gridLngs.length - 1; i++) {
+      if (lng >= gridLngs[i] && lng <= gridLngs[i + 1]) {
+        lngIdx = i;
+        break;
+      }
+    }
+    if (lng <= gridLngs[0]) lngIdx = 0;
+    if (lng >= gridLngs[gridLngs.length - 1]) lngIdx = Math.max(0, gridLngs.length - 2);
 
-    const totalDist = minDist + minDist2;
-    if (totalDist === 0) return { u: nearest.u, v: nearest.v, speed: nearest.speed };
+    const lat0 = gridLats[latIdx];
+    const lat1 = gridLats[Math.min(latIdx + 1, gridLats.length - 1)];
+    const lng0 = gridLngs[lngIdx];
+    const lng1 = gridLngs[Math.min(lngIdx + 1, gridLngs.length - 1)];
 
-    const w1 = 1 - minDist / totalDist;
-    const w2 = 1 - minDist2 / totalDist;
-    const wSum = w1 + w2;
+    // Find the 4 corner grid points
+    const find = (la: number, ln: number) =>
+      this.windGrid.find((p) => Math.abs(p.lat - la) < 0.01 && Math.abs(p.lng - ln) < 0.01);
 
-    return {
-      u: (nearest.u * w1 + second.u * w2) / wSum,
-      v: (nearest.v * w1 + second.v * w2) / wSum,
-      speed: (nearest.speed * w1 + second.speed * w2) / wSum,
-    };
+    const q00 = find(lat0, lng0);
+    const q10 = find(lat1, lng0);
+    const q01 = find(lat0, lng1);
+    const q11 = find(lat1, lng1);
+
+    if (!q00 || !q10 || !q01 || !q11) {
+      // Fallback to nearest point
+      let minDist = Infinity;
+      let nearest = this.windGrid[0];
+      for (const p of this.windGrid) {
+        const d = (p.lat - lat) ** 2 + (p.lng - lng) ** 2;
+        if (d < minDist) { minDist = d; nearest = p; }
+      }
+      return { u: nearest.u, v: nearest.v, speed: nearest.speed };
+    }
+
+    // Bilinear interpolation weights
+    const latRange = lat1 - lat0 || 1;
+    const lngRange = lng1 - lng0 || 1;
+    const tLat = Math.max(0, Math.min(1, (lat - lat0) / latRange));
+    const tLng = Math.max(0, Math.min(1, (lng - lng0) / lngRange));
+
+    const u = (1 - tLat) * ((1 - tLng) * q00.u + tLng * q01.u) + tLat * ((1 - tLng) * q10.u + tLng * q11.u);
+    const v = (1 - tLat) * ((1 - tLng) * q00.v + tLng * q01.v) + tLat * ((1 - tLng) * q10.v + tLng * q11.v);
+    const speed = (1 - tLat) * ((1 - tLng) * q00.speed + tLng * q01.speed) + tLat * ((1 - tLng) * q10.speed + tLng * q11.speed);
+
+    return { u, v, speed };
   }
-
-  /** Get particle color based on wind speed (km/h visual) */
   private getSpeedColor(speed: number): string {
     if (speed < 2) return "rgba(100, 200, 255, 0.4)";   // light blue — calm
     if (speed < 5) return "rgba(100, 230, 200, 0.5)";   // teal — gentle
@@ -275,31 +307,31 @@ export class WindParticleLayer {
     const w = container.offsetWidth;
     const h = container.offsetHeight;
 
-    // Fade existing trails
-    this.ctx.fillStyle = `rgba(8, 12, 21, ${1 - this.FADE_OPACITY})`;
-    this.ctx.globalCompositeOperation = "destination-in";
-    this.ctx.fillRect(0, 0, w, h);
-    this.ctx.fillStyle = `rgba(8, 12, 21, ${1 - this.FADE_OPACITY})`;
-    this.ctx.globalCompositeOperation = "source-over";
-    this.ctx.fillRect(0, 0, w, h);
+    // Clear canvas completely each frame (keeps map visible)
+    this.ctx.clearRect(0, 0, w, h);
 
-    // Update and draw particles
+    // Draw all particles as short trail lines
     this.ctx.lineWidth = this.LINE_WIDTH;
-    this.ctx.globalCompositeOperation = "lighter";
+    this.ctx.lineCap = "round";
 
     for (const p of this.particles) {
+      // Get interpolated wind at particle position
+      const wind = this.getWindAt(p.x, p.y);
+
+      // Scale movement
+      const zoom = this.map.getZoom();
+      const scale = this.SPEED_FACTOR * (1 + (zoom - 5) * 0.3);
+
+      const dx = wind.u * scale;
+      const dy = -wind.v * scale; // canvas Y is inverted
+
+      // Store previous for trail
       p.prevX = p.x;
       p.prevY = p.y;
 
-      const wind = this.getWindAt(p.x, p.y);
-
-      // Scale u/v by zoom-dependent factor
-      const zoom = this.map.getZoom();
-      const scale = this.SPEED_FACTOR * Math.pow(2, zoom - 7);
-
-      p.x += wind.u * scale;
-      p.y -= wind.v * scale; // canvas Y is inverted
-
+      // Move particle
+      p.x += dx;
+      p.y += dy;
       p.age++;
 
       // Reset if out of bounds or too old
@@ -313,16 +345,19 @@ export class WindParticleLayer {
         continue;
       }
 
-      // Draw trail line
-      const opacity = 1 - p.age / p.maxAge;
-      this.ctx.strokeStyle = this.getSpeedColor(wind.speed).replace(/[\d.]+\)$/, `${opacity * 0.7})`);
+      // Draw trail — length based on speed, opacity based on age
+      const ageFactor = 1 - p.age / p.maxAge;
+      const tailLen = Math.min(8, Math.sqrt(dx * dx + dy * dy) * 4);
+      const tailX = p.x - (dx / (Math.sqrt(dx * dx + dy * dy) || 1)) * tailLen;
+      const tailY = p.y - (dy / (Math.sqrt(dx * dx + dy * dy) || 1)) * tailLen;
+
+      this.ctx.strokeStyle = this.getSpeedColor(wind.speed).replace(/[\d.]+\)$/, `${ageFactor * 0.6})`);
       this.ctx.beginPath();
-      this.ctx.moveTo(p.prevX, p.prevY);
+      this.ctx.moveTo(tailX, tailY);
       this.ctx.lineTo(p.x, p.y);
       this.ctx.stroke();
     }
 
-    this.ctx.globalCompositeOperation = "source-over";
     this.animationId = requestAnimationFrame(this.animate);
   };
 
