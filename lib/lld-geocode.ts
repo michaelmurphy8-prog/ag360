@@ -167,15 +167,38 @@ export function fieldToCoords(field: {
   lld_township?: number;
   lld_range?: number;
   lld_meridian?: number;
+  latitude?: number;
+  longitude?: number;
+  boundary?: any;
 }): LLDCoords | null {
-  if (!field.lld_section || !field.lld_township || !field.lld_range || !field.lld_meridian) {
-    return null;
+  // 1. Try LLD first
+  if (field.lld_section && field.lld_township && field.lld_range && field.lld_meridian) {
+    return lldToLatLng({
+      quarter: field.lld_quarter,
+      section: field.lld_section,
+      township: field.lld_township,
+      range: field.lld_range,
+      meridian: field.lld_meridian,
+    });
   }
-  return lldToLatLng({
-    quarter: field.lld_quarter,
-    section: field.lld_section,
-    township: field.lld_township,
-    range: field.lld_range,
-    meridian: field.lld_meridian,
-  });
+  // 2. Fall back to direct GPS coordinates
+  if (field.latitude && field.longitude) {
+    return { latitude: field.latitude, longitude: field.longitude, accuracy: "quarter" };
+  }
+  // 3. Fall back to boundary centroid
+  if (field.boundary) {
+    try {
+      const coords = field.boundary?.geometry?.coordinates?.[0] || field.boundary?.coordinates?.[0];
+      if (coords && coords.length > 0) {
+        const lats = coords.map((c: number[]) => c[1]);
+        const lngs = coords.map((c: number[]) => c[0]);
+        return {
+          latitude: lats.reduce((a: number, b: number) => a + b, 0) / lats.length,
+          longitude: lngs.reduce((a: number, b: number) => a + b, 0) / lngs.length,
+          accuracy: "quarter",
+        };
+      }
+    } catch { /* */ }
+  }
+  return null;
 }
