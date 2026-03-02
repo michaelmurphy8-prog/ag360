@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Maximize2, Minimize2, MapPin, X, Eye } from "lucide-react";
+import { Maximize2, Minimize2, MapPin, X, Eye, Leaf } from "lucide-react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
@@ -45,6 +45,7 @@ export default function MapsPage() {
   const [showWeather, setShowWeather] = useState(false);
   const [showRadar, setShowRadar] = useState(false);
   const [showWind, setShowWind] = useState(false);
+  const [showNDVI, setShowNDVI] = useState(false);
   const [showScoutPins, setShowScoutPins] = useState(true);
   const [scoutReports, setScoutReports] = useState<any[]>([]);
   const [scoutMode, setScoutMode] = useState(false);
@@ -86,7 +87,59 @@ export default function MapsPage() {
   useEffect(() => { fetchScoutReports(); }, [fetchScoutReports]);
   /* ── Weather trigger ───────────────────────────── */
   useEffect(() => { if (showWeather && weather.length === 0) fetchWeather(); }, [showWeather, weather.length, fetchWeather]);
-/* ── Wind particles toggle ─────────────────────── */
+/* ── NDVI satellite overlay ────────────────────── */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const addNDVI = () => {
+      const safeRemove = () => {
+        try {
+          if (map.style && map.isStyleLoaded()) {
+            if (map.getLayer("ndvi-layer")) map.removeLayer("ndvi-layer");
+            if (map.getSource("ndvi-source")) map.removeSource("ndvi-source");
+          }
+        } catch { /* */ }
+      };
+
+      safeRemove();
+      if (!showNDVI) return;
+
+      // NASA GIBS MODIS Terra NDVI 8-day composite
+      // Sentinel-2 cloudless 2023 — high-res satellite showing vegetation health
+      map.addSource("ndvi-source", {
+        type: "raster",
+        tiles: [
+          "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg"
+        ],
+        tileSize: 256,
+        maxzoom: 14,
+      });
+      map.addLayer({
+        id: "ndvi-layer",
+        type: "raster",
+        source: "ndvi-source",
+        paint: {
+          "raster-opacity": 0.7,
+          "raster-saturation": 0.6,
+          "raster-contrast": 0.2,
+        },
+      });
+    };
+
+    if (map.isStyleLoaded()) addNDVI();
+    else map.once("style.load", addNDVI);
+
+    return () => {
+      try {
+        if (map.style && map.isStyleLoaded()) {
+          if (map.getLayer("ndvi-layer")) map.removeLayer("ndvi-layer");
+          if (map.getSource("ndvi-source")) map.removeSource("ndvi-source");
+        }
+      } catch { /* */ }
+    };
+  }, [showNDVI]);
+  /* ── Wind particles toggle ─────────────────────── */
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -525,7 +578,7 @@ export default function MapsPage() {
           showRadar={showRadar} setShowRadar={setShowRadar}
           showWind={showWind} setShowWind={setShowWind}
         />
-        {/* Scout mode button */}
+        {/* Scout + NDVI buttons */}
         <div style={{ position: "absolute", top: 56, left: 60, zIndex: 10, display: "flex", gap: 8 }}>
           <button
             onClick={() => setScoutMode(!scoutMode)}
@@ -540,6 +593,13 @@ export default function MapsPage() {
               showScoutPins ? "bg-[#F59E0B] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white border border-black/20"
             }`}>
             <Eye size={12} /> Pins {scoutReports.length > 0 ? `(${scoutReports.length})` : ""}
+          </button>
+          <button
+            onClick={() => setShowNDVI(!showNDVI)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-lg transition-colors ${
+              showNDVI ? "bg-[#22C55E] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white border border-black/20"
+            }`}>
+            <Leaf size={12} /> Vegetation
           </button>
         </div>
         {scoutMode && (
