@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Maximize2, Minimize2 } from "lucide-react";
+import { Maximize2, Minimize2, MapPin, X, Eye } from "lucide-react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
@@ -21,6 +21,7 @@ import MapLegend from "@/components/maps/MapLegend";
 import IntelligencePanel from "@/components/maps/IntelligencePanel";
 import BoundaryImportModal from "@/components/maps/BoundaryImportModal";
 import BoundaryExportModal from "@/components/maps/BoundaryExportModal";
+import ScoutReportModal from "@/components/maps/ScoutReportModal";
 import { WindParticleLayer } from "@/lib/maps/windParticles";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
@@ -44,6 +45,12 @@ export default function MapsPage() {
   const [showWeather, setShowWeather] = useState(false);
   const [showRadar, setShowRadar] = useState(false);
   const [showWind, setShowWind] = useState(false);
+  const [showScoutPins, setShowScoutPins] = useState(true);
+  const [scoutReports, setScoutReports] = useState<any[]>([]);
+  const [scoutMode, setScoutMode] = useState(false);
+  const [scoutModalOpen, setScoutModalOpen] = useState(false);
+  const [scoutClickCoords, setScoutClickCoords] = useState({ lat: 0, lng: 0 });
+  const scoutMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const windLayerRef = useRef<WindParticleLayer | null>(null);
   const [radarTimestamp, setRadarTimestamp] = useState("");
   const [mapHeight, setMapHeight] = useState(700);
@@ -68,6 +75,15 @@ export default function MapsPage() {
     return () => window.removeEventListener("resize", calc);
   }, []);
 
+  /* ── Scout reports fetch ───────────────────────── */
+  const fetchScoutReports = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/maps/scout-reports?cropYear=${cropYear}`);
+      if (res.ok) setScoutReports(await res.json());
+    } catch {}
+  }, [cropYear]);
+
+  useEffect(() => { fetchScoutReports(); }, [fetchScoutReports]);
   /* ── Weather trigger ───────────────────────────── */
   useEffect(() => { if (showWeather && weather.length === 0) fetchWeather(); }, [showWeather, weather.length, fetchWeather]);
 /* ── Wind particles toggle ─────────────────────── */
@@ -92,7 +108,59 @@ export default function MapsPage() {
       }
     };
   }, [showWind]);
+/* ── Scout pin markers ─────────────────────────── */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    // Clear old scout markers
+    scoutMarkersRef.current.forEach((m) => m.remove());
+    scoutMarkersRef.current = [];
+    if (!showScoutPins) return;
 
+    const SCOUT_COLORS: Record<string, string> = {
+      general: "#38BDF8", pest: "#F87171", disease: "#FBBF24",
+      weed: "#34D399", nutrient: "#A78BFA", moisture: "#38BDF8",
+      hail: "#94A3B8", other: "#94A3B8",
+    };
+    const SEV_SIZES: Record<string, number> = { low: 10, medium: 13, high: 16, critical: 20 };
+
+    scoutReports.forEach((r) => {
+      const color = SCOUT_COLORS[r.report_type] || "#94A3B8";
+      const size = SEV_SIZES[r.severity] || 12;
+      const el = document.createElement("div");
+      el.style.cssText = `width:${size}px;height:${size}px;background:${color};border:2px solid #fff;border-radius:50%;cursor:pointer;box-shadow:0 0 8px ${color}80;transition:transform 0.15s;`;
+      el.onmouseenter = () => { el.style.transform = "scale(1.4)"; };
+      el.onmouseleave = () => { el.style.transform = "scale(1)"; };
+
+      const popup = new mapboxgl.Popup({ closeButton: true, closeOnClick: true, offset: 12, maxWidth: "260px" })
+        .setHTML(`
+          <div style="font-family:system-ui;color:#F1F5F9;padding:4px 0;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:4px;">${r.title}</div>
+            <div style="display:flex;gap:8px;margin-bottom:4px;">
+              <span style="font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:2px 6px;border-radius:4px;background:${color}20;color:${color};">${r.report_type}</span>
+              <span style="font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.06);color:#94A3B8;">${r.severity}</span>
+            </div>
+            ${r.notes ? `<p style="font-size:11px;color:#94A3B8;margin:4px 0 0;line-height:1.4;">${r.notes}</p>` : ""}
+            ${r.field_name ? `<div style="font-size:10px;color:#64748B;margin-top:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>${r.field_name}</div>` : ""}
+            <div style="font-size:10px;color:#475569;margin-top:4px;">${new Date(r.scouted_at).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}</div>
+          </div>
+        `);
+
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat([r.longitude, r.latitude])
+        .setPopup(popup)
+        .addTo(map);
+      scoutMarkersRef.current.push(marker);
+    });
+  }, [scoutReports, showScoutPins]);
+  /* ── Scout mode cursor ─────────────────────────── */
+  useEffect(() => {
+    (window as any).__scoutMode = scoutMode;
+    const map = mapRef.current;
+    if (map?.getCanvas()) {
+      map.getCanvas().style.cursor = scoutMode ? "crosshair" : "";
+    }
+  }, [scoutMode]);
   /* ── Map init ──────────────────────────────────── */
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -105,6 +173,15 @@ export default function MapsPage() {
     });
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
     mapRef.current = map;
+    // Scout mode — click to drop pin
+    map.on("click", (e) => {
+      if (!(window as any).__scoutMode) return;
+      setScoutClickCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+      setScoutModalOpen(true);
+      setScoutMode(false);
+      (window as any).__scoutMode = false;
+      if (map.getCanvas()) map.getCanvas().style.cursor = "";
+    });
     return () => { map.remove(); mapRef.current = null; drawRef.current = null; };
   }, [loading]);
 
@@ -434,7 +511,29 @@ export default function MapsPage() {
           showRadar={showRadar} setShowRadar={setShowRadar}
           showWind={showWind} setShowWind={setShowWind}
         />
-
+        {/* Scout mode button */}
+        <div style={{ position: "absolute", top: 16, right: panelCollapsed ? 16 : 420, zIndex: 10, display: "flex", gap: 8 }}>
+          <button
+            onClick={() => setScoutMode(!scoutMode)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-lg transition-colors ${
+              scoutMode ? "bg-[#34D399] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white border border-black/20"
+            }`}>
+            {scoutMode ? <><X size={12} /> Cancel Scout</> : <><MapPin size={12} /> Scout Pin</>}
+          </button>
+          <button
+            onClick={() => setShowScoutPins(!showScoutPins)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-lg transition-colors ${
+              showScoutPins ? "bg-[#F59E0B] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white border border-black/20"
+            }`}>
+            <Eye size={12} /> Pins {scoutReports.length > 0 ? `(${scoutReports.length})` : ""}
+          </button>
+        </div>
+        {scoutMode && (
+          <div style={{ position: "absolute", top: 52, right: panelCollapsed ? 16 : 420, zIndex: 10 }}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#34D399] text-[#0F1629] shadow-lg animate-pulse">
+            Click anywhere on the map to drop a scout pin
+          </div>
+        )}
         {isDrawing && selectedField && (
           <DrawBar
             selectedField={selectedField}
@@ -475,6 +574,15 @@ export default function MapsPage() {
       {showExportModal && (
         <BoundaryExportModal fields={fields} onClose={() => setShowExportModal(false)} />
       )}
+      <ScoutReportModal
+        open={scoutModalOpen}
+        onClose={() => setScoutModalOpen(false)}
+        latitude={scoutClickCoords.lat}
+        longitude={scoutClickCoords.lng}
+        fields={fields.map((f) => ({ id: f.id, name: f.field_name }))}
+        cropYear={cropYear}
+        onCreated={() => { setScoutModalOpen(false); fetchScoutReports(); }}
+      />
     </div>
   );
 }
