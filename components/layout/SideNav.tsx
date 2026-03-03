@@ -45,7 +45,7 @@ const navSections: { title?: string; items: NavItem[] }[] = [
           { label: "Overview", href: "/operations" },
           { label: "Maps", href: "/maps" },
           { label: "Fields", href: "/fields" },
-          { label: "Import Data", href: "/imports" },
+          { label: "Import Data", href: "/operations/import-data" }
         ],
       },
     ],
@@ -116,7 +116,7 @@ function NavGroup({ item, pathname }: { item: NavItem; pathname: string }) {
       {open && (
         <div className="ml-[26px] pl-3 mt-0.5 space-y-0.5" style={{ borderLeft: "1px solid var(--ag-border-subtle)" }}>
           {item.children!.map((child) => {
-            const active = pathname === child.href || pathname.startsWith(child.href + "/");
+            const active = pathname === child.href;
             return (
               <Link key={child.href} href={child.href}
                 className="block px-3 py-1.5 rounded-md text-[12px] transition-colors"
