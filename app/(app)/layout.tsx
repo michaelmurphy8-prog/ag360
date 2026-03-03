@@ -9,7 +9,7 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#0B1120] flex">
+    <div className="min-h-screen flex" style={{ backgroundColor: "var(--ag-bg-primary)" }}>
       <SideNav />
       <main className="flex-1 ml-56 p-6">
         {children}
