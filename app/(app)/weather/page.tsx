@@ -262,9 +262,9 @@ function HourlyStrip({ hourly, ni }: { hourly: Hourly; ni: number }) {
   const hours = Array.from({ length: 24 }, (_, i) => ni + i).filter(i => i < hourly.time.length);
 
   const scrollDir = (dir: number) => {
-    if (ref.current) {
-      ref.current.scrollLeft += dir * 320;
-    }
+    const el = ref.current;
+    if (!el) return;
+    el.scrollTo({ left: el.scrollLeft + dir * 300, behavior: "smooth" });
   };
 
   return (
@@ -275,11 +275,11 @@ function HourlyStrip({ hourly, ni }: { hourly: Hourly; ni: number }) {
           <p className="font-mono text-[10px] font-semibold text-ag-secondary uppercase tracking-[2px]">Next 24 Hours</p>
         </div>
         <div className="flex gap-1">
-          <button onClick={() => scrollDir(-1)}
+          <button type="button" onClick={() => scrollDir(-1)}
             className="w-7 h-7 rounded-lg flex items-center justify-center border border-[var(--ag-border)] hover:bg-[var(--ag-bg-active)] transition-colors active:scale-95">
             <ChevronLeft size={14} className="text-ag-muted" />
           </button>
-          <button onClick={() => scrollDir(1)}
+          <button type="button" onClick={() => scrollDir(1)}
             className="w-7 h-7 rounded-lg flex items-center justify-center border border-[var(--ag-border)] hover:bg-[var(--ag-bg-active)] transition-colors active:scale-95">
             <ChevronRight size={14} className="text-ag-muted" />
           </button>
