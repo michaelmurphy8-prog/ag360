@@ -259,7 +259,7 @@ function WindArrow({ deg, size = 28 }: { deg: number; size?: number }) {
 /* ─ Hourly Strip with working scroll ─ */
 function HourlyStrip({ hourly, ni }: { hourly: Hourly; ni: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  const hours = Array.from({ length: 24 }, (_, i) => ni + i).filter(i => i < hourly.time.length);
+  const hours = Array.from({ length: 48 }, (_, i) => ni + i).filter(i => i < hourly.time.length);
 
   const scrollDir = (dir: number) => {
     const el = ref.current;
@@ -272,7 +272,7 @@ function HourlyStrip({ hourly, ni }: { hourly: Hourly; ni: number }) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Clock size={13} style={{ color: "var(--ag-accent)" }} />
-          <p className="font-mono text-[10px] font-semibold text-ag-secondary uppercase tracking-[2px]">Next 24 Hours</p>
+          <p className="font-mono text-[10px] font-semibold text-ag-secondary uppercase tracking-[2px]">Next 48 Hours</p>
         </div>
         <div className="flex gap-1">
           <button type="button" onClick={() => scrollDir(-1)}
