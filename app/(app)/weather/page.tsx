@@ -117,7 +117,7 @@ function TempTrend({ hourly, ni }: { hourly: Hourly; ni: number }) {
   const [hover, setHover] = useState<{ x: number; y: number; temp: number; time: string; wind: number } | null>(null);
 
   const W = 520, H = 160, PX = 14, PY = 22;
-  const s = Math.max(0, ni - 12), e = Math.min(hourly.time.length, ni + 12);
+  const s = Math.max(0, ni - 12), e = Math.min(hourly.time.length, ni + 36);
   const slice = hourly.temperature_2m.slice(s, e);
   const winds = hourly.wind_speed_10m.slice(s, e);
   const times = hourly.time.slice(s, e);
