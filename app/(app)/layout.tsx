@@ -11,7 +11,7 @@ export default function AppLayout({
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: "var(--ag-bg-primary)" }}>
       <SideNav />
-      <main className="flex-1 ml-56 p-6">
+      <main className="flex-1 ml-56 p-6 overflow-x-hidden">
         {children}
       </main>
     </div>
