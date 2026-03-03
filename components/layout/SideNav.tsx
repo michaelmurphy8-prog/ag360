@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import LilyIcon from "@/components/LilyIcon";
-import ThemeToggle from "@/components/ThemeToggle";
+import { ThemeToggleCompact } from "@/components/ThemeToggle";
 
 // ─── Nav Structure ───────────────────────────────────────────
 interface NavItem {
@@ -254,7 +254,7 @@ export default function SideNav() {
               Pro Trial
             </p>
           </div>
-          <ThemeToggle compact />
+          <ThemeToggleCompact />
         </div>
       </div>
     </aside>

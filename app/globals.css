@@ -236,6 +236,188 @@
   .shadow-ag { box-shadow: var(--ag-shadow); }
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   AG360 THEME SYSTEM — 4 THEMES
+   Paste this ABOVE your existing @layer base { ... } in globals.css
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Theme 1: Dark — Deep navy, built for the cab */
+/* Typography: Inter + JetBrains Mono */
+:root,
+[data-theme="dark"] {
+  --ag-bg-base: #080C15;
+  --ag-bg-primary: #0B1120;
+  --ag-bg-secondary: #0F1729;
+  --ag-bg-card: #0F1729;
+  --ag-bg-hover: rgba(255, 255, 255, 0.025);
+  --ag-bg-active: rgba(255, 255, 255, 0.06);
+  --ag-border: rgba(255, 255, 255, 0.06);
+  --ag-border-solid: #1E293B;
+  --ag-border-hover: rgba(52, 211, 153, 0.3);
+  --ag-text-primary: #F1F5F9;
+  --ag-text-secondary: #94A3B8;
+  --ag-text-muted: #64748B;
+  --ag-text-dim: #475569;
+  --ag-accent: #34D399;
+  --ag-accent-hover: #2AB385;
+  --ag-accent-text: #0F1729;
+  --ag-accent-bg: rgba(52, 211, 153, 0.08);
+  --ag-accent-border: rgba(52, 211, 153, 0.2);
+  --ag-green: #34D399;
+  --ag-green-dim: rgba(52, 211, 153, 0.10);
+  --ag-red: #F87171;
+  --ag-red-dim: rgba(248, 113, 113, 0.10);
+  --ag-blue: #60A5FA;
+  --ag-blue-bg: rgba(96, 165, 250, 0.1);
+  --ag-yellow: #FBBF24;
+  --ag-grid-line: rgba(255, 255, 255, 0.04);
+  --ag-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 4px 24px rgba(0, 0, 0, 0.3);
+  --ag-sidenav-bg: #080C15;
+  --ag-select-bg: #111827;
+  --ag-tab-bg: rgba(255, 255, 255, 0.025);
+  --ag-tab-active: rgba(255, 255, 255, 0.07);
+  --ag-kpi-border: rgba(255, 255, 255, 0.04);
+  --ag-net-bg: linear-gradient(135deg, rgba(52, 211, 153, 0.08) 0%, rgba(52, 211, 153, 0.03) 100%);
+  --ag-logo-primary: #F1F5F9;
+  --ag-logo-accent: #34D399;
+  --ag-logo-solid: 0;
+  --ag-font-body: 'Inter', system-ui, sans-serif;
+  --ag-font-display: 'Inter', system-ui, sans-serif;
+  --ag-font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+}
+
+/* Theme 2: Salt & Pepper — Refined charcoal, sharp & modern */
+/* Typography: DM Sans + Outfit + IBM Plex Mono */
+[data-theme="salt-pepper"] {
+  --ag-bg-base: #161618;
+  --ag-bg-primary: #1C1C1E;
+  --ag-bg-secondary: #232326;
+  --ag-bg-card: #232326;
+  --ag-bg-hover: rgba(255, 255, 255, 0.03);
+  --ag-bg-active: rgba(255, 255, 255, 0.08);
+  --ag-border: rgba(255, 255, 255, 0.08);
+  --ag-border-solid: #3A3A3D;
+  --ag-border-hover: rgba(255, 255, 255, 0.15);
+  --ag-text-primary: #F0F0F0;
+  --ag-text-secondary: #A0A0A5;
+  --ag-text-muted: #6E6E73;
+  --ag-text-dim: #48484A;
+  --ag-accent: #F0F0F0;
+  --ag-accent-hover: #FFFFFF;
+  --ag-accent-text: #161618;
+  --ag-accent-bg: rgba(255, 255, 255, 0.05);
+  --ag-accent-border: rgba(255, 255, 255, 0.12);
+  --ag-green: #63E6BE;
+  --ag-green-dim: rgba(99, 230, 190, 0.08);
+  --ag-red: #FF6B6B;
+  --ag-red-dim: rgba(255, 107, 107, 0.08);
+  --ag-blue: #74B3FF;
+  --ag-blue-bg: rgba(116, 179, 255, 0.1);
+  --ag-yellow: #FFD43B;
+  --ag-grid-line: rgba(255, 255, 255, 0.04);
+  --ag-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 2px 12px rgba(0, 0, 0, 0.4);
+  --ag-sidenav-bg: #161618;
+  --ag-select-bg: #232326;
+  --ag-tab-bg: rgba(255, 255, 255, 0.03);
+  --ag-tab-active: rgba(255, 255, 255, 0.08);
+  --ag-kpi-border: rgba(255, 255, 255, 0.06);
+  --ag-net-bg: linear-gradient(135deg, rgba(99, 230, 190, 0.06) 0%, rgba(99, 230, 190, 0.02) 100%);
+  --ag-logo-primary: #F0F0F0;
+  --ag-logo-accent: #63E6BE;
+  --ag-logo-solid: 0;
+  --ag-font-body: 'DM Sans', system-ui, sans-serif;
+  --ag-font-display: 'Outfit', 'DM Sans', system-ui, sans-serif;
+  --ag-font-mono: 'IBM Plex Mono', 'SF Mono', monospace;
+}
+
+/* Theme 3: Stone Path — Warm earth, calm & grounded */
+/* Typography: Source Sans 3 + Fraunces (serif) + Source Code Pro */
+[data-theme="stone-path"] {
+  --ag-bg-base: #1F1D19;
+  --ag-bg-primary: #262420;
+  --ag-bg-secondary: #2E2B26;
+  --ag-bg-card: #2E2B26;
+  --ag-bg-hover: rgba(164, 154, 135, 0.05);
+  --ag-bg-active: rgba(164, 154, 135, 0.14);
+  --ag-border: rgba(164, 154, 135, 0.15);
+  --ag-border-solid: #4A4640;
+  --ag-border-hover: rgba(163, 184, 108, 0.3);
+  --ag-text-primary: #E8E4DD;
+  --ag-text-secondary: #A5A08E;
+  --ag-text-muted: #7A7568;
+  --ag-text-dim: #5A5549;
+  --ag-accent: #A3B86C;
+  --ag-accent-hover: #B5CA7E;
+  --ag-accent-text: #1F1D19;
+  --ag-accent-bg: rgba(163, 184, 108, 0.08);
+  --ag-accent-border: rgba(163, 184, 108, 0.2);
+  --ag-green: #A3B86C;
+  --ag-green-dim: rgba(163, 184, 108, 0.10);
+  --ag-red: #D4735A;
+  --ag-red-dim: rgba(212, 115, 90, 0.10);
+  --ag-blue: #7BA6C4;
+  --ag-blue-bg: rgba(123, 166, 196, 0.1);
+  --ag-yellow: #D4A853;
+  --ag-grid-line: rgba(164, 154, 135, 0.08);
+  --ag-shadow: 0 0 0 1px rgba(164, 154, 135, 0.1), 0 2px 12px rgba(0, 0, 0, 0.3);
+  --ag-sidenav-bg: #1A1816;
+  --ag-select-bg: #2E2B26;
+  --ag-tab-bg: rgba(164, 154, 135, 0.06);
+  --ag-tab-active: rgba(164, 154, 135, 0.14);
+  --ag-kpi-border: rgba(164, 154, 135, 0.1);
+  --ag-net-bg: linear-gradient(135deg, rgba(163, 184, 108, 0.08) 0%, rgba(163, 184, 108, 0.02) 100%);
+  --ag-logo-primary: #E8E4DD;
+  --ag-logo-accent: #A3B86C;
+  --ag-logo-solid: 0;
+  --ag-font-body: 'Source Sans 3', system-ui, sans-serif;
+  --ag-font-display: 'Fraunces', Georgia, serif;
+  --ag-font-mono: 'Source Code Pro', 'SF Mono', monospace;
+}
+
+/* Theme 4: Open Field — Airy light, rooted in nature */
+/* Typography: DM Sans + Outfit + IBM Plex Mono */
+/* Accent: Soft Sage + Dust | Solid single-color logo */
+[data-theme="open-field"] {
+  --ag-bg-base: #E5E2DC;
+  --ag-bg-primary: #ECEAE4;
+  --ag-bg-secondary: #F4F1EB;
+  --ag-bg-card: #F4F1EB;
+  --ag-bg-hover: rgba(50, 48, 34, 0.035);
+  --ag-bg-active: rgba(50, 48, 34, 0.10);
+  --ag-border: rgba(50, 48, 34, 0.14);
+  --ag-border-solid: #B8B3A8;
+  --ag-border-hover: rgba(107, 143, 113, 0.3);
+  --ag-text-primary: #2C3022;
+  --ag-text-secondary: #52573E;
+  --ag-text-muted: #7E826E;
+  --ag-text-dim: #A8AB9A;
+  --ag-accent: #6B8F71;
+  --ag-accent-hover: #5A7D60;
+  --ag-accent-text: #FFFFFF;
+  --ag-accent-bg: rgba(107, 143, 113, 0.07);
+  --ag-accent-border: rgba(107, 143, 113, 0.2);
+  --ag-green: #6B8F71;
+  --ag-green-dim: rgba(107, 143, 113, 0.12);
+  --ag-red: #B07060;
+  --ag-red-dim: rgba(176, 112, 96, 0.08);
+  --ag-blue: #7B8FA6;
+  --ag-blue-bg: rgba(123, 143, 166, 0.1);
+  --ag-yellow: #C9B060;
+  --ag-grid-line: rgba(50, 48, 34, 0.07);
+  --ag-shadow: 0 0 0 1px rgba(50, 48, 34, 0.10), 0 1px 3px rgba(50, 48, 34, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --ag-sidenav-bg: #E5E2DC;
+  --ag-select-bg: #D8D5CE;
+  --ag-tab-bg: rgba(50, 48, 34, 0.05);
+  --ag-tab-active: rgba(50, 48, 34, 0.10);
+  --ag-kpi-border: rgba(50, 48, 34, 0.12);
+  --ag-net-bg: linear-gradient(135deg, rgba(107, 143, 113, 0.09) 0%, rgba(107, 143, 113, 0.03) 100%);
+  --ag-logo-primary: #2C3022;
+  --ag-logo-accent: #2C3022;
+  --ag-logo-solid: 1;
+  --ag-font-body: 'DM Sans', system-ui, sans-serif;
+  --ag-font-display: 'Outfit', 'DM Sans', system-ui, sans-serif;
+  --ag-font-mono: 'IBM Plex Mono', 'SF Mono', monospace;
+}
 @layer base {
   * {
     @apply border-border outline-ring/50;
