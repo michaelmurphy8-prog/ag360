@@ -6,7 +6,7 @@ import {
   Users, Plus, X, CheckCircle, AlertTriangle, Loader2, Search,
   Trash2, Edit2, Phone, Mail, Shield, Clock, Calendar,
   ChevronDown, ChevronLeft, ChevronRight, UserPlus, Award,
-  AlertCircle, DollarSign, Briefcase, Heart,
+  AlertCircle, DollarSign, Briefcase, Heart, Copy, Zap,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -78,9 +78,9 @@ const certStatus = (expiry: string | null): { label: string; color: string; bg: 
   if (!expiry) return { label: "No Expiry", color: "var(--ag-text-muted)", bg: "transparent" };
   const clean = expiry.slice(0, 10);
   const diff = (new Date(clean + "T00:00:00").getTime() - Date.now()) / (1000 * 60 * 60 * 24);
-  if (diff < 0) return { label: "Expired", color: "var(--ag-red)", bg: "var(--ag-red-dim)" };
+  if (diff < 0) return { label: "Expired", color: "var(--ag-red)", bg: "var(--ag-red-dim, rgba(239,68,68,0.08))" };
   if (diff < 30) return { label: "Expiring Soon", color: "var(--ag-yellow)", bg: "rgba(251,191,36,0.08)" };
-  return { label: "Valid", color: "var(--ag-green)", bg: "var(--ag-green-dim)" };
+  return { label: "Valid", color: "var(--ag-green)", bg: "var(--ag-green-dim, rgba(74,124,89,0.08))" };
 };
 
 const getMonday = (d: Date) => {
@@ -132,8 +132,12 @@ export default function LabourPage() {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
+  // Expanded rows (emergency contacts)
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
   // Time tracking
   const [weekOf, setWeekOf] = useState(() => getMonday(new Date()));
+  const [prevWeekGrid, setPrevWeekGrid] = useState<Record<string, Record<string, number>>>({});
   const [timeGrid, setTimeGrid] = useState<Record<string, Record<string, number>>>({});
   const [timeSaving, setTimeSaving] = useState(false);
   const [timeView, setTimeView] = useState<"weekly" | "monthly">("weekly");
@@ -163,7 +167,6 @@ export default function LabourPage() {
     if (d.entries) setTimeEntries(d.entries);
     if (d.workers) setTimeWorkers(d.workers);
 
-    // Build grid
     const grid: Record<string, Record<string, number>> = {};
     if (d.workers) {
       for (const w of d.workers) {
@@ -176,10 +179,27 @@ export default function LabourPage() {
     }
     if (d.entries) {
       for (const e of d.entries) {
-        if (grid[e.worker_id]) grid[e.worker_id][e.entry_date] = Number(e.hours);
+        if (grid[e.worker_id]) grid[e.worker_id][e.entry_date.slice(0, 10)] = Number(e.hours);
       }
     }
     setTimeGrid(grid);
+    return grid;
+  }, []);
+
+  const fetchPrevWeek = useCallback(async (monday: Date) => {
+    const prevMon = addDays(monday, -7);
+    const iso = prevMon.toISOString().slice(0, 10);
+    const r = await fetch(`/api/hr/time-entries?week_of=${iso}`);
+    const d = await r.json();
+    const grid: Record<string, Record<string, number>> = {};
+    if (d.entries) {
+      for (const e of d.entries) {
+        if (!grid[e.worker_id]) grid[e.worker_id] = {};
+        const dayIdx = (new Date(e.entry_date + "T00:00:00").getDay() + 6) % 7;
+        grid[e.worker_id][String(dayIdx)] = Number(e.hours);
+      }
+    }
+    setPrevWeekGrid(grid);
   }, []);
 
   const fetchMonthlySummary = useCallback(async (m: string) => {
@@ -189,12 +209,12 @@ export default function LabourPage() {
   }, []);
 
   useEffect(() => {
-    Promise.all([fetchWorkers(), fetchCerts(), fetchTimeEntries(weekOf)]).then(() => setLoading(false));
+    Promise.all([fetchWorkers(), fetchCerts(), fetchTimeEntries(weekOf), fetchPrevWeek(weekOf)]).then(() => setLoading(false));
   }, []);
 
   useEffect(() => {
     if (tab === "Time & Cost") {
-      if (timeView === "weekly") fetchTimeEntries(weekOf);
+      if (timeView === "weekly") { fetchTimeEntries(weekOf); fetchPrevWeek(weekOf); }
       if (timeView === "monthly") fetchMonthlySummary(monthOf);
     }
   }, [tab, timeView, monthOf, weekOf]);
@@ -207,7 +227,6 @@ export default function LabourPage() {
     const fd = new FormData(e.currentTarget);
     const body: Record<string, string | null> = {};
     fd.forEach((v, k) => { body[k] = v.toString() || null; });
-
     if (editWorker) body.id = editWorker.id;
     const method = editWorker ? "PUT" : "POST";
     await fetch("/api/hr/workers", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -232,7 +251,6 @@ export default function LabourPage() {
     const fd = new FormData(e.currentTarget);
     const body: Record<string, string | null> = {};
     fd.forEach((v, k) => { body[k] = v.toString() || null; });
-
     if (editCert) body.id = editCert.id;
     const method = editCert ? "PUT" : "POST";
     await fetch("/api/hr/certifications", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -248,7 +266,7 @@ export default function LabourPage() {
     setDeleteConfirm(null);
   };
 
-  // ─── Time Entry Save ────────────────────────────────────
+  // ─── Time Entry Helpers ──────────────────────────────────
 
   const saveTimeGrid = async () => {
     setTimeSaving(true);
@@ -263,7 +281,54 @@ export default function LabourPage() {
     setTimeSaving(false);
   };
 
-  // ─── Filtered Workers ────────────────────────────────────
+  const copyPreviousWeek = () => {
+    setTimeGrid(prev => {
+      const next = { ...prev };
+      for (const wId of Object.keys(next)) {
+        const prevData = prevWeekGrid[wId];
+        if (!prevData) continue;
+        const dates = Object.keys(next[wId]).sort();
+        dates.forEach((dateStr, i) => {
+          const prevHrs = prevData[String(i)];
+          if (prevHrs && prevHrs > 0) next[wId] = { ...next[wId], [dateStr]: prevHrs };
+        });
+      }
+      return { ...next };
+    });
+  };
+
+  const fillFullDay = (workerId: string, hours: number = 8) => {
+    setTimeGrid(prev => {
+      const next = { ...prev };
+      const dates = Object.keys(next[workerId] || {}).sort();
+      const updated = { ...next[workerId] };
+      dates.slice(0, 5).forEach(d => { updated[d] = hours; });
+      next[workerId] = updated;
+      return { ...next };
+    });
+  };
+
+  const clearWorkerWeek = (workerId: string) => {
+    setTimeGrid(prev => {
+      const next = { ...prev };
+      const updated = { ...next[workerId] };
+      for (const d of Object.keys(updated)) updated[d] = 0;
+      next[workerId] = updated;
+      return { ...next };
+    });
+  };
+
+  // ─── Expand/Collapse ─────────────────────────────────────
+
+  const toggleRow = (id: string) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  // ─── Filtered Data ───────────────────────────────────────
 
   const filteredWorkers = useMemo(() => {
     return workers.filter(w => {
@@ -283,11 +348,22 @@ export default function LabourPage() {
     });
   }, [certs, search, certFilter]);
 
+  const alertCerts = useMemo(() => {
+    return certs.filter(c => {
+      const s = certStatus(c.expiry_date);
+      return s.label === "Expired" || s.label === "Expiring Soon";
+    }).sort((a, b) => {
+      const aExp = a.expiry_date ? new Date(a.expiry_date.slice(0, 10)).getTime() : Infinity;
+      const bExp = b.expiry_date ? new Date(b.expiry_date.slice(0, 10)).getTime() : Infinity;
+      return aExp - bExp;
+    });
+  }, [certs]);
+
   // ─── Ribbon Stats ────────────────────────────────────────
 
   const activeWorkers = workers.filter(w => w.status === "active").length;
   const seasonalWorkers = workers.filter(w => w.worker_type === "seasonal" && w.status === "active").length;
-  const expiringCerts = certs.filter(c => { const s = certStatus(c.expiry_date); return s.label === "Expiring Soon" || s.label === "Expired"; }).length;
+  const expiringCerts = alertCerts.length;
   const monthlyLabourCost = workers.reduce((sum, w) => {
     const hrs = Number(w.monthly_hours) || 0;
     if (w.hourly_rate) return sum + hrs * Number(w.hourly_rate);
@@ -304,10 +380,6 @@ export default function LabourPage() {
     </div>
   );
 
-  // ═══════════════════════════════════════════════════════════
-  //  RENDER
-  // ═══════════════════════════════════════════════════════════
-
   return (
     <div className="space-y-4 pb-16 w-full max-w-full overflow-x-hidden">
 
@@ -323,6 +395,36 @@ export default function LabourPage() {
           <UserPlus size={14} /> Add Worker
         </button>
       </div>
+
+      {/* ── Cert Expiry Alert Banner ────────────── */}
+      {alertCerts.length > 0 && (
+        <div className="rounded-xl border px-4 py-3 flex items-start gap-3"
+          style={{ backgroundColor: "rgba(239,68,68,0.04)", borderColor: "var(--ag-red, #EF4444)" }}>
+          <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" style={{ color: "var(--ag-red)" }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] font-bold" style={{ color: "var(--ag-red)" }}>
+              {alertCerts.length} Certification{alertCerts.length > 1 ? "s" : ""} Require{alertCerts.length === 1 ? "s" : ""} Attention
+            </p>
+            <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+              {alertCerts.slice(0, 5).map(c => {
+                const st = certStatus(c.expiry_date);
+                return (
+                  <span key={c.id} className="text-[11px] text-[var(--ag-text-secondary)]">
+                    <span className="font-semibold">{c.worker_name}</span>{" — "}{c.cert_type}{" "}
+                    <span className="font-semibold" style={{ color: st.color }}>({st.label}{c.expiry_date ? ` · ${fmtDate(c.expiry_date)}` : ""})</span>
+                  </span>
+                );
+              })}
+              {alertCerts.length > 5 && <span className="text-[11px] text-[var(--ag-text-dim)]">+{alertCerts.length - 5} more</span>}
+            </div>
+          </div>
+          <button onClick={() => { setTab("Certifications"); setCertFilter("expired"); }}
+            className="text-[10px] font-semibold px-3 py-1 rounded-lg flex-shrink-0 transition-colors"
+            style={{ backgroundColor: "var(--ag-red-dim, rgba(239,68,68,0.08))", color: "var(--ag-red)" }}>
+            View All
+          </button>
+        </div>
+      )}
 
       {/* ── KPI Ribbon ──────────────────────────── */}
       <div className="grid grid-cols-4 gap-3">
@@ -363,7 +465,6 @@ export default function LabourPage() {
       {/* ══ TAB: TEAM ROSTER ══════════════════════ */}
       {tab === "Team Roster" && (
         <div>
-          {/* Filters */}
           <div className="flex gap-2 mb-4">
             {[{ value: "all", label: "All" }, ...WORKER_TYPES].map(f => (
               <button key={f.value} onClick={() => setTypeFilter(f.value)}
@@ -376,11 +477,11 @@ export default function LabourPage() {
             ))}
           </div>
 
-          {/* Table */}
           <div className="rounded-2xl border border-[var(--ag-border)] overflow-hidden" style={{ backgroundColor: "var(--ag-bg-card)" }}>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--ag-border)]" style={{ backgroundColor: "var(--ag-bg-secondary)" }}>
+                  <th className="text-left py-3 pl-3 pr-0 font-mono text-[9px] text-[var(--ag-text-muted)] uppercase tracking-[1.5px] w-6"></th>
                   <th className="text-left py-3 px-4 font-mono text-[9px] text-[var(--ag-text-muted)] uppercase tracking-[1.5px]">Name</th>
                   <th className="text-left py-3 px-4 font-mono text-[9px] text-[var(--ag-text-muted)] uppercase tracking-[1.5px]">Role</th>
                   <th className="text-left py-3 px-4 font-mono text-[9px] text-[var(--ag-text-muted)] uppercase tracking-[1.5px]">Type</th>
@@ -393,66 +494,106 @@ export default function LabourPage() {
               </thead>
               <tbody>
                 {filteredWorkers.length === 0 && (
-                  <tr><td colSpan={8} className="py-12 text-center text-[var(--ag-text-muted)]">
+                  <tr><td colSpan={9} className="py-12 text-center text-[var(--ag-text-muted)]">
                     {workers.length === 0 ? "No workers yet — click Add Worker to get started." : "No workers match your filters."}
                   </td></tr>
                 )}
-                {filteredWorkers.map(w => (
-                  <tr key={w.id} className="border-b border-[var(--ag-border)] transition-colors hover:bg-[var(--ag-bg-hover)]">
-                    <td className="py-3 px-4">
-                      <p className="font-semibold text-[var(--ag-text-primary)]">{w.name}</p>
-                      {w.phone && <p className="text-[10px] text-[var(--ag-text-dim)] flex items-center gap-1 mt-0.5"><Phone size={8} /> {w.phone}</p>}
-                    </td>
-                    <td className="py-3 px-4 text-[var(--ag-text-secondary)]">{w.role}</td>
-                    <td className="py-3 px-4">
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                        style={{
-                          backgroundColor: w.worker_type === "full_time" ? "var(--ag-green-dim)" : w.worker_type === "seasonal" ? "rgba(56,189,248,0.08)" : w.worker_type === "contractor" ? "rgba(167,139,250,0.08)" : "rgba(251,191,36,0.08)",
-                          color: w.worker_type === "full_time" ? "var(--ag-green)" : w.worker_type === "seasonal" ? "var(--ag-blue, #38BDF8)" : w.worker_type === "contractor" ? "#A78BFA" : "var(--ag-yellow)",
-                        }}>
-                        {typeLabel(w.worker_type)}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                        style={{
-                          backgroundColor: w.status === "active" ? "var(--ag-green-dim)" : "var(--ag-red-dim, rgba(239,68,68,0.08))",
-                          color: w.status === "active" ? "var(--ag-green)" : "var(--ag-red)",
-                        }}>
-                        {w.status === "active" ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right text-[var(--ag-text-primary)] font-medium">
-                      {w.hourly_rate ? `${fmtMoney(w.hourly_rate)}/hr` : w.daily_rate ? `${fmtMoney(w.daily_rate)}/day` : "—"}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="font-semibold" style={{ color: Number(w.expired_certs) > 0 ? "var(--ag-red)" : "var(--ag-text-primary)" }}>
-                        {w.cert_count}
-                      </span>
-                      {Number(w.expired_certs) > 0 && <AlertTriangle size={10} className="inline ml-1" style={{ color: "var(--ag-red)" }} />}
-                    </td>
-                    <td className="py-3 px-4 text-right text-[var(--ag-text-primary)] font-medium">{Number(w.monthly_hours).toFixed(1)}</td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => { setEditWorker(w); setShowWorkerModal(true); }}
-                          className="p-1.5 rounded-lg hover:bg-[var(--ag-bg-active)] transition-colors">
-                          <Edit2 size={12} className="text-[var(--ag-text-muted)]" />
-                        </button>
-                        {deleteConfirm === w.id ? (
-                          <div className="flex items-center gap-1">
-                            <button onClick={() => deleteWorker(w.id)} className="text-[9px] font-bold px-2 py-1 rounded" style={{ backgroundColor: "var(--ag-red-dim, rgba(239,68,68,0.08))", color: "var(--ag-red)" }}>Yes</button>
-                            <button onClick={() => setDeleteConfirm(null)} className="text-[9px] font-bold px-2 py-1 rounded text-[var(--ag-text-muted)]">No</button>
+                {filteredWorkers.map(w => {
+                  const isExpanded = expandedRows.has(w.id);
+                  const hasExtra = w.emergency_contact || w.emergency_phone || w.notes || w.start_date;
+                  return (
+                    <tbody key={w.id}>
+                      <tr className="border-b border-[var(--ag-border)] transition-colors hover:bg-[var(--ag-bg-hover)]">
+                        <td className="py-3 pl-3 pr-0 w-6">
+                          {hasExtra ? (
+                            <button onClick={() => toggleRow(w.id)} className="p-0.5 rounded hover:bg-[var(--ag-bg-active)] transition-colors">
+                              <ChevronDown size={12} className="text-[var(--ag-text-dim)] transition-transform" style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }} />
+                            </button>
+                          ) : <div className="w-3" />}
+                        </td>
+                        <td className="py-3 px-4">
+                          <p className="font-semibold text-[var(--ag-text-primary)]">{w.name}</p>
+                          <div className="flex items-center gap-3 mt-0.5">
+                            {w.phone && <p className="text-[10px] text-[var(--ag-text-dim)] flex items-center gap-1"><Phone size={8} /> {w.phone}</p>}
+                            {w.email && <p className="text-[10px] text-[var(--ag-text-dim)] flex items-center gap-1"><Mail size={8} /> {w.email}</p>}
                           </div>
-                        ) : (
-                          <button onClick={() => setDeleteConfirm(w.id)}
-                            className="p-1.5 rounded-lg hover:bg-[var(--ag-bg-active)] transition-colors">
-                            <Trash2 size={12} className="text-[var(--ag-text-dim)]" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                        </td>
+                        <td className="py-3 px-4 text-[var(--ag-text-secondary)]">{w.role}</td>
+                        <td className="py-3 px-4">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{
+                              backgroundColor: w.worker_type === "full_time" ? "var(--ag-green-dim, rgba(74,124,89,0.08))" : w.worker_type === "seasonal" ? "rgba(56,189,248,0.08)" : w.worker_type === "contractor" ? "rgba(167,139,250,0.08)" : "rgba(251,191,36,0.08)",
+                              color: w.worker_type === "full_time" ? "var(--ag-green)" : w.worker_type === "seasonal" ? "var(--ag-blue, #38BDF8)" : w.worker_type === "contractor" ? "#A78BFA" : "var(--ag-yellow)",
+                            }}>
+                            {typeLabel(w.worker_type)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{
+                              backgroundColor: w.status === "active" ? "var(--ag-green-dim, rgba(74,124,89,0.08))" : "var(--ag-red-dim, rgba(239,68,68,0.08))",
+                              color: w.status === "active" ? "var(--ag-green)" : "var(--ag-red)",
+                            }}>
+                            {w.status === "active" ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right text-[var(--ag-text-primary)] font-medium">
+                          {w.hourly_rate ? `${fmtMoney(w.hourly_rate)}/hr` : w.daily_rate ? `${fmtMoney(w.daily_rate)}/day` : "—"}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="font-semibold" style={{ color: Number(w.expired_certs) > 0 ? "var(--ag-red)" : "var(--ag-text-primary)" }}>
+                            {w.cert_count}
+                          </span>
+                          {Number(w.expired_certs) > 0 && <AlertTriangle size={10} className="inline ml-1" style={{ color: "var(--ag-red)" }} />}
+                        </td>
+                        <td className="py-3 px-4 text-right text-[var(--ag-text-primary)] font-medium">{Number(w.monthly_hours).toFixed(1)}</td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button onClick={() => { setEditWorker(w); setShowWorkerModal(true); }}
+                              className="p-1.5 rounded-lg hover:bg-[var(--ag-bg-active)] transition-colors">
+                              <Edit2 size={12} className="text-[var(--ag-text-muted)]" />
+                            </button>
+                            {deleteConfirm === w.id ? (
+                              <div className="flex items-center gap-1">
+                                <button onClick={() => deleteWorker(w.id)} className="text-[9px] font-bold px-2 py-1 rounded" style={{ backgroundColor: "var(--ag-red-dim, rgba(239,68,68,0.08))", color: "var(--ag-red)" }}>Yes</button>
+                                <button onClick={() => setDeleteConfirm(null)} className="text-[9px] font-bold px-2 py-1 rounded text-[var(--ag-text-muted)]">No</button>
+                              </div>
+                            ) : (
+                              <button onClick={() => setDeleteConfirm(w.id)}
+                                className="p-1.5 rounded-lg hover:bg-[var(--ag-bg-active)] transition-colors">
+                                <Trash2 size={12} className="text-[var(--ag-text-dim)]" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                      {isExpanded && hasExtra && (
+                        <tr className="border-b border-[var(--ag-border)]" style={{ backgroundColor: "var(--ag-bg-secondary)" }}>
+                          <td colSpan={9} className="py-2.5 px-4">
+                            <div className="flex items-center gap-6 pl-7 flex-wrap">
+                              {(w.emergency_contact || w.emergency_phone) && (
+                                <>
+                                  <div className="flex items-center gap-2">
+                                    <Heart size={11} style={{ color: "var(--ag-red)" }} />
+                                    <span className="text-[10px] font-mono uppercase tracking-[1.5px] text-[var(--ag-text-muted)]">Emergency</span>
+                                  </div>
+                                  {w.emergency_contact && <span className="text-[12px] font-semibold text-[var(--ag-text-primary)]">{w.emergency_contact}</span>}
+                                  {w.emergency_phone && <span className="text-[12px] text-[var(--ag-text-secondary)] flex items-center gap-1"><Phone size={10} /> {w.emergency_phone}</span>}
+                                </>
+                              )}
+                              {w.start_date && (
+                                <span className="text-[11px] text-[var(--ag-text-dim)] flex items-center gap-1">
+                                  <Calendar size={10} /> Started {fmtDate(w.start_date)}
+                                </span>
+                              )}
+                              {w.notes && <span className="text-[11px] text-[var(--ag-text-dim)] italic">{w.notes}</span>}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -512,10 +653,7 @@ export default function LabourPage() {
                       <td className="py-3 px-4 text-[var(--ag-text-secondary)]">{fmtDate(c.issued_date)}</td>
                       <td className="py-3 px-4 text-[var(--ag-text-secondary)]">{fmtDate(c.expiry_date)}</td>
                       <td className="py-3 px-4 text-center">
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: st.bg, color: st.color }}>
-                          {st.label}
-                        </span>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: st.bg, color: st.color }}>{st.label}</span>
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -548,30 +686,40 @@ export default function LabourPage() {
       {/* ══ TAB: TIME & COST ══════════════════════ */}
       {tab === "Time & Cost" && (
         <div>
-          {/* View toggle + nav */}
           <div className="flex items-center justify-between mb-4">
-            <div className="flex gap-2">
-              {(["weekly", "monthly"] as const).map(v => (
-                <button key={v} onClick={() => setTimeView(v)}
-                  className="text-[11px] font-semibold px-3 py-1.5 rounded-full transition-all capitalize"
-                  style={timeView === v
-                    ? { backgroundColor: "var(--ag-accent)", color: "var(--ag-bg-base)" }
-                    : { backgroundColor: "transparent", color: "var(--ag-text-muted)", border: "1px solid var(--ag-border)" }}>
-                  {v}
-                </button>
-              ))}
+            <div className="flex items-center gap-3">
+              <div className="flex gap-2">
+                {(["weekly", "monthly"] as const).map(v => (
+                  <button key={v} onClick={() => setTimeView(v)}
+                    className="text-[11px] font-semibold px-3 py-1.5 rounded-full transition-all capitalize"
+                    style={timeView === v
+                      ? { backgroundColor: "var(--ag-accent)", color: "var(--ag-bg-base)" }
+                      : { backgroundColor: "transparent", color: "var(--ag-text-muted)", border: "1px solid var(--ag-border)" }}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+              {timeView === "weekly" && timeWorkers.length > 0 && (
+                <div className="flex items-center gap-2 ml-2 pl-2 border-l border-[var(--ag-border)]">
+                  <button onClick={copyPreviousWeek}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold rounded-lg border border-[var(--ag-border)] text-[var(--ag-text-muted)] hover:text-[var(--ag-text-primary)] hover:border-[var(--ag-accent)] transition-colors"
+                    title="Copy hours from previous week">
+                    <Copy size={10} /> Copy Prev Week
+                  </button>
+                </div>
+              )}
             </div>
 
             {timeView === "weekly" ? (
               <div className="flex items-center gap-3">
-                <button onClick={() => { const nw = addDays(weekOf, -7); setWeekOf(nw); fetchTimeEntries(nw); }}
+                <button onClick={() => setWeekOf(addDays(weekOf, -7))}
                   className="p-1.5 rounded-lg border border-[var(--ag-border)] hover:bg-[var(--ag-bg-active)] transition-colors">
                   <ChevronLeft size={14} className="text-[var(--ag-text-muted)]" />
                 </button>
                 <p className="text-[12px] font-semibold text-[var(--ag-text-primary)]">
                   Week of {fmtDate(weekOf.toISOString().slice(0, 10))}
                 </p>
-                <button onClick={() => { const nw = addDays(weekOf, 7); setWeekOf(nw); fetchTimeEntries(nw); }}
+                <button onClick={() => setWeekOf(addDays(weekOf, 7))}
                   className="p-1.5 rounded-lg border border-[var(--ag-border)] hover:bg-[var(--ag-bg-active)] transition-colors">
                   <ChevronRight size={14} className="text-[var(--ag-text-muted)]" />
                 </button>
@@ -580,8 +728,7 @@ export default function LabourPage() {
               <div className="flex items-center gap-3">
                 <button onClick={() => {
                   const [y, m] = monthOf.split("-").map(Number);
-                  const prev = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`;
-                  setMonthOf(prev);
+                  setMonthOf(m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`);
                 }}
                   className="p-1.5 rounded-lg border border-[var(--ag-border)] hover:bg-[var(--ag-bg-active)] transition-colors">
                   <ChevronLeft size={14} className="text-[var(--ag-text-muted)]" />
@@ -591,8 +738,7 @@ export default function LabourPage() {
                 </p>
                 <button onClick={() => {
                   const [y, m] = monthOf.split("-").map(Number);
-                  const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
-                  setMonthOf(next);
+                  setMonthOf(m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`);
                 }}
                   className="p-1.5 rounded-lg border border-[var(--ag-border)] hover:bg-[var(--ag-bg-active)] transition-colors">
                   <ChevronRight size={14} className="text-[var(--ag-text-muted)]" />
@@ -601,65 +747,100 @@ export default function LabourPage() {
             )}
           </div>
 
-          {/* Weekly Grid */}
           {timeView === "weekly" && (
             <div className="rounded-2xl border border-[var(--ag-border)] overflow-hidden" style={{ backgroundColor: "var(--ag-bg-card)" }}>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[var(--ag-border)]" style={{ backgroundColor: "var(--ag-bg-secondary)" }}>
-                    <th className="text-left py-3 px-4 font-mono text-[9px] text-[var(--ag-text-muted)] uppercase tracking-[1.5px] w-40">Worker</th>
-                    {DAY_LABELS.map((d, i) => {
-                      const dayDate = addDays(weekOf, i);
-                      const isToday = dayDate.toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10);
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[900px]">
+                  <thead>
+                    <tr className="border-b border-[var(--ag-border)]" style={{ backgroundColor: "var(--ag-bg-secondary)" }}>
+                      <th className="text-left py-3 px-4 font-mono text-[9px] text-[var(--ag-text-muted)] uppercase tracking-[1.5px] w-44">Worker</th>
+                      {DAY_LABELS.map((d, i) => {
+                        const dayDate = addDays(weekOf, i);
+                        const isToday = dayDate.toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10);
+                        return (
+                          <th key={d} className="text-center py-3 px-2 font-mono text-[9px] uppercase tracking-[1.5px] w-[72px]"
+                            style={{ color: isToday ? "var(--ag-accent)" : "var(--ag-text-muted)" }}>
+                            {d}<br /><span className="text-[8px] font-normal">{dayDate.getDate()}</span>
+                          </th>
+                        );
+                      })}
+                      <th className="text-center py-3 px-2 font-mono text-[9px] text-[var(--ag-text-muted)] uppercase tracking-[1.5px] w-20">Quick</th>
+                      <th className="text-right py-3 px-4 font-mono text-[9px] text-[var(--ag-text-muted)] uppercase tracking-[1.5px] w-16">Total</th>
+                      <th className="text-right py-3 px-4 font-mono text-[9px] text-[var(--ag-text-muted)] uppercase tracking-[1.5px] w-24">Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {timeWorkers.length === 0 && (
+                      <tr><td colSpan={11} className="py-12 text-center text-[var(--ag-text-muted)]">No active workers. Add workers first.</td></tr>
+                    )}
+                    {timeWorkers.map(w => {
+                      const weekTotal = Object.values(timeGrid[w.id] || {}).reduce((s, h) => s + h, 0);
+                      const cost = w.hourly_rate ? weekTotal * Number(w.hourly_rate) : 0;
                       return (
-                        <th key={d} className="text-center py-3 px-2 font-mono text-[9px] uppercase tracking-[1.5px] w-20"
-                          style={{ color: isToday ? "var(--ag-accent)" : "var(--ag-text-muted)" }}>
-                          {d}<br /><span className="text-[8px] font-normal">{dayDate.getDate()}</span>
-                        </th>
+                        <tr key={w.id} className="border-b border-[var(--ag-border)]">
+                          <td className="py-2 px-4">
+                            <p className="font-semibold text-[var(--ag-text-primary)] text-[12px]">{w.name}</p>
+                            <p className="text-[9px] text-[var(--ag-text-dim)]">{w.role}</p>
+                          </td>
+                          {DAY_LABELS.map((_, i) => {
+                            const dayStr = addDays(weekOf, i).toISOString().slice(0, 10);
+                            return (
+                              <td key={i} className="py-2 px-1 text-center">
+                                <input type="number" min="0" max="24" step="0.5"
+                                  value={timeGrid[w.id]?.[dayStr] || ""}
+                                  onChange={e => {
+                                    const val = parseFloat(e.target.value) || 0;
+                                    setTimeGrid(prev => ({
+                                      ...prev,
+                                      [w.id]: { ...prev[w.id], [dayStr]: val }
+                                    }));
+                                  }}
+                                  className="w-14 text-center bg-[var(--ag-bg-primary)] border border-[var(--ag-border)] rounded-lg py-1.5 text-[12px] text-[var(--ag-text-primary)] focus:outline-none focus:border-[var(--ag-accent)]/50"
+                                  placeholder="0" />
+                              </td>
+                            );
+                          })}
+                          <td className="py-2 px-1 text-center">
+                            <div className="flex items-center justify-center gap-0.5">
+                              <button onClick={() => fillFullDay(w.id, 8)}
+                                className="px-1.5 py-1 text-[8px] font-bold rounded border border-[var(--ag-border)] text-[var(--ag-text-muted)] hover:text-[var(--ag-accent)] hover:border-[var(--ag-accent)] transition-colors"
+                                title="Fill Mon-Fri with 8hrs">8h</button>
+                              <button onClick={() => fillFullDay(w.id, 10)}
+                                className="px-1.5 py-1 text-[8px] font-bold rounded border border-[var(--ag-border)] text-[var(--ag-text-muted)] hover:text-[var(--ag-accent)] hover:border-[var(--ag-accent)] transition-colors"
+                                title="Fill Mon-Fri with 10hrs">10h</button>
+                              <button onClick={() => clearWorkerWeek(w.id)}
+                                className="px-1.5 py-1 text-[8px] font-bold rounded border border-[var(--ag-border)] text-[var(--ag-text-dim)] hover:text-[var(--ag-red)] hover:border-[var(--ag-red)] transition-colors"
+                                title="Clear week"><X size={8} /></button>
+                            </div>
+                          </td>
+                          <td className="py-2 px-4 text-right font-semibold text-[var(--ag-text-primary)]">{weekTotal.toFixed(1)}</td>
+                          <td className="py-2 px-4 text-right font-semibold" style={{ color: "var(--ag-accent)" }}>{fmtMoney(cost)}</td>
+                        </tr>
                       );
                     })}
-                    <th className="text-right py-3 px-4 font-mono text-[9px] text-[var(--ag-text-muted)] uppercase tracking-[1.5px] w-20">Total</th>
-                    <th className="text-right py-3 px-4 font-mono text-[9px] text-[var(--ag-text-muted)] uppercase tracking-[1.5px] w-24">Cost</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {timeWorkers.length === 0 && (
-                    <tr><td colSpan={10} className="py-12 text-center text-[var(--ag-text-muted)]">No active workers. Add workers first.</td></tr>
-                  )}
-                  {timeWorkers.map(w => {
-                    const weekTotal = Object.values(timeGrid[w.id] || {}).reduce((s, h) => s + h, 0);
-                    const cost = w.hourly_rate ? weekTotal * Number(w.hourly_rate) : 0;
-                    return (
-                      <tr key={w.id} className="border-b border-[var(--ag-border)]">
-                        <td className="py-2 px-4">
-                          <p className="font-semibold text-[var(--ag-text-primary)] text-[12px]">{w.name}</p>
-                          <p className="text-[9px] text-[var(--ag-text-dim)]">{w.role}</p>
-                        </td>
+                    {timeWorkers.length > 0 && (
+                      <tr style={{ backgroundColor: "var(--ag-bg-secondary)" }}>
+                        <td className="py-2.5 px-4 font-bold text-[11px] text-[var(--ag-text-primary)]">Week Total</td>
                         {DAY_LABELS.map((_, i) => {
                           const dayStr = addDays(weekOf, i).toISOString().slice(0, 10);
-                          return (
-                            <td key={i} className="py-2 px-1 text-center">
-                              <input type="number" min="0" max="24" step="0.5"
-                                value={timeGrid[w.id]?.[dayStr] || ""}
-                                onChange={e => {
-                                  const val = parseFloat(e.target.value) || 0;
-                                  setTimeGrid(prev => ({
-                                    ...prev,
-                                    [w.id]: { ...prev[w.id], [dayStr]: val }
-                                  }));
-                                }}
-                                className="w-14 text-center bg-[var(--ag-bg-primary)] border border-[var(--ag-border)] rounded-lg py-1.5 text-[12px] text-[var(--ag-text-primary)] focus:outline-none focus:border-[var(--ag-accent)]/50"
-                                placeholder="0" />
-                            </td>
-                          );
+                          const dayTotal = timeWorkers.reduce((s, w) => s + (timeGrid[w.id]?.[dayStr] || 0), 0);
+                          return <td key={i} className="py-2.5 px-2 text-center text-[11px] font-semibold text-[var(--ag-text-primary)]">{dayTotal > 0 ? dayTotal.toFixed(1) : ""}</td>;
                         })}
-                        <td className="py-2 px-4 text-right font-semibold text-[var(--ag-text-primary)]">{weekTotal.toFixed(1)}</td>
-                        <td className="py-2 px-4 text-right font-semibold" style={{ color: "var(--ag-accent)" }}>{fmtMoney(cost)}</td>
+                        <td className="py-2.5 px-1"></td>
+                        <td className="py-2.5 px-4 text-right text-[11px] font-bold text-[var(--ag-text-primary)]">
+                          {timeWorkers.reduce((s, w) => s + Object.values(timeGrid[w.id] || {}).reduce((a, b) => a + b, 0), 0).toFixed(1)}
+                        </td>
+                        <td className="py-2.5 px-4 text-right text-[11px] font-bold" style={{ color: "var(--ag-accent)" }}>
+                          {fmtMoney(timeWorkers.reduce((s, w) => {
+                            const hrs = Object.values(timeGrid[w.id] || {}).reduce((a, b) => a + b, 0);
+                            return s + (w.hourly_rate ? hrs * Number(w.hourly_rate) : 0);
+                          }, 0))}
+                        </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    )}
+                  </tbody>
+                </table>
+              </div>
               {timeWorkers.length > 0 && (
                 <div className="flex justify-end p-4 border-t border-[var(--ag-border)]">
                   <button onClick={saveTimeGrid} disabled={timeSaving}
@@ -673,7 +854,6 @@ export default function LabourPage() {
             </div>
           )}
 
-          {/* Monthly Summary */}
           {timeView === "monthly" && (
             <div className="rounded-2xl border border-[var(--ag-border)] overflow-hidden" style={{ backgroundColor: "var(--ag-bg-card)" }}>
               <table className="w-full text-sm">
@@ -730,89 +910,41 @@ export default function LabourPage() {
               <h2 className="text-lg font-bold text-[var(--ag-text-primary)]">{editWorker ? "Edit Worker" : "Add Worker"}</h2>
               <button onClick={() => { setShowWorkerModal(false); setEditWorker(null); }} className="p-1.5 rounded-lg hover:bg-[var(--ag-bg-active)]"><X size={16} className="text-[var(--ag-text-muted)]" /></button>
             </div>
-
             <form onSubmit={saveWorker} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Name *</label>
-                  <input name="name" defaultValue={editWorker?.name || ""} required className={inputClass} placeholder="Full name" />
-                </div>
-                <div>
-                  <label className={labelClass}>Role</label>
-                  <input name="role" defaultValue={editWorker?.role || ""} className={inputClass} placeholder="e.g. Equipment Operator" />
-                </div>
+                <div><label className={labelClass}>Name *</label><input name="name" defaultValue={editWorker?.name || ""} required className={inputClass} placeholder="Full name" /></div>
+                <div><label className={labelClass}>Role</label><input name="role" defaultValue={editWorker?.role || ""} className={inputClass} placeholder="e.g. Equipment Operator" /></div>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Type</label>
-                  <select name="worker_type" defaultValue={editWorker?.worker_type || "full_time"} className={`${selectClass} w-full`}>
-                    {WORKER_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Status</label>
-                  <select name="status" defaultValue={editWorker?.status || "active"} className={`${selectClass} w-full`}>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </div>
+                <div><label className={labelClass}>Type</label><select name="worker_type" defaultValue={editWorker?.worker_type || "full_time"} className={`${selectClass} w-full`}>{WORKER_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select></div>
+                <div><label className={labelClass}>Status</label><select name="status" defaultValue={editWorker?.status || "active"} className={`${selectClass} w-full`}><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Phone</label>
-                  <input name="phone" defaultValue={editWorker?.phone || ""} className={inputClass} placeholder="306-555-0123" />
+                <div><label className={labelClass}>Phone</label><input name="phone" defaultValue={editWorker?.phone || ""} className={inputClass} placeholder="306-555-0123" /></div>
+                <div><label className={labelClass}>Email</label><input name="email" type="email" defaultValue={editWorker?.email || ""} className={inputClass} placeholder="name@example.com" /></div>
+              </div>
+              <div className="pt-2 border-t border-[var(--ag-border)]">
+                <div className="flex items-center gap-2 mb-3">
+                  <Heart size={12} style={{ color: "var(--ag-red)" }} />
+                  <span className="text-[10px] font-mono uppercase tracking-[2px] font-semibold text-[var(--ag-text-muted)]">Emergency Contact</span>
                 </div>
-                <div>
-                  <label className={labelClass}>Email</label>
-                  <input name="email" type="email" defaultValue={editWorker?.email || ""} className={inputClass} placeholder="name@example.com" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className={labelClass}>Contact Name</label><input name="emergency_contact" defaultValue={editWorker?.emergency_contact || ""} className={inputClass} placeholder="Emergency contact name" /></div>
+                  <div><label className={labelClass}>Contact Phone</label><input name="emergency_phone" defaultValue={editWorker?.emergency_phone || ""} className={inputClass} placeholder="306-555-0456" /></div>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Emergency Contact</label>
-                  <input name="emergency_contact" defaultValue={editWorker?.emergency_contact || ""} className={inputClass} placeholder="Contact name" />
-                </div>
-                <div>
-                  <label className={labelClass}>Emergency Phone</label>
-                  <input name="emergency_phone" defaultValue={editWorker?.emergency_phone || ""} className={inputClass} placeholder="306-555-0456" />
-                </div>
+                <div><label className={labelClass}>Hourly Rate ($)</label><input name="hourly_rate" type="number" step="0.01" defaultValue={editWorker?.hourly_rate || ""} className={inputClass} placeholder="25.00" /></div>
+                <div><label className={labelClass}>Daily Rate ($)</label><input name="daily_rate" type="number" step="0.01" defaultValue={editWorker?.daily_rate || ""} className={inputClass} placeholder="300.00" /></div>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Hourly Rate ($)</label>
-                  <input name="hourly_rate" type="number" step="0.01" defaultValue={editWorker?.hourly_rate || ""} className={inputClass} placeholder="25.00" />
-                </div>
-                <div>
-                  <label className={labelClass}>Daily Rate ($)</label>
-                  <input name="daily_rate" type="number" step="0.01" defaultValue={editWorker?.daily_rate || ""} className={inputClass} placeholder="300.00" />
-                </div>
+                <div><label className={labelClass}>Start Date</label><input name="start_date" type="date" defaultValue={editWorker?.start_date?.slice(0, 10) || ""} className={inputClass} /></div>
+                <div><label className={labelClass}>End Date</label><input name="end_date" type="date" defaultValue={editWorker?.end_date?.slice(0, 10) || ""} className={inputClass} /></div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Start Date</label>
-                  <input name="start_date" type="date" defaultValue={editWorker?.start_date?.slice(0, 10) || ""} className={inputClass} />
-                </div>
-                <div>
-                  <label className={labelClass}>End Date</label>
-                  <input name="end_date" type="date" defaultValue={editWorker?.end_date?.slice(0, 10) || ""} className={inputClass} />
-                </div>
-              </div>
-
-              <div>
-                <label className={labelClass}>Notes</label>
-                <textarea name="notes" defaultValue={editWorker?.notes || ""} rows={2} className={inputClass} placeholder="Any additional notes..." />
-              </div>
-
+              <div><label className={labelClass}>Notes</label><textarea name="notes" defaultValue={editWorker?.notes || ""} rows={2} className={inputClass} placeholder="Any additional notes..." /></div>
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => { setShowWorkerModal(false); setEditWorker(null); }}
-                  className="px-4 py-2 text-sm font-medium rounded-xl border border-[var(--ag-border)] text-[var(--ag-text-muted)] hover:text-[var(--ag-text-primary)] transition-colors">
-                  Cancel
-                </button>
+                  className="px-4 py-2 text-sm font-medium rounded-xl border border-[var(--ag-border)] text-[var(--ag-text-muted)] hover:text-[var(--ag-text-primary)] transition-colors">Cancel</button>
                 <button type="submit" disabled={saving}
                   className="flex items-center gap-2 px-5 py-2 text-sm font-semibold rounded-xl transition-all"
                   style={{ backgroundColor: "var(--ag-accent)", color: "var(--ag-bg-base)", opacity: saving ? 0.6 : 1 }}>
@@ -834,18 +966,14 @@ export default function LabourPage() {
               <h2 className="text-lg font-bold text-[var(--ag-text-primary)]">{editCert ? "Edit Certification" : "Add Certification"}</h2>
               <button onClick={() => { setShowCertModal(false); setEditCert(null); }} className="p-1.5 rounded-lg hover:bg-[var(--ag-bg-active)]"><X size={16} className="text-[var(--ag-text-muted)]" /></button>
             </div>
-
             <form onSubmit={saveCert} className="space-y-4">
               <div>
                 <label className={labelClass}>Worker *</label>
                 <select name="worker_id" defaultValue={editCert?.worker_id || ""} required className={`${selectClass} w-full`}>
                   <option value="">Select a worker...</option>
-                  {workers.filter(w => w.status === "active").map(w => (
-                    <option key={w.id} value={w.id}>{w.name} — {w.role}</option>
-                  ))}
+                  {workers.filter(w => w.status === "active").map(w => <option key={w.id} value={w.id}>{w.name} — {w.role}</option>)}
                 </select>
               </div>
-
               <div>
                 <label className={labelClass}>Certification Type *</label>
                 <select name="cert_type" defaultValue={editCert?.cert_type || ""} required className={`${selectClass} w-full`}>
@@ -853,33 +981,15 @@ export default function LabourPage() {
                   {CERT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-
-              <div>
-                <label className={labelClass}>Certificate Number</label>
-                <input name="cert_number" defaultValue={editCert?.cert_number || ""} className={inputClass} placeholder="License or certificate #" />
-              </div>
-
+              <div><label className={labelClass}>Certificate Number</label><input name="cert_number" defaultValue={editCert?.cert_number || ""} className={inputClass} placeholder="License or certificate #" /></div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Issued Date</label>
-                  <input name="issued_date" type="date" defaultValue={editCert?.issued_date?.slice(0, 10) || ""} className={inputClass} />
-                </div>
-                <div>
-                  <label className={labelClass}>Expiry Date</label>
-                  <input name="expiry_date" type="date" defaultValue={editCert?.expiry_date?.slice(0, 10) || ""} className={inputClass} />
-                </div>
+                <div><label className={labelClass}>Issued Date</label><input name="issued_date" type="date" defaultValue={editCert?.issued_date?.slice(0, 10) || ""} className={inputClass} /></div>
+                <div><label className={labelClass}>Expiry Date</label><input name="expiry_date" type="date" defaultValue={editCert?.expiry_date?.slice(0, 10) || ""} className={inputClass} /></div>
               </div>
-
-              <div>
-                <label className={labelClass}>Notes</label>
-                <textarea name="notes" defaultValue={editCert?.notes || ""} rows={2} className={inputClass} placeholder="Any notes..." />
-              </div>
-
+              <div><label className={labelClass}>Notes</label><textarea name="notes" defaultValue={editCert?.notes || ""} rows={2} className={inputClass} placeholder="Any notes..." /></div>
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => { setShowCertModal(false); setEditCert(null); }}
-                  className="px-4 py-2 text-sm font-medium rounded-xl border border-[var(--ag-border)] text-[var(--ag-text-muted)] hover:text-[var(--ag-text-primary)] transition-colors">
-                  Cancel
-                </button>
+                  className="px-4 py-2 text-sm font-medium rounded-xl border border-[var(--ag-border)] text-[var(--ag-text-muted)] hover:text-[var(--ag-text-primary)] transition-colors">Cancel</button>
                 <button type="submit" disabled={saving}
                   className="flex items-center gap-2 px-5 py-2 text-sm font-semibold rounded-xl transition-all"
                   style={{ backgroundColor: "var(--ag-accent)", color: "var(--ag-bg-base)", opacity: saving ? 0.6 : 1 }}>
