@@ -317,7 +317,7 @@ export default function ImportModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-ag">
           <div className="flex items-center gap-3">
-            <Upload className="w-5 h-5 text-[#22C55E]" />
+            <Upload className="w-5 h-5 text-[var(--ag-green)]" />
             <h2 className="text-lg font-semibold text-ag-primary">
               Import {config.label}
             </h2>
@@ -330,15 +330,15 @@ export default function ImportModal({
                 const thisIdx = i;
                 return (
                   <React.Fragment key={s}>
-                    {i > 0 && <div className="w-6 h-px bg-[#1E293B]" />}
+                    {i > 0 && <div className="w-6 h-px bg-[var(--ag-border-solid)]" />}
                     <div
                       className={
                         "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium " +
                         (thisIdx === currentIdx
-                          ? "bg-[#22C55E] text-[#0B1120]"
+                          ? "bg-[var(--ag-accent)] text-[var(--ag-accent-text)]"
                           : thisIdx < currentIdx
-                          ? "bg-[#22C55E]/20 text-[#22C55E]"
-                          : "bg-[#1E293B] text-ag-muted")
+                          ? "bg-[var(--ag-accent)]/20 text-[var(--ag-green)]"
+                          : "bg-[var(--ag-border-solid)] text-ag-muted")
                       }
                     >
                       {i + 1}
@@ -350,7 +350,7 @@ export default function ImportModal({
           </div>
           <button
             onClick={handleClose}
-            className="p-1.5 rounded-md hover:bg-[#1E293B] text-ag-secondary hover:text-ag-primary transition-colors"
+            className="p-1.5 rounded-md hover:bg-[var(--ag-bg-active)] text-ag-secondary hover:text-ag-primary transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -360,9 +360,9 @@ export default function ImportModal({
         <div className="flex-1 overflow-y-auto p-6">
           {/* Error banner */}
           {error && (
-            <div className="flex items-start gap-3 p-3 mb-4 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/20">
-              <AlertCircle className="w-4 h-4 text-[#EF4444] mt-0.5 shrink-0" />
-              <p className="text-sm text-[#EF4444]">{error}</p>
+            <div className="flex items-start gap-3 p-3 mb-4 rounded-lg bg-[var(--ag-red)]/10 border border-[var(--ag-red)]/20">
+              <AlertCircle className="w-4 h-4 text-[var(--ag-red)] mt-0.5 shrink-0" />
+              <p className="text-sm text-[var(--ag-red)]">{error}</p>
             </div>
           )}
 
@@ -394,8 +394,8 @@ export default function ImportModal({
           {/* Step 3: Done */}
           {step === "done" && importResult && (
             <div className="max-w-md mx-auto text-center space-y-4 py-8">
-              <div className="mx-auto w-16 h-16 rounded-full bg-[#22C55E]/10 flex items-center justify-center">
-                <CheckCircle2 className="w-8 h-8 text-[#22C55E]" />
+              <div className="mx-auto w-16 h-16 rounded-full bg-[var(--ag-green-dim)] flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-[var(--ag-green)]" />
               </div>
               <h3 className="text-lg font-semibold text-ag-primary">
                 Import Complete
@@ -403,7 +403,7 @@ export default function ImportModal({
               <p className="text-sm text-ag-secondary">{importResult.message}</p>
               <a
                 href={config.successLink}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#22C55E]/10 text-[#22C55E] text-sm font-medium hover:bg-[#22C55E]/20 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--ag-green-dim)] text-[var(--ag-green)] text-sm font-medium hover:bg-[var(--ag-accent)]/20 transition-colors"
               >
                 {config.successLabel}
                 <ExternalLink className="w-4 h-4" />
@@ -441,14 +441,14 @@ export default function ImportModal({
                 <button
                   onClick={handleImport}
                   disabled={importableCount === 0}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#22C55E] text-[#0B1120] text-sm font-semibold hover:bg-[#16A34A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--ag-accent)] text-[var(--ag-accent-text)] text-sm font-semibold hover:bg-[var(--ag-accent-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Import {importableCount} Rows
                   <ArrowRight className="w-4 h-4" />
                 </button>
               )}
               {step === "importing" && (
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#22C55E]/20 text-[#22C55E] text-sm font-semibold">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--ag-accent)]/20 text-[var(--ag-green)] text-sm font-semibold">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Importing...
                 </div>
@@ -461,7 +461,7 @@ export default function ImportModal({
           <div className="flex items-center justify-end px-6 py-4 border-t border-ag">
             <button
               onClick={handleClose}
-              className="px-4 py-2 rounded-lg bg-[#1E293B] text-ag-primary text-sm font-medium hover:bg-[#334155] transition-colors"
+              className="px-4 py-2 rounded-lg bg-[var(--ag-border-solid)] text-ag-primary text-sm font-medium hover:bg-[var(--ag-bg-active)] transition-colors"
             >
               Close
             </button>

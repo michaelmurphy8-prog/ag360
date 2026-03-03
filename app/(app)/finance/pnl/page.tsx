@@ -15,27 +15,27 @@ import {
 
 // ─── Design Tokens ───────────────────────────────────────────
 const T = {
-  bg: "#080C15",
-  card: "#0F1729",
-  cardAlt: "#111827",
+  bg: "var(--ag-bg-base)",
+  card: "var(--ag-bg-card)",
+  cardAlt: "var(--ag-bg-card)",
   border: "rgba(255,255,255,0.06)",
   borderHover: "rgba(255,255,255,0.12)",
-  text1: "#F1F5F9",
-  text2: "#94A3B8",
-  text3: "#64748B",
-  text4: "#475569",
-  green: "#34D399",
+  text1: "var(--ag-text-primary)",
+  text2: "var(--ag-text-secondary)",
+  text3: "var(--ag-text-muted)",
+  text4: "var(--ag-text-dim)",
+  green: "var(--ag-green)",
   greenDim: "rgba(52,211,153,0.12)",
-  red: "#F87171",
+  red: "var(--ag-red)",
   redDim: "rgba(248,113,113,0.12)",
-  amber: "#FBBF24",
+  amber: "var(--ag-yellow)",
   amberDim: "rgba(251,191,36,0.12)",
-  sky: "#38BDF8",
+  sky: "var(--ag-blue)",
   skyDim: "rgba(56,189,248,0.12)",
   purple: "#A78BFA",
   purpleDim: "rgba(167,139,250,0.12)",
   gridLine: "rgba(255,255,255,0.04)",
-  tooltipBg: "#1E293B",
+  tooltipBg: "var(--ag-border-solid)",
   tooltipBorder: "rgba(255,255,255,0.10)",
 };
 
@@ -49,13 +49,13 @@ const CROP_PALETTE: Record<string, string> = {
 };
 
 const EXPENSE_PALETTE = [
-  "#F87171", "#FB923C", "#FBBF24", "#A78BFA", "#38BDF8",
-  "#34D399", "#F472B6", "#818CF8", "#94A3B8", "#6EE7B7",
+  "var(--ag-red)", "#FB923C", "var(--ag-yellow)", "#A78BFA", "var(--ag-blue)",
+  "var(--ag-green)", "#F472B6", "#818CF8", "var(--ag-text-secondary)", "var(--ag-green)",
 ];
 
 // ─── Shared Styles ───────────────────────────────────────────
 const selectClass =
-  `bg-[${T.cardAlt}] border border-white/[0.10] rounded-lg px-3 py-1.5 text-sm text-[${T.text1}] focus:outline-none focus:border-[${T.green}]/50 transition-colors`;
+  `bg-[${T.cardAlt}] border border-[var(--ag-border-solid)] rounded-lg px-3 py-1.5 text-sm text-[${T.text1}] focus:outline-none focus:border-[${T.green}]/50 transition-colors`;
 
 // ─── Interfaces ──────────────────────────────────────────────
 interface PnLLine {
@@ -131,7 +131,7 @@ function KpiCard({
       ? `border-[${T.green}]/20`
       : variant === "negative"
       ? "border-red-500/20"
-      : "border-white/[0.06]";
+      : "border-[var(--ag-border)]";
 
   const valueColor =
     variant === "positive" ? T.green : variant === "negative" ? T.red : T.text1;
@@ -147,7 +147,7 @@ function KpiCard({
     : T.text3;
 
   return (
-    <div className={`bg-[#0F1729] ${borderClass} border rounded-xl p-5 hover:border-white/[0.12] transition-all duration-300`}>
+    <div className={`bg-[var(--ag-bg-card)] ${borderClass} border rounded-xl p-5 hover:border-white/[0.12] transition-all duration-300`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2.5">
           <div
@@ -193,7 +193,7 @@ function WaterfallChart({ revenue, expenses, netIncome }: {
   const maxVal = Math.max(revenue, expenses, Math.abs(netIncome)) * 1.15;
 
   return (
-    <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-6 hover:border-white/[0.10] transition-colors">
+    <div className="bg-[var(--ag-bg-card)] border border-[var(--ag-border)] rounded-xl p-6 hover:border-[var(--ag-border-solid)] transition-colors">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h3 className="text-sm font-bold text-ag-primary">Income Waterfall</h3>
@@ -266,7 +266,7 @@ function RevenueByCropChart({ revenueLines }: { revenueLines: PnLLine[] }) {
   if (data.length === 0) return null;
 
   return (
-    <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-6 hover:border-white/[0.10] transition-colors">
+    <div className="bg-[var(--ag-bg-card)] border border-[var(--ag-border)] rounded-xl p-6 hover:border-[var(--ag-border-solid)] transition-colors">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h3 className="text-sm font-bold text-ag-primary">Revenue by Crop</h3>
@@ -353,7 +353,7 @@ function ExpenseBreakdownChart({
   if (data.length === 0) return null;
 
   return (
-    <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-6 hover:border-white/[0.10] transition-colors">
+    <div className="bg-[var(--ag-bg-card)] border border-[var(--ag-border)] rounded-xl p-6 hover:border-[var(--ag-border-solid)] transition-colors">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h3 className="text-sm font-bold text-ag-primary">Expense Breakdown</h3>
@@ -365,7 +365,7 @@ function ExpenseBreakdownChart({
       </div>
 
       {/* Horizontal stacked bar (proportion bar) */}
-      <div className="flex h-3 rounded-full overflow-hidden mb-5 bg-white/[0.04]">
+      <div className="flex h-3 rounded-full overflow-hidden mb-5 bg-[var(--ag-bg-hover)]">
         {data.map((d) => {
           const widthPct = totalExpenses > 0 ? (d.value / totalExpenses) * 100 : 0;
           return (
@@ -415,7 +415,7 @@ function ExpenseBreakdownChart({
 
               {/* Expanded line items */}
               {isExpanded && (
-                <div className="ml-9 pl-3 border-l border-white/[0.06] pb-2 space-y-1">
+                <div className="ml-9 pl-3 border-l border-[var(--ag-border)] pb-2 space-y-1">
                   {d.lines.map((line, i) => (
                     <div key={i} className="flex items-center justify-between py-1.5 text-xs">
                       <span style={{ color: T.text2 }}>
@@ -471,7 +471,7 @@ function RevenueExpenseDonut({ revenue, expenses }: { revenue: number; expenses:
   };
 
   return (
-    <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-6 hover:border-white/[0.10] transition-colors">
+    <div className="bg-[var(--ag-bg-card)] border border-[var(--ag-border)] rounded-xl p-6 hover:border-[var(--ag-border-solid)] transition-colors">
       <h3 className="text-sm font-bold text-ag-primary mb-1">Revenue vs Expenses</h3>
       <p className="text-xs text-ag-dim mb-4">Hover for details</p>
       <ResponsiveContainer width="100%" height={200}>
@@ -511,9 +511,9 @@ function PnLStatement({
     `$${Math.abs(n).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
-    <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl overflow-hidden hover:border-white/[0.10] transition-colors">
+    <div className="bg-[var(--ag-bg-card)] border border-[var(--ag-border)] rounded-xl overflow-hidden hover:border-[var(--ag-border-solid)] transition-colors">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-white/[0.06] bg-white/[0.01]">
+      <div className="px-5 py-4 border-b border-[var(--ag-border)] bg-white/[0.01]">
         <div className="flex items-center gap-2">
           <BookOpen size={14} style={{ color: T.text3 }} />
           <h2 className="text-sm font-bold" style={{ color: T.text1 }}>
@@ -526,7 +526,7 @@ function PnLStatement({
       </div>
 
       {/* Revenue */}
-      <div className="px-5 py-4 border-b border-white/[0.06]">
+      <div className="px-5 py-4 border-b border-[var(--ag-border)]">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-[10px] font-bold uppercase tracking-[2px] font-mono" style={{ color: T.green }}>
             Revenue
@@ -549,7 +549,7 @@ function PnLStatement({
       </div>
 
       {/* Expenses */}
-      <div className="px-5 py-4 border-b border-white/[0.06]">
+      <div className="px-5 py-4 border-b border-[var(--ag-border)]">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-[10px] font-bold uppercase tracking-[2px] font-mono" style={{ color: T.red }}>
             Expenses
@@ -690,7 +690,7 @@ export default function PnLPage() {
           <select
             value={cropYear}
             onChange={(e) => setCropYear(e.target.value)}
-            className="bg-[#111827] border border-white/[0.10] rounded-lg px-3 py-1.5 text-sm text-ag-primary focus:outline-none focus:border-[#34D399]/50 transition-colors"
+            className="bg-[var(--ag-bg-card)] border border-[var(--ag-border-solid)] rounded-lg px-3 py-1.5 text-sm text-ag-primary focus:outline-none focus:border-[var(--ag-accent)]/50 transition-colors"
           >
             {["2026", "2025", "2024", "2023"].map((y) => (
               <option key={y} value={y}>{y}</option>
@@ -700,7 +700,7 @@ export default function PnLPage() {
       </div>
 
       {/* ── View Tabs ────────────────────────────────── */}
-      <div className="flex gap-1 mb-6 bg-white/[0.03] p-1 rounded-xl w-fit border border-white/[0.06]">
+      <div className="flex gap-1 mb-6 bg-[var(--ag-bg-hover)] p-1 rounded-xl w-fit border border-[var(--ag-border)]">
         {[
           { id: "farm", label: "Farm P&L" },
           { id: "crop", label: "By Crop" },
@@ -712,7 +712,7 @@ export default function PnLPage() {
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
               view === t.id
                 ? "bg-white/[0.08] text-ag-primary shadow-sm"
-                : "text-ag-muted hover:text-ag-secondary"
+                : "text-ag-muted hover:text-[var(--ag-text-secondary)]"
             }`}
           >
             {t.label}

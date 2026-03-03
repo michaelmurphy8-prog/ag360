@@ -53,9 +53,9 @@ export default function BoundaryExportModal({ fields, onClose }: Props) {
           ) : (
             <div className="space-y-3">
               <button onClick={() => handleExport("geojson")}
-                className="w-full flex items-center gap-4 bg-ag-card border border-ag rounded-xl p-4 hover:border-[#34D399]/40 transition-colors text-left">
-                <div className="w-10 h-10 rounded-lg bg-[#34D399]/10 flex items-center justify-center flex-shrink-0">
-                  <Globe size={20} className="text-[#34D399]"/>
+                className="w-full flex items-center gap-4 bg-ag-card border border-ag rounded-xl p-4 hover:border-[var(--ag-accent)]/40 transition-colors text-left">
+                <div className="w-10 h-10 rounded-lg bg-[var(--ag-accent)]/10 flex items-center justify-center flex-shrink-0">
+                  <Globe size={20} className="text-[var(--ag-green)]"/>
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-ag-primary">GeoJSON</p>
@@ -66,8 +66,8 @@ export default function BoundaryExportModal({ fields, onClose }: Props) {
 
               <button onClick={() => handleExport("kml")}
                 className="w-full flex items-center gap-4 bg-ag-card border border-ag rounded-xl p-4 hover:border-[#60A5FA]/40 transition-colors text-left">
-                <div className="w-10 h-10 rounded-lg bg-[#60A5FA]/10 flex items-center justify-center flex-shrink-0">
-                  <FileText size={20} className="text-[#60A5FA]"/>
+                <div className="w-10 h-10 rounded-lg bg-[var(--ag-blue)]/10 flex items-center justify-center flex-shrink-0">
+                  <FileText size={20} className="text-[var(--ag-blue)]"/>
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-ag-primary">KML</p>
@@ -77,8 +77,8 @@ export default function BoundaryExportModal({ fields, onClose }: Props) {
               </button>
 
               {exported && (
-                <div className="bg-[#34D399]/10 border border-[#34D399]/20 rounded-lg p-3 text-center">
-                  <p className="text-xs text-[#34D399] font-semibold">Downloaded {exported.toUpperCase()} file</p>
+                <div className="bg-[var(--ag-accent)]/10 border border-[var(--ag-accent-border)] rounded-lg p-3 text-center">
+                  <p className="text-xs text-[var(--ag-green)] font-semibold">Downloaded {exported.toUpperCase()} file</p>
                 </div>
               )}
 
@@ -87,7 +87,7 @@ export default function BoundaryExportModal({ fields, onClose }: Props) {
                 <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-ag-muted mb-2">Included Fields</p>
                 {boundedFields.map((f, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs text-ag-secondary mb-1">
-                    <div className="w-2 h-2 rounded-full bg-[#34D399]"/>
+                    <div className="w-2 h-2 rounded-full bg-[var(--ag-accent)]"/>
                     <span className="flex-1">{f.field_name}</span>
                     <span className="text-ag-muted">{f.acres} ac</span>
                   </div>

@@ -80,7 +80,7 @@ export default function OperationsPage() {
   // Get unique crops for color coding
   const cropColors: Record<string, string> = {
     "HRW Wheat": "#D97706",
-    "Canola": "#F59E0B",
+    "Canola": "var(--ag-yellow)",
     "Lentils": "#059669",
     "Peas": "#10B981",
     "Durum": "#B45309",

@@ -12,28 +12,28 @@ import {
 
 // ─── Design Tokens ─────────────────────────────
 const T = {
-  bg: "#080C15",
-  card: "#0F1729",
+  bg: "var(--ag-bg-base)",
+  card: "var(--ag-bg-card)",
   border: "rgba(255,255,255,0.06)",
   borderHover: "rgba(255,255,255,0.12)",
-  text1: "#F1F5F9",
-  text2: "#94A3B8",
-  text3: "#64748B",
-  text4: "#475569",
-  green: "#34D399",
+  text1: "var(--ag-text-primary)",
+  text2: "var(--ag-text-secondary)",
+  text3: "var(--ag-text-muted)",
+  text4: "var(--ag-text-dim)",
+  green: "var(--ag-green)",
   greenDim: "rgba(52,211,153,0.12)",
-  red: "#F87171",
+  red: "var(--ag-red)",
   redDim: "rgba(248,113,113,0.12)",
-  amber: "#FBBF24",
+  amber: "var(--ag-yellow)",
   amberDim: "rgba(251,191,36,0.12)",
   purple: "#A78BFA",
   purpleDim: "rgba(167,139,250,0.12)",
 };
 
 const inputClass =
-  "w-full bg-white/[0.04] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-ag-primary placeholder-[#475569] focus:outline-none focus:border-[#34D399]/50 transition-colors";
+  "w-full bg-[var(--ag-bg-hover)] border border-[var(--ag-border-solid)] rounded-lg px-3 py-2 text-sm text-ag-primary placeholder-[#475569] focus:outline-none focus:border-[var(--ag-accent)]/50 transition-colors";
 const selectClass =
-  "bg-[#111827] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-ag-primary focus:outline-none focus:border-[#34D399]/50 transition-colors";
+  "bg-[var(--ag-bg-card)] border border-[var(--ag-border-solid)] rounded-lg px-3 py-2 text-sm text-ag-primary focus:outline-none focus:border-[var(--ag-accent)]/50 transition-colors";
 const labelClass =
   "block text-[10px] uppercase tracking-[2px] font-mono font-semibold text-ag-muted mb-1.5";
 
@@ -365,7 +365,7 @@ export default function ScanDocumentModal({
               </p>
             </div>
           </div>
-          <button onClick={handleClose} className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors">
+          <button onClick={handleClose} className="p-2 rounded-lg hover:bg-[var(--ag-bg-active)] transition-colors">
             <X size={18} style={{ color: T.text3 }} />
           </button>
         </div>
@@ -375,7 +375,7 @@ export default function ScanDocumentModal({
           {step === "upload" && (
             <div
               className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer ${
-                dragOver ? "border-[#A78BFA] bg-[#A78BFA]/5" : "border-white/[0.10] hover:border-white/[0.20]"
+                dragOver ? "border-[#A78BFA] bg-[#A78BFA]/5" : "border-[var(--ag-border-solid)] hover:border-white/[0.20]"
               }`}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
@@ -569,7 +569,7 @@ export default function ScanDocumentModal({
                   <label className={labelClass + " mb-0"}>Journal Lines</label>
                   <button
                     onClick={addLine}
-                    className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg hover:bg-white/[0.06] transition-colors"
+                    className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg hover:bg-[var(--ag-bg-active)] transition-colors"
                     style={{ color: T.green }}
                   >
                     <Plus size={12} /> Add Line
@@ -614,7 +614,7 @@ export default function ScanDocumentModal({
                             updateLine(i, "account_name", acc.name);
                           }
                         }}
-                        className="bg-[#111827] border border-white/[0.08] rounded px-1.5 py-1 text-xs text-ag-primary outline-none truncate"
+                        className="bg-[var(--ag-bg-card)] border border-[var(--ag-border)] rounded px-1.5 py-1 text-xs text-ag-primary outline-none truncate"
                       >
                         <option value="">Select account</option>
                         {Object.entries(accountGroups).map(([group, accs]) => (
@@ -645,7 +645,7 @@ export default function ScanDocumentModal({
                       />
                       <button
                         onClick={() => removeLine(i)}
-                        className="p-1 rounded hover:bg-white/[0.06] transition-colors"
+                        className="p-1 rounded hover:bg-[var(--ag-bg-active)] transition-colors"
                         style={{ color: T.text4 }}
                       >
                         <Trash2 size={13} />
@@ -707,7 +707,7 @@ export default function ScanDocumentModal({
           >
             <button
               onClick={resetAll}
-              className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-xl hover:bg-white/[0.06] transition-colors"
+              className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-xl hover:bg-[var(--ag-bg-active)] transition-colors"
               style={{ color: T.text3 }}
             >
               <ScanLine size={14} />

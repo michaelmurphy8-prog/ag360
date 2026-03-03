@@ -138,7 +138,7 @@ export default function BoundaryImportModal({ fields, onClose, onAssign }: Props
                   {result.features.length} Polygon{result.features.length > 1 ? "s" : ""} Found
                 </p>
                 {result.features.length > 1 && (
-                  <button onClick={() => fileRef.current?.click()} className="text-xs text-[#60A5FA] hover:underline">Upload different file</button>
+                  <button onClick={() => fileRef.current?.click()} className="text-xs text-[var(--ag-blue)] hover:underline">Upload different file</button>
                 )}
               </div>
 
@@ -148,13 +148,13 @@ export default function BoundaryImportModal({ fields, onClose, onAssign }: Props
                 const isSaved = saved.has(i);
 
                 return (
-                  <div key={i} className={`bg-ag-card border rounded-lg p-3 mb-2 ${isSaved ? "border-[#34D399]/40" : "border-ag"}`}>
+                  <div key={i} className={`bg-ag-card border rounded-lg p-3 mb-2 ${isSaved ? "border-[var(--ag-accent)]/40" : "border-ag"}`}>
                     <div className="flex items-center gap-3">
                       <div className="flex-shrink-0">
                         {isSaved ? (
-                          <CheckCircle size={18} className="text-[#34D399]"/>
+                          <CheckCircle size={18} className="text-[var(--ag-green)]"/>
                         ) : (
-                          <MapPin size={18} className="text-[#60A5FA]"/>
+                          <MapPin size={18} className="text-[var(--ag-blue)]"/>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -176,12 +176,12 @@ export default function BoundaryImportModal({ fields, onClose, onAssign }: Props
                             ))}
                           </select>
                           <button onClick={() => assignFeature(i)} disabled={!assignments[i] || saving}
-                            className="px-3 py-1 bg-[#34D399] text-[#0F1629] rounded-lg text-xs font-semibold disabled:opacity-50 hover:bg-[#2AB385] transition-colors">
+                            className="px-3 py-1 bg-[var(--ag-accent)] text-[var(--ag-accent-text)] rounded-lg text-xs font-semibold disabled:opacity-50 hover:bg-[#2AB385] transition-colors">
                             Save
                           </button>
                         </div>
                       )}
-                      {isSaved && <span className="text-xs text-[#34D399] font-semibold">Saved</span>}
+                      {isSaved && <span className="text-xs text-[var(--ag-green)] font-semibold">Saved</span>}
                     </div>
                   </div>
                 );
@@ -195,7 +195,7 @@ export default function BoundaryImportModal({ fields, onClose, onAssign }: Props
           <button onClick={onClose} className="px-4 py-2 text-xs text-ag-secondary hover:text-white transition-colors">Close</button>
           {result && result.features.length > 1 && allAssigned && (
             <button onClick={assignAll} disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-[#34D399] text-[#0F1629] rounded-lg text-xs font-semibold disabled:opacity-50 hover:bg-[#2AB385] transition-colors">
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--ag-accent)] text-[var(--ag-accent-text)] rounded-lg text-xs font-semibold disabled:opacity-50 hover:bg-[#2AB385] transition-colors">
               {saving ? "Saving..." : `Save All (${result.features.length - saved.size} remaining)`}
             </button>
           )}

@@ -15,12 +15,12 @@ interface Asset {
 }
 
 function statusStyle(status: string) {
-  if (status === "ACTIVE") return "bg-[#34D399]/[0.08] text-[#34D399]";
-  if (status === "WATCH") return "bg-[#F59E0B]/[0.08] text-[#F59E0B]";
-  if (status === "DOWN") return "bg-[#EF4444]/[0.08] text-[#EF4444]";
-  if (status === "SOLD") return "bg-white/[0.04] text-ag-muted";
-  if (status === "RETIRED") return "bg-white/[0.04] text-ag-muted";
-  return "bg-[#34D399]/[0.08] text-[#34D399]";
+  if (status === "ACTIVE") return "bg-[var(--ag-accent)]/[0.08] text-[var(--ag-green)]";
+  if (status === "WATCH") return "bg-[#F59E0B]/[0.08] text-[var(--ag-yellow)]";
+  if (status === "DOWN") return "bg-[var(--ag-red-dim)] text-[var(--ag-red)]";
+  if (status === "SOLD") return "bg-[var(--ag-bg-hover)] text-ag-muted";
+  if (status === "RETIRED") return "bg-[var(--ag-bg-hover)] text-ag-muted";
+  return "bg-[var(--ag-accent)]/[0.08] text-[var(--ag-green)]";
 }
 
 export default function MachineryPage() {
@@ -82,7 +82,7 @@ export default function MachineryPage() {
       {/* KPIs */}
       <div className="grid grid-cols-5 gap-4">
         {kpis.map(kpi => (
-          <div key={kpi.label} className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
+          <div key={kpi.label} className="bg-[var(--ag-bg-card)] rounded-xl border border-[var(--ag-border)] p-5">
             <p className="font-mono text-[11px] font-bold text-ag-primary uppercase tracking-[1.5px]">{kpi.label}</p>
             <p className="text-2xl font-bold text-ag-primary mt-1">{kpi.value}</p>
             <p className="text-xs text-ag-muted mt-1">{kpi.unit}</p>
@@ -91,16 +91,16 @@ export default function MachineryPage() {
       </div>
 
       {/* Tab Switcher */}
-      <div className="flex gap-1 bg-[#111827] rounded-xl border border-white/[0.06] p-1.5 w-fit">
+      <div className="flex gap-1 bg-[var(--ag-bg-card)] rounded-xl border border-[var(--ag-border)] p-1.5 w-fit">
         <button onClick={() => setActiveTab("fleet")}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-            activeTab === "fleet" ? "bg-white/[0.06] text-ag-primary" : "text-ag-muted hover:text-ag-secondary"
+            activeTab === "fleet" ? "bg-[var(--ag-bg-active)] text-ag-primary" : "text-ag-muted hover:text-[var(--ag-text-secondary)]"
           }`}>
           <Tractor size={15} /> Fleet Assets
         </button>
         <button onClick={() => setActiveTab("service")}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-            activeTab === "service" ? "bg-white/[0.06] text-ag-primary" : "text-ag-muted hover:text-ag-secondary"
+            activeTab === "service" ? "bg-[var(--ag-bg-active)] text-ag-primary" : "text-ag-muted hover:text-[var(--ag-text-secondary)]"
           }`}>
           <Wrench size={15} /> Service & Maintenance
         </button>
@@ -108,16 +108,16 @@ export default function MachineryPage() {
 
       {/* Tab Content */}
       {activeTab === "fleet" ? (
-        <div className="bg-[#111827] rounded-xl border border-white/[0.06] overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
+        <div className="bg-[var(--ag-bg-card)] rounded-xl border border-[var(--ag-border)] overflow-hidden">
+          <div className="px-6 py-4 border-b border-[var(--ag-border)] flex items-center justify-between">
             <h2 className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px]">Fleet Assets</h2>
             <div className="flex items-center gap-2">
               <button onClick={() => setShowBulkUpload(true)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-[#34D399] border border-[#34D399]/30 px-4 py-2 rounded-full hover:bg-[#34D399]/[0.06] transition-colors">
+                className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ag-green)] border border-[var(--ag-accent)]/30 px-4 py-2 rounded-full hover:bg-[var(--ag-accent)]/[0.06] transition-colors">
                 <Upload size={12} /> Bulk Upload
               </button>
               <button onClick={() => setShowAddAsset(true)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-[#080C15] bg-[#34D399] px-4 py-2 rounded-full hover:bg-[#6EE7B7] transition-colors">
+                className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ag-accent-text)] bg-[var(--ag-accent)] px-4 py-2 rounded-full hover:bg-[var(--ag-accent-hover)] transition-colors">
                 <Plus size={12} /> Add Asset
               </button>
             </div>
@@ -133,7 +133,7 @@ export default function MachineryPage() {
             />
           </div>
 
-          <div className="divide-y divide-white/[0.04]">
+          <div className="divide-y divide-[var(--ag-border)]">
             {loading ? (
               <div className="px-6 py-12 text-center text-sm text-ag-muted">Loading fleet...</div>
             ) : filtered.length === 0 ? (
@@ -143,8 +143,8 @@ export default function MachineryPage() {
             ) : filtered.map(asset => (
               <div key={asset.id} className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className="w-9 h-9 rounded-[10px] bg-[#34D399]/[0.08] border border-[#34D399]/[0.15] flex items-center justify-center">
-                    <Tractor size={16} className="text-[#34D399]" />
+                  <div className="w-9 h-9 rounded-[10px] bg-[var(--ag-accent)]/[0.08] border border-[var(--ag-accent)]/[0.15] flex items-center justify-center">
+                    <Tractor size={16} className="text-[var(--ag-green)]" />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-ag-primary">{asset.name}</p>

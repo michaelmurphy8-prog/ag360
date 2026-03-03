@@ -15,40 +15,40 @@ import ScanDocumentModal from "@/components/finance/ScanDocumentModal";
 
 // ─── Design Tokens ───────────────────────────────────────────
 const T = {
-  bg: "#080C15",
-  card: "#0F1729",
-  cardAlt: "#111827",
+  bg: "var(--ag-bg-base)",
+  card: "var(--ag-bg-card)",
+  cardAlt: "var(--ag-bg-card)",
   border: "rgba(255,255,255,0.06)",
   borderHover: "rgba(255,255,255,0.12)",
-  text1: "#F1F5F9",
-  text2: "#94A3B8",
-  text3: "#64748B",
-  text4: "#475569",
-  green: "#34D399",
+  text1: "var(--ag-text-primary)",
+  text2: "var(--ag-text-secondary)",
+  text3: "var(--ag-text-muted)",
+  text4: "var(--ag-text-dim)",
+  green: "var(--ag-green)",
   greenDim: "rgba(52,211,153,0.12)",
-  red: "#F87171",
+  red: "var(--ag-red)",
   redDim: "rgba(248,113,113,0.12)",
-  amber: "#FBBF24",
+  amber: "var(--ag-yellow)",
   amberDim: "rgba(251,191,36,0.12)",
-  sky: "#38BDF8",
+  sky: "var(--ag-blue)",
   skyDim: "rgba(56,189,248,0.12)",
   purple: "#A78BFA",
   purpleDim: "rgba(167,139,250,0.12)",
   gridLine: "rgba(255,255,255,0.04)",
-  tooltipBg: "#1E293B",
+  tooltipBg: "var(--ag-border-solid)",
   tooltipBorder: "rgba(255,255,255,0.10)",
 };
 
 // ─── Shared Styles ───────────────────────────────────────────
 const inputClass =
-  "w-full bg-white/[0.04] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-ag-primary placeholder-[#475569] focus:outline-none focus:border-[#34D399]/50 transition-colors";
+  "w-full bg-[var(--ag-bg-hover)] border border-[var(--ag-border-solid)] rounded-lg px-3 py-2 text-sm text-ag-primary placeholder-[#475569] focus:outline-none focus:border-[var(--ag-accent)]/50 transition-colors";
 const selectClass =
-  "bg-[#111827] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-ag-primary focus:outline-none focus:border-[#34D399]/50 transition-colors";
+  "bg-[var(--ag-bg-card)] border border-[var(--ag-border-solid)] rounded-lg px-3 py-2 text-sm text-ag-primary focus:outline-none focus:border-[var(--ag-accent)]/50 transition-colors";
 const labelClass = "block text-[10px] uppercase tracking-[2px] font-mono font-semibold text-ag-muted mb-1.5";
 const btnPrimary =
   "flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl transition-all";
 const btnSecondary =
-  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border border-white/[0.10] text-ag-secondary hover:text-ag-primary hover:border-white/[0.16] transition-all";
+  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border border-[var(--ag-border-solid)] text-ag-secondary hover:text-ag-primary hover:border-white/[0.16] transition-all";
 
 // ─── Interfaces ──────────────────────────────────────────────
 interface Account {
@@ -138,7 +138,7 @@ function CashflowSparkline({ entries }: { entries: JournalEntry[] }) {
   if (dailyData.length < 2) return null;
 
   return (
-    <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.10] transition-colors">
+    <div className="bg-[var(--ag-bg-card)] border border-[var(--ag-border)] rounded-xl p-5 hover:border-[var(--ag-border-solid)] transition-colors">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-sm font-bold text-ag-primary">Cashflow</h3>
@@ -251,7 +251,7 @@ function LedgerDonut({ entries }: { entries: JournalEntry[] }) {
   };
 
   return (
-    <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.10] transition-colors">
+    <div className="bg-[var(--ag-bg-card)] border border-[var(--ag-border)] rounded-xl p-5 hover:border-[var(--ag-border-solid)] transition-colors">
       <h3 className="text-sm font-bold text-ag-primary mb-1">YTD Split</h3>
       <p className="text-xs text-ag-dim mb-3">Hover for details</p>
       <ResponsiveContainer width="100%" height={160}>
@@ -286,7 +286,7 @@ function LedgerKpi({
   label: string; value: string; icon: React.ElementType; iconColor: string; bgColor: string;
 }) {
   return (
-    <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-4 hover:border-white/[0.10] transition-all">
+    <div className="bg-[var(--ag-bg-card)] border border-[var(--ag-border)] rounded-xl p-4 hover:border-[var(--ag-border-solid)] transition-all">
       <div className="flex items-center gap-2.5 mb-2">
         <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: bgColor }}>
           <Icon size={13} style={{ color: iconColor }} />
@@ -438,7 +438,7 @@ function PayablesTab({ entries, fmt, onMarkPaid }: { entries: any[]; fmt: (n: nu
           onClick={() => {
             if (confirm(`Mark "${e.description}" as paid?`)) onMarkPaid(e.id);
           }}
-          className="flex items-center gap-1 text-[11px] font-medium px-3 py-1.5 rounded-lg transition-all hover:bg-white/[0.06] flex-shrink-0"
+          className="flex items-center gap-1 text-[11px] font-medium px-3 py-1.5 rounded-lg transition-all hover:bg-[var(--ag-bg-active)] flex-shrink-0"
           style={{ color: T.green, border: `1px solid ${T.green}30` }}
         >
           <CheckCircle size={11} />
@@ -700,7 +700,7 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
       </div>
 
       {/* ── Tab Switcher ─────────────────────────────── */}
-      <div className="flex gap-1 mb-6 bg-white/[0.03] p-1 rounded-xl w-fit border border-white/[0.06]">
+      <div className="flex gap-1 mb-6 bg-[var(--ag-bg-hover)] p-1 rounded-xl w-fit border border-[var(--ag-border)]">
         {[
           { id: "journal" as const, label: "Journal Entries" },
           { id: "payables" as const, label: "Payables" },
@@ -712,7 +712,7 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
               tab === t.id
                 ? "bg-white/[0.08] text-ag-primary shadow-sm"
-                : "text-ag-muted hover:text-ag-secondary"
+                : "text-ag-muted hover:text-[var(--ag-text-secondary)]"
             }`}
           >
             {t.label}
@@ -772,7 +772,7 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
             {(searchQ || filterType !== "all" || filterMonth !== "all") && (
               <button
                 onClick={() => { setSearchQ(""); setFilterType("all"); setFilterMonth("all"); }}
-                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg hover:bg-white/[0.04] transition-colors"
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg hover:bg-[var(--ag-bg-hover)] transition-colors"
                 style={{ color: T.text3 }}
               >
                 <RotateCcw size={12} />
@@ -805,7 +805,7 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
                 return (
                   <div
                     key={entry.id}
-                    className="group bg-[#0F1729] border border-white/[0.06] rounded-xl overflow-hidden hover:border-white/[0.12] transition-all"
+                    className="group bg-[var(--ag-bg-card)] border border-[var(--ag-border)] rounded-xl overflow-hidden hover:border-white/[0.12] transition-all"
                   >
                     {/* Stripe-style left color edge */}
                     <div className="flex">
@@ -819,7 +819,7 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
                             <span className="text-sm font-medium" style={{ color: T.text1 }}>{entry.description}</span>
                             <EntryTypeBadge lines={entry.lines} />
                             {entry.reference && (
-                              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-white/[0.04]" style={{ color: T.text4 }}>
+                              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-[var(--ag-bg-hover)]" style={{ color: T.text4 }}>
                                 #{entry.reference}
                               </span>
                             )}
@@ -831,7 +831,7 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button
                                 onClick={() => handleEdit(entry)}
-                                className="p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors"
+                                className="p-1.5 rounded-lg hover:bg-[var(--ag-bg-active)] transition-colors"
                                 title="Edit"
                               >
                                 <Edit2 size={13} style={{ color: T.text3 }} />
@@ -895,7 +895,7 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
             const meta = coaMeta[type] || { icon: FileText, color: T.text3, bg: "rgba(255,255,255,0.04)" };
             const Icon = meta.icon;
             return (
-              <div key={type} className="bg-[#0F1729] border border-white/[0.06] rounded-xl overflow-hidden hover:border-white/[0.10] transition-colors">
+              <div key={type} className="bg-[var(--ag-bg-card)] border border-[var(--ag-border)] rounded-xl overflow-hidden hover:border-[var(--ag-border-solid)] transition-colors">
                 <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: meta.bg }}>
                     <Icon size={14} style={{ color: meta.color }} />
@@ -903,14 +903,14 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
                   <h3 className="text-sm font-bold" style={{ color: T.text1 }}>{type}s</h3>
                   <span className="text-xs font-mono" style={{ color: T.text4 }}>{accts.length} accounts</span>
                 </div>
-                <div className="divide-y divide-white/[0.04]">
+                <div className="divide-y divide-[var(--ag-border)]">
                   {accts.sort((a, b) => a.code.localeCompare(b.code)).map((a) => (
                     <div key={a.id} className="flex items-center justify-between px-5 py-2.5 hover:bg-white/[0.01] transition-colors">
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-mono w-12" style={{ color: T.text4 }}>{a.code}</span>
                         <span className="text-sm" style={{ color: T.text1 }}>{a.name}</span>
                       </div>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-white/[0.04] font-mono" style={{ color: T.text3 }}>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--ag-bg-hover)] font-mono" style={{ color: T.text3 }}>
                         {a.sub_type}
                       </span>
                     </div>
@@ -935,13 +935,13 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div
             className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl p-6"
-            style={{ background: "#0F1729", border: `1px solid ${T.borderHover}` }}
+            style={{ background: "var(--ag-bg-card)", border: `1px solid ${T.borderHover}` }}
           >
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold" style={{ color: T.text1 }}>
                 {editingId ? "Edit Journal Entry" : "New Journal Entry"}
               </h2>
-              <button onClick={resetForm} className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors">
+              <button onClick={resetForm} className="p-2 rounded-lg hover:bg-[var(--ag-bg-active)] transition-colors">
                 <X size={16} style={{ color: T.text3 }} />
               </button>
             </div>
@@ -965,7 +965,7 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <label className={labelClass + " mb-0"}>Line Items</label>
-                <button onClick={addLine} className="text-xs flex items-center gap-1 hover:text-[#34D399] transition-colors" style={{ color: T.text3 }}>
+                <button onClick={addLine} className="text-xs flex items-center gap-1 hover:text-[var(--ag-green)] transition-colors" style={{ color: T.text3 }}>
                   <Plus size={12} /> Add Line
                 </button>
               </div>

@@ -41,23 +41,23 @@ interface Stats {
 }
 
 function statusBadge(status: string) {
-  if (status === "OVERDUE") return "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/20";
-  if (status === "DUE_SOON") return "bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/20";
-  return "bg-[#34D399]/10 text-[#34D399] border-[#34D399]/20";
+  if (status === "OVERDUE") return "bg-[var(--ag-red)]/10 text-[var(--ag-red)] border-[var(--ag-red)]/20";
+  if (status === "DUE_SOON") return "bg-[#F59E0B]/10 text-[var(--ag-yellow)] border-[var(--ag-yellow)/0.2]";
+  return "bg-[var(--ag-accent)]/10 text-[var(--ag-green)] border-[var(--ag-accent-border)]";
 }
 
 function priorityColor(p: string) {
-  if (p === "critical") return "text-[#EF4444]";
-  if (p === "high") return "text-[#F59E0B]";
-  if (p === "normal") return "text-[#60A5FA]";
+  if (p === "critical") return "text-[var(--ag-red)]";
+  if (p === "high") return "text-[var(--ag-yellow)]";
+  if (p === "normal") return "text-[var(--ag-blue)]";
   return "text-ag-muted";
 }
 
 function categoryBadge(cat: string) {
   const colors: Record<string, string> = {
-    preventive: "bg-[#34D399]/10 text-[#34D399]", repair: "bg-[#F59E0B]/10 text-[#F59E0B]",
-    inspection: "bg-[#60A5FA]/10 text-[#60A5FA]", warranty: "bg-[#8B5CF6]/10 text-[#8B5CF6]",
-    general: "bg-white/[0.04] text-ag-secondary",
+    preventive: "bg-[var(--ag-accent)]/10 text-[var(--ag-green)]", repair: "bg-[#F59E0B]/10 text-[var(--ag-yellow)]",
+    inspection: "bg-[var(--ag-blue)]/10 text-[var(--ag-blue)]", warranty: "bg-[#8B5CF6]/10 text-[#8B5CF6]",
+    general: "bg-[var(--ag-bg-hover)] text-ag-secondary",
   };
   return colors[cat] || colors.general;
 }
@@ -175,11 +175,11 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
   const activeDowntime = downtimeLogs.filter(d => !d.endTime);
 
   const kpis = stats ? [
-    { label: "Overdue", value: String(stats.schedule.overdue), color: stats.schedule.overdue > 0 ? "text-[#EF4444]" : "text-[#34D399]", icon: AlertTriangle },
-    { label: "Due Soon", value: String(stats.schedule.due_soon), color: "text-[#F59E0B]", icon: Clock },
+    { label: "Overdue", value: String(stats.schedule.overdue), color: stats.schedule.overdue > 0 ? "text-[var(--ag-red)]" : "text-[var(--ag-green)]", icon: AlertTriangle },
+    { label: "Due Soon", value: String(stats.schedule.due_soon), color: "text-[var(--ag-yellow)]", icon: Clock },
     { label: "Service Spend (YTD)", value: `$${Math.round(stats.service.total_cost).toLocaleString()}`, color: "text-ag-primary", icon: DollarSign },
-    { label: "Services (30d)", value: String(stats.service.last_30_days), color: "text-[#60A5FA]", icon: Wrench },
-    { label: "Active Downtime", value: String(stats.downtime.active_downtime), color: stats.downtime.active_downtime > 0 ? "text-[#EF4444]" : "text-[#34D399]", icon: TrendingUp },
+    { label: "Services (30d)", value: String(stats.service.last_30_days), color: "text-[var(--ag-blue)]", icon: Wrench },
+    { label: "Active Downtime", value: String(stats.downtime.active_downtime), color: stats.downtime.active_downtime > 0 ? "text-[var(--ag-red)]" : "text-[var(--ag-green)]", icon: TrendingUp },
   ] : [];
 
   return (
@@ -188,7 +188,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
       {stats && (
         <div className="grid grid-cols-5 gap-4">
           {kpis.map(k => (
-            <div key={k.label} className="bg-[#111827] rounded-xl border border-white/[0.06] p-4">
+            <div key={k.label} className="bg-[var(--ag-bg-card)] rounded-xl border border-[var(--ag-border)] p-4">
               <div className="flex items-center gap-1.5 mb-1">
                 <k.icon size={12} className={k.color} />
                 <p className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">{k.label}</p>
@@ -201,18 +201,18 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
 
       {/* Active Downtime Banner */}
       {activeDowntime.length > 0 && (
-        <div className="bg-[#EF4444]/[0.06] border border-[#EF4444]/20 rounded-xl p-4">
-          <p className="text-xs font-semibold text-[#EF4444] uppercase tracking-wide mb-2 flex items-center gap-1.5">
+        <div className="bg-[var(--ag-red)]/[0.06] border border-[var(--ag-red)]/20 rounded-xl p-4">
+          <p className="text-xs font-semibold text-[var(--ag-red)] uppercase tracking-wide mb-2 flex items-center gap-1.5">
             <AlertTriangle size={12} /> Units Currently Down
           </p>
           {activeDowntime.map(d => (
-            <div key={d.id} className="flex items-center justify-between py-2 border-b border-[#EF4444]/10 last:border-0">
+            <div key={d.id} className="flex items-center justify-between py-2 border-b border-[var(--ag-red)]/10 last:border-0">
               <div>
                 <p className="text-sm font-semibold text-ag-primary">{d.asset_name}</p>
                 <p className="text-xs text-ag-muted">{d.reason || "No reason"} · Down {timeAgo(d.startTime)}</p>
               </div>
               <button onClick={() => handleResolveDowntime(d.id)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-[#34D399] border border-[#34D399]/30 px-3 py-1.5 rounded-full hover:bg-[#34D399]/10 transition-colors">
+                className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ag-green)] border border-[var(--ag-accent)]/30 px-3 py-1.5 rounded-full hover:bg-[var(--ag-accent)]/10 transition-colors">
                 <CheckCircle size={12} /> Resolve
               </button>
             </div>
@@ -221,8 +221,8 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
       )}
 
       {/* Sub-tabs + Actions */}
-      <div className="bg-[#111827] rounded-xl border border-white/[0.06] overflow-hidden">
-        <div className="px-6 py-3 border-b border-white/[0.06] flex items-center justify-between">
+      <div className="bg-[var(--ag-bg-card)] rounded-xl border border-[var(--ag-border)] overflow-hidden">
+        <div className="px-6 py-3 border-b border-[var(--ag-border)] flex items-center justify-between">
           <div className="flex gap-1">
             {([
               { key: "schedule" as const, label: "Upcoming", count: schedules.length },
@@ -231,7 +231,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
             ]).map(t => (
               <button key={t.key} onClick={() => setSubTab(t.key)}
                 className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                  subTab === t.key ? "bg-white/[0.06] text-ag-primary" : "text-ag-muted hover:text-ag-secondary"
+                  subTab === t.key ? "bg-[var(--ag-bg-active)] text-ag-primary" : "text-ag-muted hover:text-[var(--ag-text-secondary)]"
                 }`}>
                 {t.label} {t.count > 0 && <span className="ml-1 text-[10px] opacity-60">({t.count})</span>}
               </button>
@@ -244,15 +244,15 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
               <ScanLine size={11} /> {scanning ? "Scanning..." : "Scan Document"}
             </button>
             <button onClick={() => setShowDowntimeModal(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-[#EF4444] border border-[#EF4444]/30 px-3 py-1.5 rounded-full hover:bg-[#EF4444]/10 transition-colors">
+              className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ag-red)] border border-[var(--ag-red)]/30 px-3 py-1.5 rounded-full hover:bg-[var(--ag-red)]/10 transition-colors">
               <AlertTriangle size={11} /> Report Down
             </button>
             <button onClick={() => setShowScheduleModal(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-[#60A5FA] border border-[#60A5FA]/30 px-3 py-1.5 rounded-full hover:bg-[#60A5FA]/10 transition-colors">
+              className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ag-blue)] border border-[#60A5FA]/30 px-3 py-1.5 rounded-full hover:bg-[var(--ag-blue)]/10 transition-colors">
               <Calendar size={11} /> Schedule
             </button>
             <button onClick={() => { setScanResult(null); setShowLogModal(true); }}
-              className="flex items-center gap-1.5 text-xs font-semibold text-[#080C15] bg-[#34D399] px-3 py-1.5 rounded-full hover:bg-[#6EE7B7] transition-colors">
+              className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ag-accent-text)] bg-[var(--ag-accent)] px-3 py-1.5 rounded-full hover:bg-[var(--ag-accent-hover)] transition-colors">
               <Plus size={11} /> Log Service
             </button>
           </div>
@@ -264,7 +264,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
           <>
             {/* SCHEDULE TAB */}
             {subTab === "schedule" && (
-              <div className="divide-y divide-white/[0.04]">
+              <div className="divide-y divide-[var(--ag-border)]">
                 {schedules.length === 0 ? (
                   <div className="px-6 py-12 text-center text-sm text-ag-muted">No scheduled services yet. Click &quot;Schedule&quot; to add one.</div>
                 ) : schedules.map(s => {
@@ -282,7 +282,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
                         {hoursUntil !== null && (
                           <div className="text-right">
                             <p className="text-xs text-ag-muted">Hours Until Due</p>
-                            <p className={`text-sm font-semibold ${hoursUntil <= 0 ? "text-[#EF4444]" : hoursUntil <= 50 ? "text-[#F59E0B]" : "text-ag-primary"}`}>
+                            <p className={`text-sm font-semibold ${hoursUntil <= 0 ? "text-[var(--ag-red)]" : hoursUntil <= 50 ? "text-[var(--ag-yellow)]" : "text-ag-primary"}`}>
                               {hoursUntil <= 0 ? `${Math.abs(hoursUntil)} OVERDUE` : hoursUntil.toLocaleString()}
                             </p>
                           </div>
@@ -295,7 +295,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
                         )}
                         <span className={`text-[10px] font-bold uppercase ${priorityColor(s.priority)}`}>{s.priority}</span>
                         <button onClick={() => handleMarkComplete(s)}
-                          className="flex items-center gap-1 text-xs font-semibold text-[#34D399] hover:text-[#6EE7B7] transition-colors">
+                          className="flex items-center gap-1 text-xs font-semibold text-[var(--ag-green)] hover:text-[var(--ag-green)] transition-colors">
                           <CheckCircle size={14} /> Done
                         </button>
                       </div>
@@ -307,7 +307,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
 
             {/* LOGS TAB */}
             {subTab === "logs" && (
-              <div className="divide-y divide-white/[0.04]">
+              <div className="divide-y divide-[var(--ag-border)]">
                 {logs.length === 0 ? (
                   <div className="px-6 py-12 text-center text-sm text-ag-muted">No service history yet. Click &quot;Log Service&quot; to record one.</div>
                 ) : logs.map(l => (
@@ -351,7 +351,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
 
             {/* DOWNTIME TAB */}
             {subTab === "downtime" && (
-              <div className="divide-y divide-white/[0.04]">
+              <div className="divide-y divide-[var(--ag-border)]">
                 {downtimeLogs.length === 0 ? (
                   <div className="px-6 py-12 text-center text-sm text-ag-muted">No downtime incidents recorded.</div>
                 ) : downtimeLogs.map(d => {
@@ -363,7 +363,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
                     <div key={d.id} className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
                       <div className="flex items-center gap-4 flex-1">
                         <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
-                          isActive ? "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/20" : "bg-white/[0.04] text-ag-muted border-white/[0.08]"
+                          isActive ? "bg-[var(--ag-red)]/10 text-[var(--ag-red)] border-[var(--ag-red)]/20" : "bg-[var(--ag-bg-hover)] text-ag-muted border-[var(--ag-border)]"
                         }`}>
                           {isActive ? "ACTIVE" : "RESOLVED"}
                         </span>
@@ -380,7 +380,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-ag-muted">Duration</p>
-                          <p className={`text-sm font-semibold ${isActive ? "text-[#EF4444]" : "text-ag-primary"}`}>{duration}h</p>
+                          <p className={`text-sm font-semibold ${isActive ? "text-[var(--ag-red)]" : "text-ag-primary"}`}>{duration}h</p>
                         </div>
                         {d.costImpact && (
                           <div className="text-right">
@@ -390,7 +390,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
                         )}
                         {isActive && (
                           <button onClick={() => handleResolveDowntime(d.id)}
-                            className="flex items-center gap-1 text-xs font-semibold text-[#34D399] hover:text-[#6EE7B7] transition-colors">
+                            className="flex items-center gap-1 text-xs font-semibold text-[var(--ag-green)] hover:text-[var(--ag-green)] transition-colors">
                             <CheckCircle size={14} /> Resolve
                           </button>
                         )}
@@ -406,20 +406,20 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
 
       {/* Service Cost Trend */}
       {costChartData.length > 1 && (
-        <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
+        <div className="bg-[var(--ag-bg-card)] rounded-xl border border-[var(--ag-border)] p-5">
           <p className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px] mb-4">Service Cost Trend</p>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={costChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#64748B" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: "#64748B" }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `$${v.toLocaleString()}`} />
+                <XAxis dataKey="month" tick={{ fontSize: 10, fill: "var(--ag-text-muted)" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: "var(--ag-text-muted)" }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `$${v.toLocaleString()}`} />
                 <Tooltip
-                  contentStyle={{ background: "#1E293B", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
-                  labelStyle={{ color: "#94A3B8" }}
+                  contentStyle={{ background: "var(--ag-border-solid)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
+                  labelStyle={{ color: "var(--ag-text-secondary)" }}
                   formatter={(value: any) => [`$${Number(value).toLocaleString()}`, "Cost"]}
                 />
-                <Line type="monotone" dataKey="cost" stroke="#F59E0B" strokeWidth={2} dot={{ r: 3, fill: "#F59E0B" }} />
+                <Line type="monotone" dataKey="cost" stroke="var(--ag-yellow)" strokeWidth={2} dot={{ r: 3, fill: "var(--ag-yellow)" }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -428,7 +428,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
 
       {/* Top Cost Units */}
       {stats && stats.topCostUnits.length > 0 && (
-        <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
+        <div className="bg-[var(--ag-bg-card)] rounded-xl border border-[var(--ag-border)] p-5">
           <p className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px] mb-3">Top Cost Units (YTD)</p>
           <div className="space-y-2">
             {stats.topCostUnits.map((u, i) => (
@@ -440,7 +440,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
                     <p className="text-[10px] text-ag-muted">{u.service_count} services</p>
                   </div>
                 </div>
-                <p className="text-sm font-semibold text-[#F59E0B]">${Math.round(u.total_cost).toLocaleString()}</p>
+                <p className="text-sm font-semibold text-[var(--ag-yellow)]">${Math.round(u.total_cost).toLocaleString()}</p>
               </div>
             ))}
           </div>

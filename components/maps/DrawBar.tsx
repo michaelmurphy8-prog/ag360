@@ -25,7 +25,7 @@ export default function DrawBar({ selectedField, drawingAcres, drawingHectares, 
       </div>
       <div className="border-l border-ag pl-4">
         <p className="text-[10px] text-ag-muted uppercase tracking-wide">Area</p>
-        <p className="text-base font-bold text-[#60A5FA]">
+        <p className="text-base font-bold text-[var(--ag-blue)]">
           {drawingAcres > 0 ? `${fmtD(drawingAcres)} ac` : "Click to draw..."}{" "}
           {drawingHectares > 0 && <span className="text-xs text-ag-muted font-normal">({fmtD(drawingHectares)} ha)</span>}
         </p>
@@ -33,18 +33,18 @@ export default function DrawBar({ selectedField, drawingAcres, drawingHectares, 
       {selectedField.acres && drawingAcres > 0 && (
         <div className="border-l border-ag pl-4">
           <p className="text-[10px] text-ag-muted uppercase tracking-wide">vs Declared</p>
-          <p className={`text-sm font-semibold ${Math.abs(diff) < 5 ? "text-[#34D399]" : "text-[#FBBF24]"}`}>
+          <p className={`text-sm font-semibold ${Math.abs(diff) < 5 ? "text-[var(--ag-green)]" : "text-[var(--ag-yellow)]"}`}>
             {diff > 0 ? "+" : ""}{fmtD(diff)} ac ({pct}%)
           </p>
         </div>
       )}
       <div className="flex items-center gap-2 ml-4">
         <button onClick={onSave} disabled={drawingAcres === 0 || savingBoundary}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#34D399] text-[#0F1629] rounded-lg text-xs font-semibold hover:bg-[#2AB385] transition-colors disabled:opacity-50">
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--ag-accent)] text-[var(--ag-accent-text)] rounded-lg text-xs font-semibold hover:bg-[#2AB385] transition-colors disabled:opacity-50">
           <Save size={12} /> {savingBoundary ? "Saving..." : "Save"}
         </button>
         <button onClick={onCancel}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.06] text-ag-secondary rounded-lg text-xs font-semibold hover:text-white transition-colors">
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--ag-bg-active)] text-ag-secondary rounded-lg text-xs font-semibold hover:text-white transition-colors">
           <X size={12} /> Cancel
         </button>
       </div>

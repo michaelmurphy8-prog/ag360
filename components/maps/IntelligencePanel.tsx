@@ -70,7 +70,7 @@ export default function IntelligencePanel({
   };
 
   return (
-    <div style={{ width: 380, flexShrink: 0, background: "#0B1120", borderLeft: "1px solid #1E293B", overflowY: "auto", height: mapHeight }}>
+    <div style={{ width: 380, flexShrink: 0, background: "var(--ag-bg-primary)", borderLeft: "1px solid var(--ag-border-solid)", overflowY: "auto", height: mapHeight }}>
       <div className="p-5">
         <h1 className="text-lg font-bold text-ag-primary">Farm Command Center</h1>
         <p className="text-xs text-ag-muted mt-0.5 mb-5">{cropYear} crop year · {fields.length} fields mapped</p>
@@ -79,10 +79,10 @@ export default function IntelligencePanel({
         {kpis && (
           <div className="grid grid-cols-2 gap-2 mb-5">
             {[
-              { icon: MapPin, ic: "text-[#34D399]", l: "Fields", v: String(kpis.totalFields), s: `${kpis.seededCount} seeded` },
-              { icon: Wheat, ic: "text-[#60A5FA]", l: "Acres", v: fmt(kpis.totalAcres), s: `${fmt(kpis.seededAcres)} seeded` },
-              { icon: DollarSign, ic: "text-[#FBBF24]", l: "Costs", v: `$${fmt(kpis.totalActualCost)}`, s: `$${fmtD(kpis.avgCostPerAcre)}/ac` },
-              { icon: BarChart3, ic: kpis.netMarginActual >= 0 ? "text-[#34D399]" : "text-[#EF4444]", l: "Margin",
+              { icon: MapPin, ic: "text-[var(--ag-green)]", l: "Fields", v: String(kpis.totalFields), s: `${kpis.seededCount} seeded` },
+              { icon: Wheat, ic: "text-[var(--ag-blue)]", l: "Acres", v: fmt(kpis.totalAcres), s: `${fmt(kpis.seededAcres)} seeded` },
+              { icon: DollarSign, ic: "text-[var(--ag-yellow)]", l: "Costs", v: `$${fmt(kpis.totalActualCost)}`, s: `$${fmtD(kpis.avgCostPerAcre)}/ac` },
+              { icon: BarChart3, ic: kpis.netMarginActual >= 0 ? "text-[var(--ag-green)]" : "text-[var(--ag-red)]", l: "Margin",
                 v: `$${fmt(kpis.netMarginActual)}`, s: `$${kpis.seededAcres > 0 ? fmtD(kpis.netMarginActual / kpis.seededAcres) : "0.00"}/ac`,
                 vc: kpis.netMarginActual >= 0 ? "text-emerald-400" : "text-red-400" },
             ].map((k: any) => (
@@ -120,7 +120,7 @@ export default function IntelligencePanel({
             <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-ag-muted mb-2">Current Conditions</p>
             <div className="bg-ag-card border border-ag rounded-lg p-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2"><Thermometer size={14} className="text-[#60A5FA]" /><span className="text-lg font-bold text-white">{weather[0].temperature}°C</span></div>
+                <div className="flex items-center gap-2"><Thermometer size={14} className="text-[var(--ag-blue)]" /><span className="text-lg font-bold text-white">{weather[0].temperature}°C</span></div>
                 <div className="flex items-center gap-3 text-xs text-ag-secondary">
                   <span className="flex items-center gap-1"><Wind size={11} /> {weather[0].windspeed} km/h</span>
                   <span className="flex items-center gap-1"><Droplets size={11} /> {weather[0].precipitation}mm</span>
@@ -133,11 +133,11 @@ export default function IntelligencePanel({
         {/* Import/Export */}
         <div className="flex gap-2 mb-4">
           <button onClick={onShowImport}
-            className="flex-1 flex items-center justify-center gap-1.5 bg-white/[0.03] border border-ag rounded-lg px-3 py-2 text-xs text-ag-secondary hover:text-white hover:border-[#60A5FA]/40 transition-colors">
+            className="flex-1 flex items-center justify-center gap-1.5 bg-[var(--ag-bg-hover)] border border-ag rounded-lg px-3 py-2 text-xs text-ag-secondary hover:text-white hover:border-[#60A5FA]/40 transition-colors">
             <Upload size={12} /> Import
           </button>
           <button onClick={onShowExport}
-            className="flex-1 flex items-center justify-center gap-1.5 bg-white/[0.03] border border-ag rounded-lg px-3 py-2 text-xs text-ag-secondary hover:text-white hover:border-[#34D399]/40 transition-colors">
+            className="flex-1 flex items-center justify-center gap-1.5 bg-[var(--ag-bg-hover)] border border-ag rounded-lg px-3 py-2 text-xs text-ag-secondary hover:text-white hover:border-[var(--ag-accent)]/40 transition-colors">
             <Download size={12} /> Export
           </button>
         </div>
@@ -145,12 +145,12 @@ export default function IntelligencePanel({
         {/* Overlap Warnings */}
         {overlaps.length > 0 && (
           <div className="mb-4">
-            <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[#FBBF24] mb-2 flex items-center gap-1.5">
+            <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[var(--ag-yellow)] mb-2 flex items-center gap-1.5">
               <AlertTriangle size={10} /> Boundary Overlaps
             </p>
             {overlaps.map((o, i) => (
               <div key={i} className="bg-[#FBBF24]/5 border border-[#FBBF24]/20 rounded-lg px-3 py-2 mb-1.5 text-xs">
-                <p className="text-[#FBBF24] font-semibold">{o.fieldName1} ↔ {o.fieldName2}</p>
+                <p className="text-[var(--ag-yellow)] font-semibold">{o.fieldName1} ↔ {o.fieldName2}</p>
                 <p className="text-ag-muted">{o.overlapAcres} acres overlap</p>
               </div>
             ))}
@@ -164,12 +164,12 @@ export default function IntelligencePanel({
           <div>
             <div className="flex items-center justify-between mb-3">
               <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-ag-muted">Selected Field</p>
-              <button onClick={() => setSelectedField(null)} className="p-1 rounded-md hover:bg-[#1E293B] text-ag-muted hover:text-ag-primary transition-colors">
+              <button onClick={() => setSelectedField(null)} className="p-1 rounded-md hover:bg-[var(--ag-bg-active)] text-ag-muted hover:text-ag-primary transition-colors">
                 <X size={14} />
               </button>
             </div>
             <div className="bg-ag-card border border-ag rounded-xl overflow-hidden">
-              <div className="h-1 w-full" style={{ backgroundColor: CROP_COLORS[selectedField.crop_type || ""] || "#1E293B" }} />
+              <div className="h-1 w-full" style={{ backgroundColor: CROP_COLORS[selectedField.crop_type || ""] || "var(--ag-border-solid)" }} />
               <div className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -177,11 +177,11 @@ export default function IntelligencePanel({
                     <p className="text-ag-muted text-sm">{selectedField.acres} acres</p>
                     <p className="text-ag-dim text-xs mt-0.5">{selectedField.lld_quarter}-{selectedField.lld_section}-{selectedField.lld_township}-{selectedField.lld_range}-W{selectedField.lld_meridian}</p>
                     {selectedField.boundary_acres && (
-                      <p className="text-[#60A5FA] text-xs mt-0.5">Mapped: {fmtD(selectedField.boundary_acres)} ac</p>
+                      <p className="text-[var(--ag-blue)] text-xs mt-0.5">Mapped: {fmtD(selectedField.boundary_acres)} ac</p>
                     )}
                   </div>
                   <MiniDonut value={parseFloat(String(selectedField.actual_total)) || 0} max={parseFloat(String(selectedField.budget_total)) || 1}
-                    color={(parseFloat(String(selectedField.actual_total)) || 0) > (parseFloat(String(selectedField.budget_total)) || 0) ? "#EF4444" : "#34D399"} />
+                    color={(parseFloat(String(selectedField.actual_total)) || 0) > (parseFloat(String(selectedField.budget_total)) || 0) ? "var(--ag-red)" : "var(--ag-green)"} />
                 </div>
                 {selectedField.crop_type && (
                   <>
@@ -190,9 +190,9 @@ export default function IntelligencePanel({
                       <span className="text-sm font-medium text-ag-primary">{selectedField.crop_type}</span>
                       {selectedField.variety && <span className="text-xs text-ag-muted">{selectedField.variety}</span>}
                       <span className={`ml-auto text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                        selectedField.crop_status === "seeded" ? "bg-[#1E3A5F] text-[#60A5FA]" :
+                        selectedField.crop_status === "seeded" ? "bg-[#1E3A5F] text-[var(--ag-blue)]" :
                         selectedField.crop_status === "growing" ? "bg-[#14532D] text-[#4ADE80]" :
-                        selectedField.crop_status === "harvested" ? "bg-[#78350F] text-[#FBBF24]" : "bg-[#334155] text-ag-secondary"
+                        selectedField.crop_status === "harvested" ? "bg-[#78350F] text-[var(--ag-yellow)]" : "bg-[#334155] text-ag-secondary"
                       }`}>{(selectedField.crop_status || "planned").charAt(0).toUpperCase() + (selectedField.crop_status || "planned").slice(1)}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2 mb-3">
@@ -202,7 +202,7 @@ export default function IntelligencePanel({
                         { label: "Net Margin", val: getFieldMargin(selectedField), pos: false },
                         { label: "Variance", val: (parseFloat(String(selectedField.actual_total)) || 0) - (parseFloat(String(selectedField.budget_total)) || 0), pos: false },
                       ].map(m => (
-                        <div key={m.label} className="bg-white/[0.03] rounded-lg px-3 py-2">
+                        <div key={m.label} className="bg-[var(--ag-bg-hover)] rounded-lg px-3 py-2">
                           <p className="text-[10px] text-ag-muted">{m.label}</p>
                           <p className={`text-sm font-semibold ${m.pos ? "text-white" : m.val >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                             {m.label === "Variance" && m.val > 0 ? "+" : ""}${fmt(m.val)}
@@ -218,18 +218,18 @@ export default function IntelligencePanel({
                   {!isDrawing && (
                     <>
                       <button onClick={onStartDraw}
-                        className="w-full flex items-center justify-center gap-2 bg-[#60A5FA]/10 border border-[#60A5FA]/20 rounded-lg px-3 py-2 text-sm font-semibold text-[#60A5FA] hover:bg-[#60A5FA]/20 transition-colors">
+                        className="w-full flex items-center justify-center gap-2 bg-[var(--ag-blue)]/10 border border-[#60A5FA]/20 rounded-lg px-3 py-2 text-sm font-semibold text-[var(--ag-blue)] hover:bg-[var(--ag-blue)]/20 transition-colors">
                         <PenTool size={14} /> {selectedField.boundary ? "Redraw Boundary" : "Draw Boundary"}
                       </button>
                       {selectedField.boundary && (
                         <button onClick={onEditBoundary}
-                          className="w-full flex items-center justify-center gap-2 bg-[#34D399]/10 border border-[#34D399]/20 rounded-lg px-3 py-2 text-sm font-semibold text-[#34D399] hover:bg-[#34D399]/20 transition-colors">
+                          className="w-full flex items-center justify-center gap-2 bg-[var(--ag-accent)]/10 border border-[var(--ag-accent-border)] rounded-lg px-3 py-2 text-sm font-semibold text-[var(--ag-green)] hover:bg-[var(--ag-accent)]/20 transition-colors">
                           <PenTool size={14} /> Edit Vertices
                         </button>
                       )}
                       {!selectedField.boundary && (
                         <button onClick={onSnapLLD} disabled={savingBoundary}
-                          className="w-full flex items-center justify-center gap-2 bg-white/[0.03] border border-ag rounded-lg px-3 py-1.5 text-xs text-ag-secondary hover:text-white hover:border-[#60A5FA]/40 transition-colors disabled:opacity-50">
+                          className="w-full flex items-center justify-center gap-2 bg-[var(--ag-bg-hover)] border border-ag rounded-lg px-3 py-1.5 text-xs text-ag-secondary hover:text-white hover:border-[#60A5FA]/40 transition-colors disabled:opacity-50">
                           <Grid3x3 size={12} /> Snap to LLD Quarter Section
                         </button>
                       )}
@@ -237,23 +237,23 @@ export default function IntelligencePanel({
                   )}
                   {selectedField.boundary && !isDrawing && (
                     <button onClick={onDeleteBoundary} disabled={savingBoundary}
-                      className="w-full flex items-center justify-center gap-2 bg-white/[0.03] border border-ag rounded-lg px-3 py-1.5 text-xs text-[#EF4444] hover:border-[#EF4444]/40 transition-colors disabled:opacity-50">
+                      className="w-full flex items-center justify-center gap-2 bg-[var(--ag-bg-hover)] border border-ag rounded-lg px-3 py-1.5 text-xs text-[var(--ag-red)] hover:border-[var(--ag-red)]/40 transition-colors disabled:opacity-50">
                       <Trash2 size={12} /> Remove Boundary
                     </button>
                   )}
                 </div>
 
                 <button onClick={() => router.push(`/fields/${selectedField.id}`)}
-                  className="w-full flex items-center justify-between bg-[#34D399]/10 border border-[#34D399]/20 rounded-lg px-3 py-2 text-sm font-semibold text-[#34D399] hover:bg-[#34D399]/20 transition-colors mb-2">
+                  className="w-full flex items-center justify-between bg-[var(--ag-accent)]/10 border border-[var(--ag-accent-border)] rounded-lg px-3 py-2 text-sm font-semibold text-[var(--ag-green)] hover:bg-[var(--ag-accent)]/20 transition-colors mb-2">
                   <span>Open Field Detail</span><ArrowRight size={14} />
                 </button>
                 <div className="grid grid-cols-2 gap-2">
                   <button onClick={() => window.location.href = selectedField.crop_type ? `/marketing?crop=${encodeURIComponent(selectedField.crop_type)}` : "/marketing"}
-                    className="flex items-center gap-1.5 bg-white/[0.03] border border-ag rounded-lg px-2 py-1.5 text-xs text-ag-secondary hover:text-white hover:border-[#34D399]/40 transition-colors">
+                    className="flex items-center gap-1.5 bg-[var(--ag-bg-hover)] border border-ag rounded-lg px-2 py-1.5 text-xs text-ag-secondary hover:text-white hover:border-[var(--ag-accent)]/40 transition-colors">
                     <DollarSign size={12} /> Contracts
                   </button>
                   <button onClick={() => window.location.href = selectedField.crop_type ? `/inventory?crop=${encodeURIComponent(selectedField.crop_type)}` : "/inventory"}
-                    className="flex items-center gap-1.5 bg-white/[0.03] border border-ag rounded-lg px-2 py-1.5 text-xs text-ag-secondary hover:text-white hover:border-[#34D399]/40 transition-colors">
+                    className="flex items-center gap-1.5 bg-[var(--ag-bg-hover)] border border-ag rounded-lg px-2 py-1.5 text-xs text-ag-secondary hover:text-white hover:border-[var(--ag-accent)]/40 transition-colors">
                     <Package size={12} /> Inventory
                   </button>
                 </div>
@@ -276,11 +276,11 @@ export default function IntelligencePanel({
             return (
               <button key={field.id} onClick={() => flyToField(field)}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left mb-1.5 transition-colors ${
-                  selectedField?.id === field.id ? "bg-[#34D399]/10 border border-[#34D399]/20" : "bg-ag-card border border-ag hover:border-[#34D399]/30"
+                  selectedField?.id === field.id ? "bg-[var(--ag-accent)]/10 border border-[var(--ag-accent-border)]" : "bg-ag-card border border-ag hover:border-[var(--ag-accent)]/30"
                 }`}>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CROP_COLORS[field.crop_type || ""] || "#475569" }} />
-                  {field.boundary && <Square size={8} className="text-[#60A5FA]" />}
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CROP_COLORS[field.crop_type || ""] || "var(--ag-text-dim)" }} />
+                  {field.boundary && <Square size={8} className="text-[var(--ag-blue)]" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-ag-primary truncate">{field.field_name}</p>

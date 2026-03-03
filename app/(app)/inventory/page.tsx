@@ -108,12 +108,12 @@ type FarmProfile = {
 
 // ─── Shared Styles ────────────────────────────────────────────────────────────
 
-const inputClass = "w-full text-sm border border-white/[0.10] rounded-lg px-3 py-2 bg-white/[0.04] text-ag-primary placeholder:text-ag-dim focus:outline-none focus:border-[#34D399]/50 transition-colors";
-const selectClass = "w-full text-sm border border-white/[0.10] rounded-lg px-3 py-2 bg-[#111827] text-ag-primary focus:outline-none focus:border-[#34D399]/50 transition-colors";
+const inputClass = "w-full text-sm border border-[var(--ag-border-solid)] rounded-lg px-3 py-2 bg-[var(--ag-bg-hover)] text-ag-primary placeholder:text-ag-dim focus:outline-none focus:border-[var(--ag-accent)]/50 transition-colors";
+const selectClass = "w-full text-sm border border-[var(--ag-border-solid)] rounded-lg px-3 py-2 bg-[var(--ag-bg-card)] text-ag-primary focus:outline-none focus:border-[var(--ag-accent)]/50 transition-colors";
 const labelClass = "text-[10px] text-ag-muted font-semibold block mb-1 uppercase tracking-[1px]";
-const btnPrimary = "flex items-center gap-1.5 bg-[#34D399] text-[#080C15] text-xs font-semibold px-5 py-2 rounded-full hover:bg-[#6EE7B7] transition-colors disabled:opacity-40";
-const btnSecondary = "flex items-center gap-1.5 text-xs font-semibold text-[#34D399] bg-[#34D399]/[0.08] border border-[#34D399]/15 px-4 py-2 rounded-full hover:bg-[#34D399]/[0.14] transition-colors";
-const btnGhost = "text-xs text-ag-muted px-4 py-2 rounded-full hover:bg-white/[0.04] transition-colors";
+const btnPrimary = "flex items-center gap-1.5 bg-[var(--ag-accent)] text-[var(--ag-accent-text)] text-xs font-semibold px-5 py-2 rounded-full hover:bg-[var(--ag-accent-hover)] transition-colors disabled:opacity-40";
+const btnSecondary = "flex items-center gap-1.5 text-xs font-semibold text-[var(--ag-green)] bg-[var(--ag-accent)]/[0.08] border border-[var(--ag-accent)]/15 px-4 py-2 rounded-full hover:bg-[var(--ag-accent)]/[0.14] transition-colors";
+const btnGhost = "text-xs text-ag-muted px-4 py-2 rounded-full hover:bg-[var(--ag-bg-hover)] transition-colors";
 
 function fmt(n: number) {
   return `$${Math.abs(n).toLocaleString("en-CA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -129,17 +129,17 @@ function KpiCard({ label, value, sub, icon: Icon, highlight, accent }: {
     <div className={`rounded-xl border p-5 transition-colors ${
       highlight
         ? "bg-[#F59E0B]/[0.04] border-[#F59E0B]/15"
-        : "bg-[#111827] border-white/[0.06]"
+        : "bg-[var(--ag-bg-card)] border-[var(--ag-border)]"
     }`}>
       <div className="flex items-center justify-between mb-2">
         <p className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">{label}</p>
         <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-          highlight ? "bg-[#F59E0B]/[0.10]" : accent ? "bg-[#34D399]/[0.10]" : "bg-white/[0.04]"
+          highlight ? "bg-[#F59E0B]/[0.10]" : accent ? "bg-[var(--ag-accent)]/[0.10]" : "bg-[var(--ag-bg-hover)]"
         }`}>
-          <Icon size={14} className={highlight ? "text-[#F59E0B]" : accent ? "text-[#34D399]" : "text-ag-secondary"} />
+          <Icon size={14} className={highlight ? "text-[var(--ag-yellow)]" : accent ? "text-[var(--ag-green)]" : "text-ag-secondary"} />
         </div>
       </div>
-      <p className={`text-2xl font-bold ${highlight ? "text-[#F59E0B]" : "text-ag-primary"}`}>{value}</p>
+      <p className={`text-2xl font-bold ${highlight ? "text-[var(--ag-yellow)]" : "text-ag-primary"}`}>{value}</p>
       <p className="text-[10px] text-ag-dim mt-1">{sub}</p>
     </div>
   );
@@ -152,7 +152,7 @@ function FormCard({ title, onClose, children, accent }: {
 }) {
   return (
     <div className={`rounded-xl border p-5 space-y-4 ${
-      accent ? "bg-[#F59E0B]/[0.03] border-[#F59E0B]/15" : "bg-[#111827] border-[#34D399]/15"
+      accent ? "bg-[#F59E0B]/[0.03] border-[#F59E0B]/15" : "bg-[var(--ag-bg-card)] border-[var(--ag-accent)]/15"
     }`}>
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-ag-primary">{title}</h3>
@@ -656,9 +656,9 @@ export default function InventoryPage() {
       {activeTab !== "grain_loads" && activeTab !== "settlements" ? (
         <>
           <div className="flex justify-end mb-2">
-            <div className="flex items-center bg-white/[0.04] rounded-full p-0.5 text-xs font-semibold border border-white/[0.06]">
-              <button onClick={() => setKpiUnit("bu")} className={`px-3 py-1 rounded-full transition-all ${kpiUnit === "bu" ? "bg-[#34D399] text-[#080C15]" : "text-ag-muted"}`}>bu</button>
-              <button onClick={() => setKpiUnit("mt")} className={`px-3 py-1 rounded-full transition-all ${kpiUnit === "mt" ? "bg-[#34D399] text-[#080C15]" : "text-ag-muted"}`}>MT</button>
+            <div className="flex items-center bg-[var(--ag-bg-hover)] rounded-full p-0.5 text-xs font-semibold border border-[var(--ag-border)]">
+              <button onClick={() => setKpiUnit("bu")} className={`px-3 py-1 rounded-full transition-all ${kpiUnit === "bu" ? "bg-[var(--ag-accent)] text-[var(--ag-accent-text)]" : "text-ag-muted"}`}>bu</button>
+              <button onClick={() => setKpiUnit("mt")} className={`px-3 py-1 rounded-full transition-all ${kpiUnit === "mt" ? "bg-[var(--ag-accent)] text-[var(--ag-accent-text)]" : "text-ag-muted"}`}>MT</button>
             </div>
           </div>
           <div className="grid grid-cols-4 gap-4">
@@ -689,8 +689,8 @@ export default function InventoryPage() {
       ) : null}
 
       {/* Tabs */}
-      <div className="bg-[#111827] rounded-xl border border-white/[0.06] overflow-hidden">
-        <div className="flex border-b border-white/[0.06]">
+      <div className="bg-[var(--ag-bg-card)] rounded-xl border border-[var(--ag-border)] overflow-hidden">
+        <div className="flex border-b border-[var(--ag-border)]">
           {([
             { key: "holdings", label: "Holdings", icon: Package },
             { key: "contracts", label: "Contracts", icon: TrendingUp },
@@ -702,7 +702,7 @@ export default function InventoryPage() {
             <button key={key} onClick={() => setActiveTab(key)}
               className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold border-b-2 transition-all ${
                 activeTab === key
-                  ? "border-[#34D399] text-[#34D399]"
+                  ? "border-[var(--ag-accent)] text-[var(--ag-green)]"
                   : "border-transparent text-ag-muted hover:text-ag-primary"
               }`}>
               <Icon size={14} /> {label}
@@ -730,7 +730,7 @@ export default function InventoryPage() {
               </FormCard>
             )}
             {cropFilter !== "all" && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#34D399]/10 border border-[#34D399]/20 text-sm text-[#34D399]">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--ag-accent)]/10 border border-[var(--ag-accent-border)] text-sm text-[var(--ag-green)]">
                 <Filter size={14} />
                 Filtered to: <span className="font-semibold">{cropFilter}</span>
                 <a href="/inventory" className="ml-auto text-xs underline text-ag-muted hover:text-ag-primary">Clear</a>
@@ -745,7 +745,7 @@ export default function InventoryPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px] border-b border-white/[0.06]">
+                    <tr className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px] border-b border-[var(--ag-border)]">
                       <th className="text-left pb-3 pr-6">Crop</th>
                       <th className="text-left pb-3 pr-6">Location</th>
                       <th className="text-right pb-3 pr-6">Quantity</th>
@@ -756,18 +756,18 @@ export default function InventoryPage() {
                       <th className="pb-3 w-10"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
+                  <tbody className="divide-y divide-[var(--ag-border)]">
                      {(cropFilter !== "all" ? holdings.filter(h => h.crop === cropFilter) : holdings).map((h, i) => (
                       <tr key={h.id || i} className="hover:bg-white/[0.02] transition-colors">
                         <td className="py-3 pr-6 font-semibold text-ag-primary">{h.crop}</td>
                         <td className="py-3 pr-6 text-ag-secondary">{h.location}</td>
                         <td className="py-3 pr-6 text-right font-semibold text-ag-primary font-mono">{Number(h.quantity_bu).toLocaleString()} bu</td>
-                        <td className="py-3 pr-6"><span className="text-[10px] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded text-ag-secondary">{h.grade || "—"}</span></td>
+                        <td className="py-3 pr-6"><span className="text-[10px] bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] px-2 py-0.5 rounded text-ag-secondary">{h.grade || "—"}</span></td>
                         <td className="py-3 pr-6 text-right text-ag-muted">{h.moisture ? `${h.moisture}%` : "—"}</td>
                         <td className="py-3 pr-6 text-right text-ag-secondary">{h.estimated_price ? `$${h.estimated_price}/bu` : "—"}</td>
-                        <td className="py-3 text-right font-semibold text-[#34D399]">{fmt(Number(h.quantity_bu) * Number(h.estimated_price || 0))}</td>
+                        <td className="py-3 text-right font-semibold text-[var(--ag-green)]">{fmt(Number(h.quantity_bu) * Number(h.estimated_price || 0))}</td>
                         <td className="py-3 text-right">
-                          {h.id && <button onClick={() => deleteHolding(h.id!)} className="text-[#EF4444]/40 hover:text-[#EF4444] transition-colors"><Trash2 size={14} /></button>}
+                          {h.id && <button onClick={() => deleteHolding(h.id!)} className="text-[var(--ag-red)]/40 hover:text-[var(--ag-red)] transition-colors"><Trash2 size={14} /></button>}
                         </td>
                       </tr>
                     ))}
@@ -805,16 +805,16 @@ export default function InventoryPage() {
                   const totalSold = contracts.filter(c => c.crop === crop).reduce((s, c) => s + Number(c.quantity_bu), 0);
                   const pct = totalHeld > 0 ? Math.min(100, Math.round((totalSold / totalHeld) * 100)) : 0;
                   return (
-                    <div key={crop} className="p-4 bg-white/[0.02] border border-white/[0.06] rounded-xl">
+                    <div key={crop} className="p-4 bg-white/[0.02] border border-[var(--ag-border)] rounded-xl">
                       <p className="text-sm font-bold text-ag-primary">{crop}</p>
                       <div className="flex justify-between text-[10px] text-ag-muted mt-1">
                         <span>{totalSold.toLocaleString()} bu sold</span>
                         <span>{totalHeld.toLocaleString()} bu total</span>
                       </div>
-                      <div className="mt-2 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                        <div className="h-full bg-[#34D399] rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      <div className="mt-2 h-1.5 bg-[var(--ag-bg-active)] rounded-full overflow-hidden">
+                        <div className="h-full bg-[var(--ag-accent)] rounded-full transition-all" style={{ width: `${pct}%` }} />
                       </div>
-                      <p className="text-[10px] font-semibold text-[#34D399] mt-1">{pct}% contracted</p>
+                      <p className="text-[10px] font-semibold text-[var(--ag-green)] mt-1">{pct}% contracted</p>
                     </div>
                   );
                 })}
@@ -829,7 +829,7 @@ export default function InventoryPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px] border-b border-white/[0.06]">
+                    <tr className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px] border-b border-[var(--ag-border)]">
                       <th className="text-left pb-3 pr-6">Crop</th>
                       <th className="text-left pb-3 pr-6">Type</th>
                       <th className="text-right pb-3 pr-6">Quantity</th>
@@ -840,18 +840,18 @@ export default function InventoryPage() {
                       <th className="pb-3 w-10"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
+                  <tbody className="divide-y divide-[var(--ag-border)]">
                     {contracts.map((c, i) => (
                       <tr key={c.id || i} className="hover:bg-white/[0.02] transition-colors">
                         <td className="py-3 pr-6 font-semibold text-ag-primary">{c.crop}</td>
-                        <td className="py-3 pr-6"><span className="text-[10px] bg-[#34D399]/[0.08] text-[#34D399] font-semibold px-2 py-1 rounded-full">{c.contract_type}</span></td>
+                        <td className="py-3 pr-6"><span className="text-[10px] bg-[var(--ag-accent)]/[0.08] text-[var(--ag-green)] font-semibold px-2 py-1 rounded-full">{c.contract_type}</span></td>
                         <td className="py-3 pr-6 text-right font-mono text-ag-primary">{Number(c.quantity_bu).toLocaleString()} bu</td>
                         <td className="py-3 pr-6 text-right text-ag-secondary">{c.price_per_bu ? `$${c.price_per_bu}/bu` : "—"}</td>
                         <td className="py-3 pr-6 text-ag-muted">{c.elevator || "—"}</td>
                         <td className="py-3 pr-6 text-ag-muted">{c.delivery_date || "—"}</td>
-                        <td className="py-3 text-right font-semibold text-[#34D399]">{c.price_per_bu ? fmt(Number(c.quantity_bu) * Number(c.price_per_bu)) : "—"}</td>
+                        <td className="py-3 text-right font-semibold text-[var(--ag-green)]">{c.price_per_bu ? fmt(Number(c.quantity_bu) * Number(c.price_per_bu)) : "—"}</td>
                         <td className="py-3 text-right">
-                          {c.id && <button onClick={() => deleteContract(c.id!)} className="text-[#EF4444]/40 hover:text-[#EF4444] transition-colors"><Trash2 size={14} /></button>}
+                          {c.id && <button onClick={() => deleteContract(c.id!)} className="text-[var(--ag-red)]/40 hover:text-[var(--ag-red)] transition-colors"><Trash2 size={14} /></button>}
                         </td>
                       </tr>
                     ))}
@@ -897,7 +897,7 @@ export default function InventoryPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px] border-b border-white/[0.06]">
+                    <tr className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px] border-b border-[var(--ag-border)]">
                       <th className="text-left pb-3">Date</th>
                       <th className="text-left pb-3">Type</th>
                       <th className="text-left pb-3">Crop</th>
@@ -906,11 +906,11 @@ export default function InventoryPage() {
                       <th className="text-left pb-3">To</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
+                  <tbody className="divide-y divide-[var(--ag-border)]">
                     {movements.map((m, i) => (
                       <tr key={m.id || i} className="hover:bg-white/[0.02] transition-colors">
                         <td className="py-3 text-ag-muted font-mono text-[11px]">{m.movement_date}</td>
-                        <td className="py-3"><span className="text-[10px] bg-white/[0.04] border border-white/[0.06] text-ag-secondary font-semibold px-2 py-1 rounded-full">{m.movement_type}</span></td>
+                        <td className="py-3"><span className="text-[10px] bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] text-ag-secondary font-semibold px-2 py-1 rounded-full">{m.movement_type}</span></td>
                         <td className="py-3 font-semibold text-ag-primary">{m.crop}</td>
                         <td className="py-3 text-right pr-6 font-mono text-ag-primary">{Number(m.quantity_bu).toLocaleString()} bu</td>
                         <td className="py-3 pr-6 text-ag-muted">{m.from_location || "—"}</td>
@@ -931,26 +931,26 @@ export default function InventoryPage() {
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">Unit:</span>
-                <div className="flex rounded-lg border border-white/[0.10] overflow-hidden">
-                  <button onClick={() => setWeightUnit("kg")} className={`px-3 py-1 text-xs font-semibold transition-all ${weightUnit === "kg" ? "bg-[#34D399] text-[#080C15]" : "bg-transparent text-ag-muted"}`}>KG</button>
-                  <button onClick={() => setWeightUnit("lb")} className={`px-3 py-1 text-xs font-semibold transition-all ${weightUnit === "lb" ? "bg-[#34D399] text-[#080C15]" : "bg-transparent text-ag-muted"}`}>LB</button>
+                <div className="flex rounded-lg border border-[var(--ag-border-solid)] overflow-hidden">
+                  <button onClick={() => setWeightUnit("kg")} className={`px-3 py-1 text-xs font-semibold transition-all ${weightUnit === "kg" ? "bg-[var(--ag-accent)] text-[var(--ag-accent-text)]" : "bg-transparent text-ag-muted"}`}>KG</button>
+                  <button onClick={() => setWeightUnit("lb")} className={`px-3 py-1 text-xs font-semibold transition-all ${weightUnit === "lb" ? "bg-[var(--ag-accent)] text-[var(--ag-accent-text)]" : "bg-transparent text-ag-muted"}`}>LB</button>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Filter size={12} className="text-ag-dim" />
-                <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} className="text-sm border border-white/[0.10] rounded-lg px-3 py-1 bg-white/[0.04] text-ag-primary focus:outline-none focus:border-[#34D399]/50" />
+                <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} className="text-sm border border-[var(--ag-border-solid)] rounded-lg px-3 py-1 bg-[var(--ag-bg-hover)] text-ag-primary focus:outline-none focus:border-[var(--ag-accent)]/50" />
                 <span className="text-[10px] text-ag-dim">to</span>
-                <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} className="text-sm border border-white/[0.10] rounded-lg px-3 py-1 bg-white/[0.04] text-ag-primary focus:outline-none focus:border-[#34D399]/50" />
+                <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} className="text-sm border border-[var(--ag-border-solid)] rounded-lg px-3 py-1 bg-[var(--ag-bg-hover)] text-ag-primary focus:outline-none focus:border-[var(--ag-accent)]/50" />
               </div>
               {(filterFrom || filterTo) && (
-                <button onClick={() => { setFilterFrom(""); setFilterTo(""); }} className="text-[10px] text-[#EF4444] font-semibold flex items-center gap-1 hover:text-[#EF4444]/80">
+                <button onClick={() => { setFilterFrom(""); setFilterTo(""); }} className="text-[10px] text-[var(--ag-red)] font-semibold flex items-center gap-1 hover:text-[var(--ag-red)]/80">
                   <RotateCcw size={10} /> Clear
                 </button>
               )}
             </div>
 
             {/* Manage bar */}
-            <div className="flex items-center gap-3 pb-3 border-b border-white/[0.06]">
+            <div className="flex items-center gap-3 pb-3 border-b border-[var(--ag-border)]">
               <span className="font-mono text-[10px] text-ag-dim font-semibold uppercase tracking-[1.5px]">Manage:</span>
               {[
                 { label: "Drivers", count: drivers.length, show: showManageDrivers, toggle: () => setShowManageDrivers(!showManageDrivers) },
@@ -959,7 +959,7 @@ export default function InventoryPage() {
               ].map(({ label, count, show, toggle }) => (
                 <button key={label} onClick={toggle}
                   className={`text-[10px] font-semibold px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 ${
-                    show ? "bg-[#34D399]/[0.10] text-[#34D399] border border-[#34D399]/20" : "bg-white/[0.04] border border-white/[0.06] text-ag-secondary hover:text-ag-primary"
+                    show ? "bg-[var(--ag-accent)]/[0.10] text-[var(--ag-green)] border border-[var(--ag-accent-border)]" : "bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] text-ag-secondary hover:text-ag-primary"
                   }`}>
                   <Settings2 size={10} /> {label} ({count})
                 </button>
@@ -1037,27 +1037,27 @@ export default function InventoryPage() {
               <FormCard title="Scan Scale Ticket" onClose={() => { setShowTicketUpload(false); setParsedTicket(null); setTicketPreview(null); setTicketError(null); }}>
                 {!parsedTicket && (
                   <div>
-                    <label className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-[#34D399]/30 rounded-xl cursor-pointer hover:bg-[#34D399]/[0.02] transition-colors">
-                      {ticketParsing ? <Loader2 size={24} className="text-[#34D399] animate-spin mb-2" /> : <Camera size={24} className="text-ag-dim mb-2" />}
+                    <label className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-[var(--ag-accent)]/30 rounded-xl cursor-pointer hover:bg-[var(--ag-accent)]/[0.02] transition-colors">
+                      {ticketParsing ? <Loader2 size={24} className="text-[var(--ag-green)] animate-spin mb-2" /> : <Camera size={24} className="text-ag-dim mb-2" />}
                       <span className="text-sm text-ag-muted">{ticketParsing ? "Parsing ticket..." : "Take photo or upload scale ticket"}</span>
                       <span className="text-[10px] text-ag-dim mt-1">JPG, PNG, or PDF</span>
                       <input type="file" accept="image/*,application/pdf" capture="environment" className="hidden" disabled={ticketParsing} onChange={(e) => { const file = e.target.files?.[0]; if (file) parseScaleTicket(file); }} />
                     </label>
-                    {ticketError && <p className="text-sm text-[#EF4444] mt-2 flex items-center gap-1"><XCircle size={13} /> {ticketError}</p>}
+                    {ticketError && <p className="text-sm text-[var(--ag-red)] mt-2 flex items-center gap-1"><XCircle size={13} /> {ticketError}</p>}
                   </div>
                 )}
                 {parsedTicket && (
                   <div className="space-y-3">
                     <div className="flex gap-4">
-                      {ticketPreview && <img src={ticketPreview} alt="Scale ticket" className="w-48 h-auto rounded-lg border border-white/[0.10]" />}
+                      {ticketPreview && <img src={ticketPreview} alt="Scale ticket" className="w-48 h-auto rounded-lg border border-[var(--ag-border-solid)]" />}
                       <div className="flex-1 grid grid-cols-2 gap-2 text-sm">
                         {(() => {
                           const uf = parsedTicket.uncertain_fields || [];
                           const f = (field: string, label: string, value: any, suffix?: string) => (
-                            <div className={uf.includes(field) ? "bg-[#F59E0B]/[0.06] border border-[#F59E0B]/15 rounded px-1.5 py-0.5" : ""}>
+                            <div className={uf.includes(field) ? "bg-[var(--ag-yellow)/0.06] border border-[#F59E0B]/15 rounded px-1.5 py-0.5" : ""}>
                               <span className="text-ag-muted">{label}:</span>{" "}
-                              <strong className={uf.includes(field) ? "text-[#F59E0B]" : "text-ag-primary"}>{value}{suffix || ""}</strong>
-                              {uf.includes(field) && <span className="text-[9px] text-[#F59E0B] ml-1 flex items-center gap-0.5 inline-flex"><AlertTriangle size={8} /> verify</span>}
+                              <strong className={uf.includes(field) ? "text-[var(--ag-yellow)]" : "text-ag-primary"}>{value}{suffix || ""}</strong>
+                              {uf.includes(field) && <span className="text-[9px] text-[var(--ag-yellow)] ml-1 flex items-center gap-0.5 inline-flex"><AlertTriangle size={8} /> verify</span>}
                             </div>
                           );
                           return (<>
@@ -1073,8 +1073,8 @@ export default function InventoryPage() {
                             {f("net_bushels", "Bushels", parsedTicket.net_bushels ? parsedTicket.net_bushels.toLocaleString() : parsedTicket.net_weight_kg && parsedTicket.crop ? `${Math.round(parsedTicket.net_weight_kg / (KG_PER_BUSHEL[parsedTicket.crop] || 27.22)).toLocaleString()} (calc)` : "—")}
                             {f("moisture_percent", "Moisture", parsedTicket.moisture_percent ? `${parsedTicket.moisture_percent}%` : "—")}
                             <div><span className="text-ag-muted">Protein:</span> <strong className="text-ag-primary">{parsedTicket.protein_percent ? `${parsedTicket.protein_percent}%` : "—"}</strong></div>
-                            <div className="col-span-2"><span className="text-ag-muted">Confidence:</span> <strong className={parsedTicket.confidence === "high" ? "text-[#34D399]" : "text-[#F59E0B]"}>{parsedTicket.confidence}</strong>
-                              {uf.length > 0 && <span className="text-[10px] text-[#F59E0B] ml-2">({uf.length} field{uf.length > 1 ? "s" : ""} need review)</span>}
+                            <div className="col-span-2"><span className="text-ag-muted">Confidence:</span> <strong className={parsedTicket.confidence === "high" ? "text-[var(--ag-green)]" : "text-[var(--ag-yellow)]"}>{parsedTicket.confidence}</strong>
+                              {uf.length > 0 && <span className="text-[10px] text-[var(--ag-yellow)] ml-2">({uf.length} field{uf.length > 1 ? "s" : ""} need review)</span>}
                             </div>
                           </>);
                         })()}
@@ -1094,8 +1094,8 @@ export default function InventoryPage() {
             {syncResult && (
               <div className={`flex items-center gap-2 p-3 rounded-xl text-sm font-medium ${
                 syncResult.type === "success"
-                  ? "bg-[#34D399]/[0.06] border border-[#34D399]/15 text-[#34D399]"
-                  : "bg-[#EF4444]/[0.06] border border-[#EF4444]/15 text-[#EF4444]"
+                  ? "bg-[var(--ag-accent)]/[0.06] border border-[var(--ag-accent)]/15 text-[var(--ag-green)]"
+                  : "bg-[var(--ag-red)]/[0.06] border border-[var(--ag-red)]/15 text-[var(--ag-red)]"
               }`}>
                 {syncResult.type === "success" ? <CheckCircle size={14} /> : <XCircle size={14} />}
                 {syncResult.message}
@@ -1204,9 +1204,9 @@ export default function InventoryPage() {
             {showBulkUpload && (
               <FormCard title="Bulk Upload Loads" onClose={() => setShowBulkUpload(false)}>
                 <p className="text-xs text-ag-muted">Upload a CSV file with your load data. Driver, truck, and customer names must match your pre-populated lists exactly.</p>
-                <button onClick={downloadTemplate} className="text-xs text-[#34D399] font-semibold hover:text-[#6EE7B7] flex items-center gap-1"><Download size={11} /> Download Template CSV</button>
+                <button onClick={downloadTemplate} className="text-xs text-[var(--ag-green)] font-semibold hover:text-[var(--ag-green)] flex items-center gap-1"><Download size={11} /> Download Template CSV</button>
                 <input type="file" accept=".csv" onChange={handleBulkUpload} className="text-sm text-ag-secondary" />
-                {bulkUploadError && <p className="text-xs text-[#EF4444] flex items-center gap-1"><XCircle size={12} /> {bulkUploadError}</p>}
+                {bulkUploadError && <p className="text-xs text-[var(--ag-red)] flex items-center gap-1"><XCircle size={12} /> {bulkUploadError}</p>}
               </FormCard>
             )}
 
@@ -1220,7 +1220,7 @@ export default function InventoryPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px] border-b border-white/[0.06]">
+                    <tr className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px] border-b border-[var(--ag-border)]">
                       <th className="text-left pb-3 pr-3">Date</th>
                       <th className="text-left pb-3 pr-3">Driver</th>
                       <th className="text-left pb-3 pr-3">Truck</th>
@@ -1236,7 +1236,7 @@ export default function InventoryPage() {
                       <th className="pb-3 w-16"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
+                  <tbody className="divide-y divide-[var(--ag-border)]">
                     {filteredLoads.map(load => (
                       <tr key={load.id} className="hover:bg-white/[0.02] transition-colors">
                         <td className="py-3 pr-3 text-ag-muted font-mono text-[11px]">{load.date?.split("T")[0]}</td>
@@ -1249,12 +1249,12 @@ export default function InventoryPage() {
                         <td className="py-3 pr-3 text-right text-ag-secondary">{load.price_per_bushel ? `$${Number(load.price_per_bushel).toFixed(2)}` : "—"}</td>
                         <td className="py-3 pr-3 text-right font-mono font-medium text-ag-primary">{load.gross_weight_kg ? toDisplay(Number(load.gross_weight_kg)).toLocaleString("en-CA", { maximumFractionDigits: 0 }) : "—"}</td>
                         <td className="py-3 pr-3 text-right text-ag-muted">{load.dockage_percent ? `${load.dockage_percent}%` : "—"}</td>
-                        <td className="py-3 pr-3 text-right font-mono font-semibold text-[#34D399]">{load.net_weight_kg ? toDisplay(Number(load.net_weight_kg)).toLocaleString("en-CA", { maximumFractionDigits: 0 }) : "—"}</td>
+                        <td className="py-3 pr-3 text-right font-mono font-semibold text-[var(--ag-green)]">{load.net_weight_kg ? toDisplay(Number(load.net_weight_kg)).toLocaleString("en-CA", { maximumFractionDigits: 0 }) : "—"}</td>
                         <td className="py-3 pr-3 text-ag-muted">{load.settlement_id || "—"}</td>
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <button onClick={() => setEditingLoad(load)} className="text-ag-dim hover:text-[#34D399] transition-colors"><Pencil size={13} /></button>
-                            <button onClick={() => deleteLoad(load.id)} className="text-ag-dim hover:text-[#EF4444] transition-colors"><Trash2 size={13} /></button>
+                            <button onClick={() => setEditingLoad(load)} className="text-ag-dim hover:text-[var(--ag-green)] transition-colors"><Pencil size={13} /></button>
+                            <button onClick={() => deleteLoad(load.id)} className="text-ag-dim hover:text-[var(--ag-red)] transition-colors"><Trash2 size={13} /></button>
                           </div>
                         </td>
                       </tr>
@@ -1262,7 +1262,7 @@ export default function InventoryPage() {
                   </tbody>
                 </table>
                 {/* Summary ribbon */}
-                <div className="mt-3 flex items-center justify-end gap-8 bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3 text-sm">
+                <div className="mt-3 flex items-center justify-end gap-8 bg-white/[0.02] border border-[var(--ag-border)] rounded-xl px-4 py-3 text-sm">
                   {(filterFrom || filterTo) && (
                     <span className="text-[10px] text-ag-dim mr-auto">
                       Showing {filteredLoads.length} of {grainLoads.length} loads
@@ -1274,7 +1274,7 @@ export default function InventoryPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-ag-muted font-medium">Total Net:</span>
-                    <span className="font-bold font-mono text-[#34D399]">{toDisplay(filteredNetKg).toLocaleString("en-CA", { maximumFractionDigits: 0 })} {unitLabel}</span>
+                    <span className="font-bold font-mono text-[var(--ag-green)]">{toDisplay(filteredNetKg).toLocaleString("en-CA", { maximumFractionDigits: 0 })} {unitLabel}</span>
                   </div>
                 </div>
               </div>
@@ -1300,12 +1300,12 @@ export default function InventoryPage() {
                   </label>
                   {settlementParsing && (
                     <span className="text-sm text-ag-muted flex items-center gap-2">
-                      <Loader2 size={14} className="animate-spin text-[#34D399]" /> Parsing with AI... this may take 30-60 seconds
+                      <Loader2 size={14} className="animate-spin text-[var(--ag-green)]" /> Parsing with AI... this may take 30-60 seconds
                     </span>
                   )}
                 </div>
                 {settlementError && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-[#EF4444]/[0.06] border border-[#EF4444]/15 text-[#EF4444] text-sm font-medium">
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-[var(--ag-red)]/[0.06] border border-[var(--ag-red)]/15 text-[var(--ag-red)] text-sm font-medium">
                     <XCircle size={14} /> {settlementError}
                   </div>
                 )}
@@ -1319,7 +1319,7 @@ export default function InventoryPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px] border-b border-white/[0.06]">
+                        <tr className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px] border-b border-[var(--ag-border)]">
                           <th className="text-left pb-3 pr-3">Settlement #</th>
                           <th className="text-left pb-3 pr-3">Terminal</th>
                           <th className="text-left pb-3 pr-3">Date</th>
@@ -1332,7 +1332,7 @@ export default function InventoryPage() {
                           <th className="pb-3 w-10"></th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/[0.04]">
+                      <tbody className="divide-y divide-[var(--ag-border)]">
                         {settlements.map((s) => {
                           const flags = typeof s.flags === "string" ? JSON.parse(s.flags) : s.flags || {};
                           const totalFlags = (flags.dockage_outliers || 0) + (flags.price_mismatches || 0) + (flags.math_errors || 0);
@@ -1341,26 +1341,26 @@ export default function InventoryPage() {
                               <td className="py-3 pr-3 font-semibold text-ag-primary">{s.settlement_number || "—"}</td>
                               <td className="py-3 pr-3 text-ag-secondary">{s.terminal_name} {s.terminal_location ? `— ${s.terminal_location}` : ""}</td>
                               <td className="py-3 pr-3 text-ag-muted font-mono text-[11px]">{s.issue_date?.split("T")[0]}</td>
-                              <td className="py-3 pr-3"><span className="text-[10px] bg-[#34D399]/[0.08] text-[#34D399] font-semibold px-2 py-0.5 rounded-full">{s.crop}</span></td>
+                              <td className="py-3 pr-3"><span className="text-[10px] bg-[var(--ag-accent)]/[0.08] text-[var(--ag-green)] font-semibold px-2 py-0.5 rounded-full">{s.crop}</span></td>
                               <td className="py-3 pr-3 text-right text-ag-primary">{s.total_loads}</td>
                               <td className="py-3 pr-3 text-right font-mono text-ag-secondary">{Number(s.total_net_weight_mt).toLocaleString("en-CA", { maximumFractionDigits: 1 })}</td>
-                              <td className="py-3 pr-3 text-right font-semibold text-[#34D399]">${Number(s.net_payable).toLocaleString("en-CA", { maximumFractionDigits: 2 })}</td>
+                              <td className="py-3 pr-3 text-right font-semibold text-[var(--ag-green)]">${Number(s.net_payable).toLocaleString("en-CA", { maximumFractionDigits: 2 })}</td>
                               <td className="py-3 pr-3">
                                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                                  s.status === "posted" ? "bg-[#34D399]/[0.08] text-[#34D399]"
-                                    : s.status === "reviewed" ? "bg-[#38BDF8]/[0.08] text-[#38BDF8]"
-                                    : "bg-[#F59E0B]/[0.08] text-[#F59E0B]"
+                                  s.status === "posted" ? "bg-[var(--ag-accent)]/[0.08] text-[var(--ag-green)]"
+                                    : s.status === "reviewed" ? "bg-[#38BDF8]/[0.08] text-[var(--ag-blue)]"
+                                    : "bg-[#F59E0B]/[0.08] text-[var(--ag-yellow)]"
                                 }`}>{s.status}</span>
                               </td>
                               <td className="py-3 pr-3">
                                 {totalFlags > 0 ? (
-                                  <span className="flex items-center gap-1 text-[10px] font-semibold text-[#F59E0B]"><AlertTriangle size={12} /> {totalFlags}</span>
+                                  <span className="flex items-center gap-1 text-[10px] font-semibold text-[var(--ag-yellow)]"><AlertTriangle size={12} /> {totalFlags}</span>
                                 ) : (
-                                  <CheckCircle size={13} className="text-[#34D399]" />
+                                  <CheckCircle size={13} className="text-[var(--ag-green)]" />
                                 )}
                               </td>
                               <td className="py-3">
-                                <button onClick={(e) => { e.stopPropagation(); deleteSettlement(s.id); }} className="text-ag-dim hover:text-[#EF4444] transition-colors"><Trash2 size={13} /></button>
+                                <button onClick={(e) => { e.stopPropagation(); deleteSettlement(s.id); }} className="text-ag-dim hover:text-[var(--ag-red)] transition-colors"><Trash2 size={13} /></button>
                               </td>
                             </tr>
                           );
@@ -1391,7 +1391,7 @@ export default function InventoryPage() {
                       </button>
                     )}
                     <span className={`text-[10px] font-semibold px-3 py-1 rounded-full ${
-                      selectedSettlement.status === "posted" ? "bg-[#34D399]/[0.08] text-[#34D399]" : "bg-[#F59E0B]/[0.08] text-[#F59E0B]"
+                      selectedSettlement.status === "posted" ? "bg-[var(--ag-accent)]/[0.08] text-[var(--ag-green)]" : "bg-[#F59E0B]/[0.08] text-[var(--ag-yellow)]"
                     }`}>{selectedSettlement.status}</span>
                   </div>
                 </div>
@@ -1415,13 +1415,13 @@ export default function InventoryPage() {
 
                 {/* Adjustment Details */}
                 {settlementAnalysis?.adjustment_details && settlementAnalysis.adjustment_details.length > 0 && (
-                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                  <div className="rounded-xl border border-[var(--ag-border)] bg-white/[0.02] p-4">
                     <p className="font-mono text-[10px] font-semibold text-ag-secondary uppercase tracking-[1.5px] mb-3">Adjustments / Deductions</p>
                     <div className="space-y-1.5">
                       {settlementAnalysis.adjustment_details.map((adj: any, i: number) => (
                         <div key={i} className="flex justify-between text-sm">
                           <span className="text-ag-secondary">{adj.name}</span>
-                          <span className={`font-medium font-mono ${adj.amount < 0 ? "text-[#EF4444]" : "text-ag-primary"}`}>${adj.amount.toLocaleString("en-CA", { maximumFractionDigits: 2 })}</span>
+                          <span className={`font-medium font-mono ${adj.amount < 0 ? "text-[var(--ag-red)]" : "text-ag-primary"}`}>${adj.amount.toLocaleString("en-CA", { maximumFractionDigits: 2 })}</span>
                         </div>
                       ))}
                     </div>
@@ -1433,13 +1433,13 @@ export default function InventoryPage() {
                   const flags = typeof selectedSettlement.flags === "string" ? JSON.parse(selectedSettlement.flags) : selectedSettlement.flags || {};
                   const totalFlags = (flags.dockage_outliers || 0) + (flags.price_mismatches || 0) + (flags.math_errors || 0) + (flags.partial_loads || 0);
                   if (totalFlags === 0) return (
-                    <div className="flex items-center gap-2 p-3 rounded-xl bg-[#34D399]/[0.06] border border-[#34D399]/15 text-[#34D399] text-sm font-medium">
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-[var(--ag-accent)]/[0.06] border border-[var(--ag-accent)]/15 text-[var(--ag-green)] text-sm font-medium">
                       <ShieldCheck size={14} /> No irregularities found — all loads look clean
                     </div>
                   );
                   return (
                     <div className="p-3 rounded-xl bg-[#F59E0B]/[0.04] border border-[#F59E0B]/15 text-sm space-y-1">
-                      <p className="font-semibold text-[#F59E0B] flex items-center gap-1"><AlertTriangle size={14} /> {totalFlags} flag{totalFlags > 1 ? "s" : ""} detected</p>
+                      <p className="font-semibold text-[var(--ag-yellow)] flex items-center gap-1"><AlertTriangle size={14} /> {totalFlags} flag{totalFlags > 1 ? "s" : ""} detected</p>
                       {flags.dockage_outliers > 0 && <p className="text-ag-secondary">• {flags.dockage_outliers} dockage outlier{flags.dockage_outliers > 1 ? "s" : ""} (above 1.5x average)</p>}
                       {flags.price_mismatches > 0 && <p className="text-ag-secondary">• {flags.price_mismatches} price mismatch{flags.price_mismatches > 1 ? "es" : ""}</p>}
                       {flags.math_errors > 0 && <p className="text-ag-secondary">• {flags.math_errors} math discrepanc{flags.math_errors > 1 ? "ies" : "y"}</p>}
@@ -1452,7 +1452,7 @@ export default function InventoryPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px] border-b border-white/[0.06]">
+                      <tr className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px] border-b border-[var(--ag-border)]">
                         <th className="text-left pb-3 pr-3">#</th>
                         <th className="text-left pb-3 pr-3">Date</th>
                         <th className="text-left pb-3 pr-3">Receipt/CPER</th>
@@ -1465,27 +1465,27 @@ export default function InventoryPage() {
                         <th className="text-right pb-3">Gross $</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/[0.04]">
+                    <tbody className="divide-y divide-[var(--ag-border)]">
                       {settlementLines.map((line) => {
                         const flags = typeof line.flags === "string" ? JSON.parse(line.flags) : line.flags || {};
                         const hasFlag = flags.dockage_outlier || flags.dockage_high || flags.price_mismatch || flags.math_error || flags.partial_load;
                         const isRed = flags.dockage_outlier === "red";
                         const isAmber = flags.dockage_high === "amber" || flags.price_mismatch || flags.partial_load;
-                        const rowBg = isRed ? "bg-[#EF4444]/[0.04]" : isAmber ? "bg-[#F59E0B]/[0.04]" : "hover:bg-white/[0.02]";
+                        const rowBg = isRed ? "bg-[var(--ag-red)]/[0.04]" : isAmber ? "bg-[#F59E0B]/[0.04]" : "hover:bg-white/[0.02]";
                         return (
                           <tr key={line.id} className={rowBg + " transition-colors"}>
                             <td className="py-2.5 pr-3 text-ag-muted">
                               {line.line_number}
-                              {hasFlag && <AlertTriangle size={11} className={`inline ml-1 ${isRed ? "text-[#EF4444]" : "text-[#F59E0B]"}`} />}
+                              {hasFlag && <AlertTriangle size={11} className={`inline ml-1 ${isRed ? "text-[var(--ag-red)]" : "text-[var(--ag-yellow)]"}`} />}
                             </td>
                             <td className="py-2.5 pr-3 text-ag-muted font-mono text-[11px]">{line.delivery_date?.split("T")[0]}</td>
                             <td className="py-2.5 pr-3 font-medium text-ag-primary">{line.receipt_number || line.cper_number || "—"}</td>
                             <td className="py-2.5 pr-3 text-right font-mono text-ag-secondary">{line.unload_weight_mt ? Number(line.unload_weight_mt).toFixed(3) : "—"}</td>
-                            <td className={`py-2.5 pr-3 text-right font-mono font-medium ${isRed ? "text-[#EF4444] font-bold" : isAmber && flags.dockage_high ? "text-[#F59E0B] font-bold" : "text-ag-secondary"}`}>
+                            <td className={`py-2.5 pr-3 text-right font-mono font-medium ${isRed ? "text-[var(--ag-red)] font-bold" : isAmber && flags.dockage_high ? "text-[var(--ag-yellow)] font-bold" : "text-ag-secondary"}`}>
                               {line.dockage_pct ? `${Number(line.dockage_pct).toFixed(2)}%` : "—"}
                             </td>
                             <td className="py-2.5 pr-3 text-right font-mono text-ag-muted">{line.dockage_mt ? Number(line.dockage_mt).toFixed(3) : "—"}</td>
-                            <td className="py-2.5 pr-3 text-right font-mono font-semibold text-[#34D399]">{line.net_weight_mt ? Number(line.net_weight_mt).toFixed(3) : "—"}</td>
+                            <td className="py-2.5 pr-3 text-right font-mono font-semibold text-[var(--ag-green)]">{line.net_weight_mt ? Number(line.net_weight_mt).toFixed(3) : "—"}</td>
                             <td className="py-2.5 pr-3 text-right font-mono text-ag-muted">{line.moisture_pct ? `${Number(line.moisture_pct).toFixed(1)}%` : "—"}</td>
                             <td className="py-2.5 pr-3 text-right font-mono text-ag-secondary">${line.price_per_mt ? Number(line.price_per_mt).toFixed(2) : "—"}</td>
                             <td className="py-2.5 text-right font-mono font-medium text-ag-primary">${line.gross_amount ? Number(line.gross_amount).toLocaleString("en-CA", { maximumFractionDigits: 2 }) : "—"}</td>

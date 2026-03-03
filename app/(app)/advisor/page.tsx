@@ -137,7 +137,7 @@ function LilyMessage({ content }: { content: string }) {
       const text = numMatch[2].replace(/\*\*(.+?)\*\*/g, '<strong class="text-ag-primary font-medium">$1</strong>');
       elements.push(
         <div key={key++} className="flex gap-3 mt-1.5">
-          <span className="font-mono text-[11px] text-[#34D399] font-semibold mt-[2px] w-4 flex-shrink-0 text-right">{numMatch[1]}.</span>
+          <span className="font-mono text-[11px] text-[var(--ag-green)] font-semibold mt-[2px] w-4 flex-shrink-0 text-right">{numMatch[1]}.</span>
           <p className="text-[13px] text-[#CBD5E1] leading-[1.7]" dangerouslySetInnerHTML={{ __html: text }} />
         </div>
       );
@@ -150,7 +150,7 @@ function LilyMessage({ content }: { content: string }) {
       const text = bulletMatch[1].replace(/\*\*(.+?)\*\*/g, '<strong class="text-ag-primary font-medium">$1</strong>');
       elements.push(
         <div key={key++} className="flex gap-3 mt-1">
-          <span className="w-1 h-1 rounded-full bg-[#34D399] mt-[8px] flex-shrink-0" />
+          <span className="w-1 h-1 rounded-full bg-[var(--ag-accent)] mt-[8px] flex-shrink-0" />
           <p className="text-[13px] text-[#CBD5E1] leading-[1.7]" dangerouslySetInnerHTML={{ __html: text }} />
         </div>
       );
@@ -300,7 +300,7 @@ export default function AdvisorPage() {
           <div className="flex items-center gap-4">
             {/* Lily Avatar with glow */}
             <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-[#34D399]/20 blur-md" />
+              <div className="absolute inset-0 rounded-full bg-[var(--ag-accent)]/20 blur-md" />
               <div className="relative w-11 h-11 rounded-full flex items-center justify-center"
                 style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))", border: "1px solid rgba(52,211,153,0.25)" }}>
                 <LilyIcon size={24} />
@@ -309,13 +309,13 @@ export default function AdvisorPage() {
             <div>
               <div className="flex items-center gap-2.5">
                 <h1 className="text-[24px] font-bold text-ag-primary tracking-tight">Lily</h1>
-                <span className="flex items-center gap-1 font-mono text-[9px] font-semibold text-[#34D399] bg-[#34D399]/[0.06] border border-[#34D399]/15 px-2 py-0.5 rounded-full uppercase tracking-[1.5px]">
+                <span className="flex items-center gap-1 font-mono text-[9px] font-semibold text-[var(--ag-green)] bg-[var(--ag-accent)]/[0.06] border border-[var(--ag-accent)]/15 px-2 py-0.5 rounded-full uppercase tracking-[1.5px]">
                   <Sparkles size={9} /> AG360 Advisor
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34D399] opacity-40" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#34D399]" />
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--ag-accent)] opacity-40" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--ag-accent)]" />
                   </span>
                   <span className="font-mono text-[9px] text-ag-muted uppercase tracking-[1px]">Online</span>
                 </span>
@@ -328,19 +328,19 @@ export default function AdvisorPage() {
             </div>
           </div>
           {profileLoaded && !profile && (
-            <a href="/farm-profile" className="text-[11px] font-semibold text-[#34D399] bg-[#34D399]/[0.06] border border-[#34D399]/15 px-4 py-2 rounded-full hover:bg-[#34D399]/[0.12] transition-colors">
+            <a href="/farm-profile" className="text-[11px] font-semibold text-[var(--ag-green)] bg-[var(--ag-accent)]/[0.06] border border-[var(--ag-accent)]/15 px-4 py-2 rounded-full hover:bg-[var(--ag-accent)]/[0.12] transition-colors">
               Set Up Farm Profile →
             </a>
           )}
           {profileLoaded && profile && (
-            <a href="/farm-profile" className="flex items-center gap-1.5 text-[11px] font-semibold text-[#34D399] bg-[#34D399]/[0.06] border border-[#34D399]/15 px-4 py-2 rounded-full hover:bg-[#34D399]/[0.12] transition-colors">
+            <a href="/farm-profile" className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--ag-green)] bg-[var(--ag-accent)]/[0.06] border border-[var(--ag-accent)]/15 px-4 py-2 rounded-full hover:bg-[var(--ag-accent)]/[0.12] transition-colors">
               <CheckCircle size={11} /> {profile.farmName}
             </a>
           )}
         </div>
 
         <div className="mt-3 px-3 py-2 rounded-lg flex items-center gap-2" style={{ background: "rgba(245,158,11,0.04)", border: "1px solid rgba(245,158,11,0.08)" }}>
-          <AlertTriangle size={11} className="text-[#F59E0B]/60 flex-shrink-0" />
+          <AlertTriangle size={11} className="text-[var(--ag-yellow)]/60 flex-shrink-0" />
           <p className="text-[10px] text-ag-muted">Operational guidance only — not legal, financial, or medical advice. Verify crop protection rates against registered labels.</p>
         </div>
       </div>
@@ -352,7 +352,7 @@ export default function AdvisorPage() {
         {!hasMessages && (
           <div className="flex flex-col items-center justify-center h-full -mt-8">
             <div className="relative mb-8">
-              <div className="absolute inset-0 rounded-full bg-[#34D399]/10 blur-2xl scale-150 animate-pulse" style={{ animationDuration: "3s" }} />
+              <div className="absolute inset-0 rounded-full bg-[var(--ag-accent)]/10 blur-2xl scale-150 animate-pulse" style={{ animationDuration: "3s" }} />
               <div className="relative w-20 h-20 rounded-full flex items-center justify-center"
                 style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.12), rgba(52,211,153,0.04))", border: "1px solid rgba(52,211,153,0.20)" }}>
                 <LilyIcon size={44} />
@@ -381,7 +381,7 @@ export default function AdvisorPage() {
                     e.currentTarget.style.background = "rgba(255,255,255,0.02)";
                     e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
                   }}>
-                  <Icon size={14} className="text-ag-muted group-hover:text-[#34D399] mt-0.5 flex-shrink-0 transition-colors" />
+                  <Icon size={14} className="text-ag-muted group-hover:text-[var(--ag-green)] mt-0.5 flex-shrink-0 transition-colors" />
                   <span className="text-[12px] text-ag-secondary group-hover:text-ag-primary leading-snug transition-colors">{text}</span>
                 </button>
               ))}
@@ -406,12 +406,12 @@ export default function AdvisorPage() {
                     : "rounded-2xl rounded-bl-md px-5 py-4"
                 }`}
                   style={msg.role === "user"
-                    ? { background: "linear-gradient(135deg, #34D399, #2DD4A8)" }
+                    ? { background: "linear-gradient(135deg, var(--ag-accent), var(--ag-accent-hover))" }
                     : { background: "rgba(17,24,39,0.8)", border: "1px solid rgba(255,255,255,0.06)" }
                   }>
                   {msg.role === "assistant"
                     ? <LilyMessage content={typeof msg.content === "string" ? msg.content : msg.content.map((b: any) => b.text || "").join("\n")} />
-                    : <p className="text-[13px] text-[#080C15] font-medium leading-relaxed">{msg.content}</p>
+                    : <p className="text-[13px] text-[var(--ag-accent-text)] font-medium leading-relaxed">{msg.content}</p>
                   }
                   {msg.role === "assistant" && (
                     <button
@@ -422,14 +422,14 @@ export default function AdvisorPage() {
                       }}
                       id={`copy-${i}`}
                       className="absolute -bottom-6 right-0 opacity-0 group-hover/msg:opacity-100 transition-opacity text-[10px] font-medium px-2.5 py-1 rounded-md"
-                      style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", color: "#94A3B8" }}
+                      style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", color: "var(--ag-text-secondary)" }}
                     >
                       Copy
                     </button>
                   )}
                 </div>
                 {msg.role === "user" && (
-                  <div className="w-7 h-7 rounded-full bg-white/[0.06] border border-white/[0.08] flex items-center justify-center shrink-0 mt-1">
+                  <div className="w-7 h-7 rounded-full bg-[var(--ag-bg-active)] border border-[var(--ag-border)] flex items-center justify-center shrink-0 mt-1">
                     <User size={12} className="text-ag-secondary" />
                   </div>
                 )}
@@ -445,7 +445,7 @@ export default function AdvisorPage() {
                 <div className="max-w-2xl rounded-2xl rounded-bl-md px-5 py-4"
                   style={{ background: "rgba(17,24,39,0.8)", border: "1px solid rgba(255,255,255,0.06)" }}>
                   <LilyMessage content={streamingText} />
-                  <span className="inline-block w-[3px] h-[16px] bg-[#34D399] ml-1 animate-pulse rounded-full" style={{ animationDuration: "0.8s" }} />
+                  <span className="inline-block w-[3px] h-[16px] bg-[var(--ag-accent)] ml-1 animate-pulse rounded-full" style={{ animationDuration: "0.8s" }} />
                 </div>
               </div>
             )}
@@ -461,7 +461,7 @@ export default function AdvisorPage() {
                   <div className="flex items-center gap-2">
                     <div className="flex gap-1">
                       {[0, 150, 300].map(d => (
-                        <div key={d} className="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                        <div key={d} className="w-1.5 h-1.5 rounded-full bg-[var(--ag-accent)] animate-bounce" style={{ animationDelay: `${d}ms` }} />
                       ))}
                     </div>
                     <span className="text-[11px] text-ag-dim font-mono">thinking</span>
@@ -495,7 +495,7 @@ export default function AdvisorPage() {
           <div className="flex gap-2 flex-wrap mb-2">
             {attachments.map((att, i) => (
               <div key={i} className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg"
-                style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.20)", color: "#34D399" }}>
+                style={{ background: "var(--ag-green-dim)", border: "1px solid rgba(52,211,153,0.20)", color: "var(--ag-green)" }}>
                 {att.type.startsWith("image/") ? <Image size={11} /> : <FileText size={11} />}
                 <span className="max-w-[120px] truncate">{att.name}</span>
                 <button onClick={() => removeAttachment(i)} className="hover:text-white transition-colors ml-0.5"><X size={10} /></button>
@@ -513,7 +513,7 @@ export default function AdvisorPage() {
             className="hidden"
           />
           <button onClick={() => fileInputRef.current?.click()}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 hover:bg-white/[0.06]"
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 hover:bg-[var(--ag-bg-active)]"
             style={{ background: "rgba(255,255,255,0.04)" }}
             title="Attach file">
             <Paperclip size={14} className="text-ag-muted" />
@@ -531,10 +531,10 @@ export default function AdvisorPage() {
           <button onClick={() => sendMessage(input)} disabled={loading || (!input.trim() && attachments.length === 0)}
             className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 disabled:opacity-30"
             style={{
-              background: (!input.trim() && attachments.length === 0) || loading ? "rgba(255,255,255,0.04)" : "linear-gradient(135deg, #34D399, #2DD4A8)",
+              background: (!input.trim() && attachments.length === 0) || loading ? "rgba(255,255,255,0.04)" : "linear-gradient(135deg, var(--ag-accent), var(--ag-accent-hover))",
               boxShadow: (input.trim() || attachments.length > 0) && !loading ? "0 2px 8px rgba(52,211,153,0.25)" : "none",
             }}>
-            <Send size={14} className={(input.trim() || attachments.length > 0) && !loading ? "text-[#080C15]" : "text-ag-dim"} />
+            <Send size={14} className={(input.trim() || attachments.length > 0) && !loading ? "text-[var(--ag-accent-text)]" : "text-ag-dim"} />
           </button>
         </div>
       </div>

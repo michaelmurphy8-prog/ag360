@@ -23,8 +23,8 @@ export default function ImportDataPage() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-lg bg-[#22C55E]/10">
-              <Database className="w-5 h-5 text-[#22C55E]" />
+            <div className="p-2 rounded-lg bg-[var(--ag-green-dim)]">
+              <Database className="w-5 h-5 text-[var(--ag-green)]" />
             </div>
             <h1 className="text-2xl font-bold text-ag-primary">Import Data</h1>
           </div>
@@ -35,9 +35,9 @@ export default function ImportDataPage() {
 
         {/* Success toast */}
         {successMessage && (
-          <div className="mb-6 flex items-center gap-3 p-4 rounded-lg bg-[#22C55E]/10 border border-[#22C55E]/20 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="w-2 h-2 rounded-full bg-[#22C55E]" />
-            <p className="text-sm text-[#22C55E] font-medium">{successMessage}</p>
+          <div className="mb-6 flex items-center gap-3 p-4 rounded-lg bg-[var(--ag-green-dim)] border border-[#22C55E]/20 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="w-2 h-2 rounded-full bg-[var(--ag-accent)]" />
+            <p className="text-sm text-[var(--ag-green)] font-medium">{successMessage}</p>
           </div>
         )}
 
@@ -110,7 +110,7 @@ export default function ImportDataPage() {
 function Step({ number, text }: { number: number; text: string }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="w-7 h-7 rounded-full bg-[#22C55E]/10 text-[#22C55E] flex items-center justify-center text-xs font-bold shrink-0">
+      <div className="w-7 h-7 rounded-full bg-[var(--ag-green-dim)] text-[var(--ag-green)] flex items-center justify-center text-xs font-bold shrink-0">
         {number}
       </div>
       <p className="text-sm text-ag-secondary">{text}</p>

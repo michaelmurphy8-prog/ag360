@@ -17,7 +17,7 @@ export default function ImportCard({ icon: Icon, title, description, lastImport,
     <div className="group relative bg-ag-card border border-ag rounded-xl p-5 hover:border-ag-hover transition-all duration-200">
       {/* Header */}
       <div className="flex items-start gap-3 mb-3">
-        <div className="p-2.5 rounded-lg bg-[#22C55E]/10 text-[#22C55E] group-hover:bg-[#22C55E]/15 transition-colors">
+        <div className="p-2.5 rounded-lg bg-[var(--ag-green-dim)] text-[var(--ag-green)] group-hover:bg-[var(--ag-accent)]/15 transition-colors">
           <Icon className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
@@ -28,8 +28,8 @@ export default function ImportCard({ icon: Icon, title, description, lastImport,
 
       {/* Last import badge */}
       {lastImport && (
-        <div className="mb-4 px-2.5 py-1.5 rounded-md bg-[#22C55E]/5 border border-[#22C55E]/10 inline-block">
-          <p className="text-xs text-[#22C55E]">{lastImport}</p>
+        <div className="mb-4 px-2.5 py-1.5 rounded-md bg-[var(--ag-accent)]/5 border border-[#22C55E]/10 inline-block">
+          <p className="text-xs text-[var(--ag-green)]">{lastImport}</p>
         </div>
       )}
 
@@ -37,14 +37,14 @@ export default function ImportCard({ icon: Icon, title, description, lastImport,
       <div className="flex items-center gap-2 mt-1">
         <button
           onClick={onDownloadTemplate}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1E293B] text-ag-secondary text-sm hover:bg-[#334155] hover:text-ag-primary transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--ag-border-solid)] text-ag-secondary text-sm hover:bg-[var(--ag-bg-active)] hover:text-ag-primary transition-colors"
         >
           <Download className="w-3.5 h-3.5" />
           Template
         </button>
         <button
           onClick={onUpload}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#22C55E] text-[#0B1120] text-sm font-semibold hover:bg-[#16A34A] transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--ag-accent)] text-[var(--ag-accent-text)] text-sm font-semibold hover:bg-[var(--ag-accent-hover)] transition-colors"
         >
           <Upload className="w-3.5 h-3.5" />
           Upload Data

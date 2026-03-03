@@ -50,16 +50,16 @@ const alerts: { type: 'warning' | 'info' | 'success'; message: string }[] = [
 ]
 
 const modules = [
-  { label: "Grain360", icon: Wheat, stats: "4 open contracts · 48,000 bu on hand", status: "ACTIVE", statusColor: "#34D399", href: "/grain360" },
-  { label: "Machinery", icon: Tractor, stats: "8 assets · 1 unit needs attention", status: "WATCH", statusColor: "#F59E0B", href: "/machinery" },
-  { label: "Marketing", icon: TrendingUp, stats: "68% of production contracted", status: "ACTIVE", statusColor: "#34D399", href: "/marketing" },
-  { label: "Labour & HR", icon: Users, stats: "6 employees · harvest crew ready", status: "ACTIVE", statusColor: "#34D399", href: "/labour" },
+  { label: "Grain360", icon: Wheat, stats: "4 open contracts · 48,000 bu on hand", status: "ACTIVE", statusColor: "var(--ag-green)", href: "/grain360" },
+  { label: "Machinery", icon: Tractor, stats: "8 assets · 1 unit needs attention", status: "WATCH", statusColor: "var(--ag-yellow)", href: "/machinery" },
+  { label: "Marketing", icon: TrendingUp, stats: "68% of production contracted", status: "ACTIVE", statusColor: "var(--ag-green)", href: "/marketing" },
+  { label: "Labour & HR", icon: Users, stats: "6 employees · harvest crew ready", status: "ACTIVE", statusColor: "var(--ag-green)", href: "/labour" },
 ]
 
 const alertColors = {
-  warning: { dot: "#F59E0B", bg: "rgba(245,158,11,0.06)", border: "rgba(245,158,11,0.15)" },
-  info: { dot: "#38BDF8", bg: "rgba(56,189,248,0.06)", border: "rgba(56,189,248,0.15)" },
-  success: { dot: "#34D399", bg: "rgba(52,211,153,0.06)", border: "rgba(52,211,153,0.15)" },
+  warning: { dot: "var(--ag-yellow)", bg: "rgba(245,158,11,0.06)", border: "rgba(245,158,11,0.15)" },
+  info: { dot: "var(--ag-blue)", bg: "rgba(56,189,248,0.06)", border: "rgba(56,189,248,0.15)" },
+  success: { dot: "var(--ag-green)", bg: "rgba(52,211,153,0.06)", border: "rgba(52,211,153,0.15)" },
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -142,7 +142,7 @@ const [payables, setPayables] = useState<any[]>([])
         {kpis.map((kpi) => (
           <div
             key={kpi.label}
-            className="bg-[#111827] border border-white/[0.06] rounded-xl px-5 py-5 flex-1 min-w-[160px]"
+            className="bg-[var(--ag-bg-card)] border border-[var(--ag-border)] rounded-xl px-5 py-5 flex-1 min-w-[160px]"
           >
             <p className="font-mono text-[11px] font-bold text-ag-primary tracking-[1.5px] uppercase mb-2">
               {kpi.label}
@@ -150,7 +150,7 @@ const [payables, setPayables] = useState<any[]>([])
             <p className="text-[28px] font-bold text-ag-primary leading-none mb-1">
               {kpi.value}
             </p>
-            <p className={`font-mono text-[11px] ${kpi.accent ? 'text-[#34D399]' : 'text-ag-secondary'}`}>
+            <p className={`font-mono text-[11px] ${kpi.accent ? 'text-[var(--ag-green)]' : 'text-ag-secondary'}`}>
               {kpi.sub}
             </p>
           </div>
@@ -162,12 +162,12 @@ const [payables, setPayables] = useState<any[]>([])
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sprout size={16} className="text-[#34D399]" />
+              <Sprout size={16} className="text-[var(--ag-green)]" />
               <h2 className="font-mono text-[11px] font-semibold text-ag-secondary tracking-[2px] uppercase">
                 Agronomy Reminders
               </h2>
             </div>
-            <Link href="/agronomy" className="text-xs text-[#34D399] hover:text-[#6EE7B7] transition-colors">
+            <Link href="/agronomy" className="text-xs text-[var(--ag-green)] hover:text-[var(--ag-green)] transition-colors">
               View Spray Calendar →
             </Link>
           </div>
@@ -175,16 +175,16 @@ const [payables, setPayables] = useState<any[]>([])
             {reminders.map(({ entry, status, daysIn }) => (
               <div
                 key={entry.id}
-                className="bg-[#34D399]/[0.04] border border-[#34D399]/[0.12] rounded-xl p-4"
+                className="bg-[var(--ag-accent)]/[0.04] border border-[var(--ag-accent)]/[0.12] rounded-xl p-4"
               >
                 <div className="flex items-start gap-3">
-                  <Sprout size={16} className="text-[#34D399] mt-0.5 flex-shrink-0" />
+                  <Sprout size={16} className="text-[var(--ag-green)] mt-0.5 flex-shrink-0" />
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-[#34D399]">{entry.crop}</span>
+                      <span className="text-sm font-semibold text-[var(--ag-green)]">{entry.crop}</span>
                       {entry.field_name && <span className="text-xs text-ag-muted">· {entry.field_name}</span>}
                       {entry.acres && <span className="text-xs text-ag-muted">· {entry.acres} ac</span>}
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-full border border-[#34D399]/20 bg-[#34D399]/[0.08] text-[#34D399]">
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full border border-[var(--ag-accent-border)] bg-[var(--ag-accent)]/[0.08] text-[var(--ag-green)]">
                         Day {daysIn} — {status.label}
                       </span>
                     </div>
@@ -202,12 +202,12 @@ const [payables, setPayables] = useState<any[]>([])
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <DollarSign size={16} className="text-[#F59E0B]" />
+              <DollarSign size={16} className="text-[var(--ag-yellow)]" />
               <h2 className="font-mono text-[11px] font-semibold text-ag-secondary tracking-[2px] uppercase">
                 Bills Due
               </h2>
             </div>
-            <Link href="/finance/ledger" className="text-xs text-[#34D399] hover:text-[#6EE7B7] transition-colors">
+            <Link href="/finance/ledger" className="text-xs text-[var(--ag-green)] hover:text-[var(--ag-green)] transition-colors">
               View Payables →
             </Link>
           </div>
@@ -215,18 +215,18 @@ const [payables, setPayables] = useState<any[]>([])
           {/* Summary strip */}
           <div className="flex gap-3">
             {overdueCount > 0 && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#F87171]/[0.06] border border-[#F87171]/[0.15]">
-                <AlertTriangle size={13} className="text-[#F87171]" />
-                <span className="text-xs font-semibold text-[#F87171]">{overdueCount} overdue</span>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--ag-red-dim)] border border-[var(--ag-red)]/15">
+                <AlertTriangle size={13} className="text-[var(--ag-red)]" />
+                <span className="text-xs font-semibold text-[var(--ag-red)]">{overdueCount} overdue</span>
               </div>
             )}
             {dueSoonCount > 0 && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#F59E0B]/[0.06] border border-[#F59E0B]/[0.15]">
-                <Clock size={13} className="text-[#F59E0B]" />
-                <span className="text-xs font-semibold text-[#F59E0B]">{dueSoonCount} due this week</span>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--ag-yellow)/0.06] border border-[#F59E0B]/[0.15]">
+                <Clock size={13} className="text-[var(--ag-yellow)]" />
+                <span className="text-xs font-semibold text-[var(--ag-yellow)]">{dueSoonCount} due this week</span>
               </div>
             )}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--ag-bg-hover)] border border-[var(--ag-border)]">
               <FileText size={13} className="text-ag-secondary" />
               <span className="text-xs text-ag-secondary">{payables.length} unpaid · <span className="font-semibold text-ag-primary">${totalOwing.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span> total</span>
             </div>
@@ -254,13 +254,13 @@ const [payables, setPayables] = useState<any[]>([])
                   >
                     <div
                       className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ background: isOverdue ? '#F87171' : '#F59E0B' }}
+                      style={{ background: isOverdue ? 'var(--ag-red)' : 'var(--ag-yellow)' }}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-ag-primary truncate">{e.description}</span>
                         {e.vendor && (
-                          <span className="text-[10px] font-mono text-ag-muted px-1.5 py-0.5 rounded bg-white/[0.04]">{e.vendor}</span>
+                          <span className="text-[10px] font-mono text-ag-muted px-1.5 py-0.5 rounded bg-[var(--ag-bg-hover)]">{e.vendor}</span>
                         )}
                       </div>
                       <p className="text-[11px] text-ag-muted mt-0.5">
@@ -292,11 +292,11 @@ const [payables, setPayables] = useState<any[]>([])
                 <Link
                   key={mod.label}
                   href={mod.href}
-                  className="group bg-[#111827] border border-white/[0.06] rounded-xl p-6 hover:bg-white/[0.04] hover:border-[#34D399]/20 transition-all duration-200 hover:-translate-y-0.5"
+                  className="group bg-[var(--ag-bg-card)] border border-[var(--ag-border)] rounded-xl p-6 hover:bg-[var(--ag-bg-hover)] hover:border-[var(--ag-accent-border)] transition-all duration-200 hover:-translate-y-0.5"
                 >
                   <div className="flex items-start justify-between">
-                    <div className="w-10 h-10 rounded-[10px] bg-[#34D399]/[0.08] border border-[#34D399]/[0.15] flex items-center justify-center">
-                      <Icon size={18} className="text-[#34D399]" />
+                    <div className="w-10 h-10 rounded-[10px] bg-[var(--ag-accent)]/[0.08] border border-[var(--ag-accent)]/[0.15] flex items-center justify-center">
+                      <Icon size={18} className="text-[var(--ag-green)]" />
                     </div>
                     <span
                       className="font-mono text-[10px] font-medium tracking-[1px] uppercase"
@@ -346,7 +346,7 @@ const [payables, setPayables] = useState<any[]>([])
               border: '1px solid rgba(52,211,153,0.15)',
             }}
           >
-            <p className="text-[14px] font-semibold text-[#34D399]">Ask Lily</p>
+            <p className="text-[14px] font-semibold text-[var(--ag-green)]">Ask Lily</p>
             <p className="text-[12px] text-ag-secondary mt-1">Get AI-powered advice for your farm right now.</p>
           </Link>
         </div>

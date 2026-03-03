@@ -7,32 +7,32 @@ import {
 } from "lucide-react";
 
 const T = {
-  bg: "#080C15", card: "#0F1729", border: "rgba(255,255,255,0.06)",
-  text1: "#F1F5F9", text2: "#94A3B8", text3: "#64748B", text4: "#475569",
-  green: "#34D399", greenDim: "rgba(52,211,153,0.12)",
-  red: "#F87171", redDim: "rgba(248,113,113,0.12)",
-  amber: "#FBBF24", amberDim: "rgba(251,191,36,0.12)",
-  sky: "#38BDF8", purple: "#A78BFA",
+  bg: "var(--ag-bg-base)", card: "var(--ag-bg-card)", border: "rgba(255,255,255,0.06)",
+  text1: "var(--ag-text-primary)", text2: "var(--ag-text-secondary)", text3: "var(--ag-text-muted)", text4: "var(--ag-text-dim)",
+  green: "var(--ag-green)", greenDim: "rgba(52,211,153,0.12)",
+  red: "var(--ag-red)", redDim: "rgba(248,113,113,0.12)",
+  amber: "var(--ag-yellow)", amberDim: "rgba(251,191,36,0.12)",
+  sky: "var(--ag-blue)", purple: "#A78BFA",
 };
 
-const inputClass = "w-full bg-white/[0.04] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-ag-primary placeholder-[#475569] focus:outline-none focus:border-[#34D399]/50 transition-colors";
+const inputClass = "w-full bg-[var(--ag-bg-hover)] border border-[var(--ag-border-solid)] rounded-lg px-3 py-2 text-sm text-ag-primary placeholder-[#475569] focus:outline-none focus:border-[var(--ag-accent)]/50 transition-colors";
 const labelClass = "block text-[10px] uppercase tracking-[2px] font-mono font-semibold text-ag-muted mb-1.5";
 
 const REPORT_TYPES = [
-  { id: "general", label: "General", icon: Eye, color: "#38BDF8" },
-  { id: "pest", label: "Pest", icon: Bug, color: "#F87171" },
-  { id: "disease", label: "Disease", icon: AlertTriangle, color: "#FBBF24" },
-  { id: "weed", label: "Weed", icon: Leaf, color: "#34D399" },
+  { id: "general", label: "General", icon: Eye, color: "var(--ag-blue)" },
+  { id: "pest", label: "Pest", icon: Bug, color: "var(--ag-red)" },
+  { id: "disease", label: "Disease", icon: AlertTriangle, color: "var(--ag-yellow)" },
+  { id: "weed", label: "Weed", icon: Leaf, color: "var(--ag-green)" },
   { id: "nutrient", label: "Nutrient", icon: Sprout, color: "#A78BFA" },
-  { id: "moisture", label: "Moisture", icon: Droplets, color: "#38BDF8" },
-  { id: "hail", label: "Hail", icon: CloudHail, color: "#94A3B8" },
+  { id: "moisture", label: "Moisture", icon: Droplets, color: "var(--ag-blue)" },
+  { id: "hail", label: "Hail", icon: CloudHail, color: "var(--ag-text-secondary)" },
 ];
 
 const SEVERITIES = [
-  { id: "low", label: "Low", color: "#34D399", bg: "rgba(52,211,153,0.12)" },
-  { id: "medium", label: "Medium", color: "#FBBF24", bg: "rgba(251,191,36,0.12)" },
+  { id: "low", label: "Low", color: "var(--ag-green)", bg: "rgba(52,211,153,0.12)" },
+  { id: "medium", label: "Medium", color: "var(--ag-yellow)", bg: "rgba(251,191,36,0.12)" },
   { id: "high", label: "High", color: "#F97316", bg: "rgba(249,115,22,0.12)" },
-  { id: "critical", label: "Critical", color: "#F87171", bg: "rgba(248,113,113,0.12)" },
+  { id: "critical", label: "Critical", color: "var(--ag-red)", bg: "rgba(248,113,113,0.12)" },
 ];
 
 interface Props {
@@ -97,7 +97,7 @@ export default function ScoutReportModal({ open, onClose, latitude, longitude, f
               <p className="text-xs font-mono" style={{ color: T.text3 }}>{latitude.toFixed(4)}, {longitude.toFixed(4)}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors">
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-[var(--ag-bg-active)] transition-colors">
             <X size={18} style={{ color: T.text3 }} />
           </button>
         </div>
@@ -153,7 +153,7 @@ export default function ScoutReportModal({ open, onClose, latitude, longitude, f
           {/* Field assignment */}
           <div>
             <label className={labelClass}>Assign to Field (optional)</label>
-            <select value={fieldId} onChange={(e) => setFieldId(e.target.value)} className={inputClass + " bg-[#111827]"}>
+            <select value={fieldId} onChange={(e) => setFieldId(e.target.value)} className={inputClass + " bg-[var(--ag-bg-card)]"}>
               <option value="">No field</option>
               {fields.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
@@ -178,7 +178,7 @@ export default function ScoutReportModal({ open, onClose, latitude, longitude, f
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t" style={{ borderColor: T.border }}>
-          <button onClick={onClose} className="px-4 py-2 text-sm rounded-xl hover:bg-white/[0.06] transition-colors" style={{ color: T.text3 }}>
+          <button onClick={onClose} className="px-4 py-2 text-sm rounded-xl hover:bg-[var(--ag-bg-active)] transition-colors" style={{ color: T.text3 }}>
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving || !title.trim()}

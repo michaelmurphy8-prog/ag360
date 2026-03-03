@@ -171,14 +171,14 @@ export default function MapsPage() {
     if (!showScoutPins) return;
 
     const SCOUT_COLORS: Record<string, string> = {
-      general: "#38BDF8", pest: "#F87171", disease: "#FBBF24",
-      weed: "#34D399", nutrient: "#A78BFA", moisture: "#38BDF8",
-      hail: "#94A3B8", other: "#94A3B8",
+      general: "var(--ag-blue)", pest: "var(--ag-red)", disease: "var(--ag-yellow)",
+      weed: "var(--ag-green)", nutrient: "#A78BFA", moisture: "var(--ag-blue)",
+      hail: "var(--ag-text-secondary)", other: "var(--ag-text-secondary)",
     };
     const SEV_SIZES: Record<string, number> = { low: 10, medium: 13, high: 16, critical: 20 };
 
     scoutReports.forEach((r) => {
-      const color = SCOUT_COLORS[r.report_type] || "#94A3B8";
+      const color = SCOUT_COLORS[r.report_type] || "var(--ag-text-secondary)";
       const size = SEV_SIZES[r.severity] || 12;
       const el = document.createElement("div");
       el.style.cssText = `width:${size + 8}px;height:${size + 8}px;display:flex;align-items:center;justify-content:center;cursor:pointer;`;
@@ -189,14 +189,14 @@ export default function MapsPage() {
       el.onmouseleave = () => { dot.style.transform = "scale(1)"; };
 
       const popupHTML = `
-          <div style="font-family:system-ui;color:#F1F5F9;padding:4px 0;">
+          <div style="font-family:system-ui;color:var(--ag-text-primary);padding:4px 0;">
             <div style="font-size:13px;font-weight:700;margin-bottom:4px;">${r.title}</div>
             <div style="display:flex;gap:8px;margin-bottom:4px;">
               <span style="font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:2px 6px;border-radius:4px;background:${color}20;color:${color};">${r.report_type}</span>
               <span style="font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.06);color:#94A3B8;">${r.severity}</span>
             </div>
             ${r.notes ? `<p style="font-size:11px;color:#94A3B8;margin:4px 0 0;line-height:1.4;">${r.notes}</p>` : ""}
-            ${r.field_name ? `<div style="font-size:10px;color:#64748B;margin-top:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>${r.field_name}</div>` : ""}
+            ${r.field_name ? `<div style="font-size:10px;color:var(--ag-text-muted);margin-top:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ag-text-muted)" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>${r.field_name}</div>` : ""}
             <div style="font-size:10px;color:#475569;margin-top:4px;">${new Date(r.scouted_at).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}</div>
           </div>
         `;
@@ -387,12 +387,12 @@ export default function MapsPage() {
           if (popupRef.current) popupRef.current.remove();
           const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 15 })
             .setLngLat([pos.lng, pos.lat]).setHTML(`
-              <div style="background:#0F1629;border:1px solid #1E293B;border-radius:8px;padding:8px 12px;color:#F1F5F9;font-family:inherit;min-width:140px;">
+              <div style="background:var(--ag-bg-card);border:1px solid var(--ag-border-solid);border-radius:8px;padding:8px 12px;color:var(--ag-text-primary);font-family:inherit;min-width:140px;">
                 <div style="font-weight:600;font-size:13px;margin-bottom:2px;">${field.field_name}</div>
                 <div style="font-size:11px;color:#94A3B8;">${field.crop_type || "Unassigned"} · ${field.acres} ac${field.boundary_acres ? ` (mapped: ${fmtD(field.boundary_acres)} ac)` : ""}</div>
                 <div style="display:flex;gap:12px;margin-top:6px;">
-                  <div><span style="font-size:9px;color:#64748B;">REVENUE</span><div style="font-size:12px;font-weight:600;">$${fmt(parseFloat(String(field.actual_revenue)) || 0)}</div></div>
-                  <div><span style="font-size:9px;color:#64748B;">MARGIN</span><div style="font-size:12px;font-weight:600;color:${margin >= 0 ? '#34D399' : '#EF4444'};">$${fmt(margin)}</div></div>
+                  <div><span style="font-size:9px;color:var(--ag-text-muted);">REVENUE</span><div style="font-size:12px;font-weight:600;">$${fmt(parseFloat(String(field.actual_revenue)) || 0)}</div></div>
+                  <div><span style="font-size:9px;color:var(--ag-text-muted);">MARGIN</span><div style="font-size:12px;font-weight:600;color:${margin >= 0 ? 'var(--ag-green)' : 'var(--ag-red)'};">$${fmt(margin)}</div></div>
                 </div>
               </div>
             `).addTo(map);
@@ -424,13 +424,13 @@ export default function MapsPage() {
     const place = () => {
       yards.forEach((yard: YardMarker) => {
         const fillPct = yard.total_capacity_bu > 0 ? (yard.total_stored_bu / yard.total_capacity_bu) * 100 : 0;
-        const fillColor = fillPct > 80 ? "#EF4444" : fillPct > 50 ? "#FBBF24" : "#34D399";
+        const fillColor = fillPct > 80 ? "var(--ag-red)" : fillPct > 50 ? "var(--ag-yellow)" : "var(--ag-green)";
         const el = document.createElement("div");
         Object.assign(el.style, { width: "28px", height: "28px", cursor: "pointer" });
         const box = document.createElement("div");
         Object.assign(box.style, {
           width: "100%", height: "100%", borderRadius: "6px",
-          backgroundColor: "#1E293B", border: `2px solid ${fillColor}`,
+          backgroundColor: "var(--ag-border-solid)", border: `2px solid ${fillColor}`,
           boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
           display: "flex", alignItems: "center", justifyContent: "center",
           transition: "transform 0.15s ease",
@@ -442,7 +442,7 @@ export default function MapsPage() {
           if (popupRef.current) popupRef.current.remove();
           const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 15 })
             .setLngLat([yard.longitude, yard.latitude]).setHTML(`
-              <div style="background:#0F1629;border:1px solid #1E293B;border-radius:8px;padding:6px 10px;color:#F1F5F9;font-family:inherit;">
+              <div style="background:var(--ag-bg-card);border:1px solid var(--ag-border-solid);border-radius:8px;padding:6px 10px;color:var(--ag-text-primary);font-family:inherit;">
                 <div style="font-weight:600;font-size:13px;">${yard.yard_name}</div>
                 <div style="font-size:12px;color:${fillColor};font-weight:600;margin-top:2px;">${Math.round(fillPct)}% full</div>
               </div>
@@ -472,13 +472,13 @@ export default function MapsPage() {
       weather.forEach((w: WeatherPoint) => {
         const el = document.createElement("div");
         Object.assign(el.style, {
-          backgroundColor: "rgba(15,22,41,0.85)", border: "1px solid #1E293B",
-          borderRadius: "10px", padding: "6px 10px", color: "#F1F5F9",
+          backgroundColor: "var(--ag-bg-card)", border: "1px solid var(--ag-border-solid)",
+          borderRadius: "10px", padding: "6px 10px", color: "var(--ag-text-primary)",
           fontSize: "11px", pointerEvents: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
           whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "8px",
         });
-        const tc = w.temperature > 25 ? "#EF4444" : w.temperature > 10 ? "#FBBF24" : w.temperature > 0 ? "#60A5FA" : "#94A3B8";
-        el.innerHTML = `<span style="font-weight:700;font-size:14px;color:${tc}">${w.temperature}°C</span><span style="color:#64748B;font-size:10px;">${w.windspeed} km/h</span>${w.precipitation > 0 ? `<span style="color:#60A5FA;font-size:10px;">${w.precipitation}mm</span>` : ""}`;
+        const tc = w.temperature > 25 ? "var(--ag-red)" : w.temperature > 10 ? "var(--ag-yellow)" : w.temperature > 0 ? "var(--ag-blue)" : "var(--ag-text-secondary)";
+        el.innerHTML = `<span style="font-weight:700;font-size:14px;color:${tc}">${w.temperature}°C</span><span style="color:var(--ag-text-muted);font-size:10px;">${w.windspeed} km/h</span>${w.precipitation > 0 ? `<span style="color:#60A5FA;font-size:10px;">${w.precipitation}mm</span>` : ""}`;
         const marker = new mapboxgl.Marker({ element: el, anchor: "bottom-left" }).setLngLat([w.longitude + 0.02, w.latitude + 0.02]).addTo(map);
         weatherMarkersRef.current.push(marker);
       });
@@ -496,12 +496,12 @@ export default function MapsPage() {
         displayControlsDefault: false, controls: {},
         defaultMode: "simple_select",
         styles: [
-          { id: "gl-draw-polygon-fill", type: "fill", filter: ["all", ["==", "$type", "Polygon"]], paint: { "fill-color": "#60A5FA", "fill-opacity": 0.15 } },
-          { id: "gl-draw-polygon-stroke", type: "line", filter: ["all", ["==", "$type", "Polygon"]], paint: { "line-color": "#60A5FA", "line-width": 2, "line-dasharray": [2, 2] } },
-          { id: "gl-draw-polygon-midpoint", type: "circle", filter: ["all", ["==", "$type", "Point"], ["==", "meta", "midpoint"]], paint: { "circle-radius": 4, "circle-color": "#60A5FA" } },
-          { id: "gl-draw-polygon-vertex-active", type: "circle", filter: ["all", ["==", "$type", "Point"], ["==", "meta", "vertex"]], paint: { "circle-radius": 6, "circle-color": "#fff", "circle-stroke-width": 2, "circle-stroke-color": "#60A5FA" } },
-          { id: "gl-draw-line", type: "line", filter: ["all", ["==", "$type", "LineString"]], paint: { "line-color": "#60A5FA", "line-width": 2, "line-dasharray": [2, 2] } },
-          { id: "gl-draw-point", type: "circle", filter: ["all", ["==", "$type", "Point"], ["!=", "meta", "midpoint"]], paint: { "circle-radius": 6, "circle-color": "#fff", "circle-stroke-width": 2, "circle-stroke-color": "#60A5FA" } },
+          { id: "gl-draw-polygon-fill", type: "fill", filter: ["all", ["==", "$type", "Polygon"]], paint: { "fill-color": "var(--ag-blue)", "fill-opacity": 0.15 } },
+          { id: "gl-draw-polygon-stroke", type: "line", filter: ["all", ["==", "$type", "Polygon"]], paint: { "line-color": "var(--ag-blue)", "line-width": 2, "line-dasharray": [2, 2] } },
+          { id: "gl-draw-polygon-midpoint", type: "circle", filter: ["all", ["==", "$type", "Point"], ["==", "meta", "midpoint"]], paint: { "circle-radius": 4, "circle-color": "var(--ag-blue)" } },
+          { id: "gl-draw-polygon-vertex-active", type: "circle", filter: ["all", ["==", "$type", "Point"], ["==", "meta", "vertex"]], paint: { "circle-radius": 6, "circle-color": "#fff", "circle-stroke-width": 2, "circle-stroke-color": "var(--ag-blue)" } },
+          { id: "gl-draw-line", type: "line", filter: ["all", ["==", "$type", "LineString"]], paint: { "line-color": "var(--ag-blue)", "line-width": 2, "line-dasharray": [2, 2] } },
+          { id: "gl-draw-point", type: "circle", filter: ["all", ["==", "$type", "Point"], ["!=", "meta", "midpoint"]], paint: { "circle-radius": 6, "circle-color": "#fff", "circle-stroke-width": 2, "circle-stroke-color": "var(--ag-blue)" } },
         ],
       });
       map.addControl(draw, "top-left");
@@ -548,12 +548,12 @@ export default function MapsPage() {
         displayControlsDefault: false, controls: {},
         defaultMode: "simple_select",
         styles: [
-          { id: "gl-draw-polygon-fill", type: "fill", filter: ["all", ["==", "$type", "Polygon"]], paint: { "fill-color": "#60A5FA", "fill-opacity": 0.15 } },
-          { id: "gl-draw-polygon-stroke", type: "line", filter: ["all", ["==", "$type", "Polygon"]], paint: { "line-color": "#60A5FA", "line-width": 2, "line-dasharray": [2, 2] } },
-          { id: "gl-draw-polygon-midpoint", type: "circle", filter: ["all", ["==", "$type", "Point"], ["==", "meta", "midpoint"]], paint: { "circle-radius": 4, "circle-color": "#60A5FA" } },
-          { id: "gl-draw-polygon-vertex-active", type: "circle", filter: ["all", ["==", "$type", "Point"], ["==", "meta", "vertex"]], paint: { "circle-radius": 6, "circle-color": "#fff", "circle-stroke-width": 2, "circle-stroke-color": "#60A5FA" } },
-          { id: "gl-draw-line", type: "line", filter: ["all", ["==", "$type", "LineString"]], paint: { "line-color": "#60A5FA", "line-width": 2, "line-dasharray": [2, 2] } },
-          { id: "gl-draw-point", type: "circle", filter: ["all", ["==", "$type", "Point"], ["!=", "meta", "midpoint"]], paint: { "circle-radius": 6, "circle-color": "#fff", "circle-stroke-width": 2, "circle-stroke-color": "#60A5FA" } },
+          { id: "gl-draw-polygon-fill", type: "fill", filter: ["all", ["==", "$type", "Polygon"]], paint: { "fill-color": "var(--ag-blue)", "fill-opacity": 0.15 } },
+          { id: "gl-draw-polygon-stroke", type: "line", filter: ["all", ["==", "$type", "Polygon"]], paint: { "line-color": "var(--ag-blue)", "line-width": 2, "line-dasharray": [2, 2] } },
+          { id: "gl-draw-polygon-midpoint", type: "circle", filter: ["all", ["==", "$type", "Point"], ["==", "meta", "midpoint"]], paint: { "circle-radius": 4, "circle-color": "var(--ag-blue)" } },
+          { id: "gl-draw-polygon-vertex-active", type: "circle", filter: ["all", ["==", "$type", "Point"], ["==", "meta", "vertex"]], paint: { "circle-radius": 6, "circle-color": "#fff", "circle-stroke-width": 2, "circle-stroke-color": "var(--ag-blue)" } },
+          { id: "gl-draw-line", type: "line", filter: ["all", ["==", "$type", "LineString"]], paint: { "line-color": "var(--ag-blue)", "line-width": 2, "line-dasharray": [2, 2] } },
+          { id: "gl-draw-point", type: "circle", filter: ["all", ["==", "$type", "Point"], ["!=", "meta", "midpoint"]], paint: { "circle-radius": 6, "circle-color": "#fff", "circle-stroke-width": 2, "circle-stroke-color": "var(--ag-blue)" } },
         ],
       });
       map.addControl(draw, "top-left");
@@ -623,28 +623,28 @@ export default function MapsPage() {
           <button
             onClick={() => setScoutMode(!scoutMode)}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-lg transition-colors ${
-              scoutMode ? "bg-[#34D399] text-[#0F1629]" : "bg-ag-card/90 text-ag-secondary hover:text-white border border-black/20"
+              scoutMode ? "bg-[var(--ag-accent)] text-[var(--ag-accent-text)]" : "bg-ag-card/90 text-ag-secondary hover:text-white border border-black/20"
             }`}>
             {scoutMode ? <><X size={12} /> Cancel Scout</> : <><MapPin size={12} /> Scout Pin</>}
           </button>
           <button
             onClick={() => setShowScoutPins(!showScoutPins)}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-lg transition-colors ${
-              showScoutPins ? "bg-[#F59E0B] text-[#0F1629]" : "bg-ag-card/90 text-ag-secondary hover:text-white border border-black/20"
+              showScoutPins ? "bg-[#F59E0B] text-[var(--ag-accent-text)]" : "bg-ag-card/90 text-ag-secondary hover:text-white border border-black/20"
             }`}>
             <Eye size={12} /> Pins {scoutReports.length > 0 ? `(${scoutReports.length})` : ""}
           </button>
           <button
             onClick={() => setShowNDVI(!showNDVI)}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-lg transition-colors ${
-              showNDVI ? "bg-[#22C55E] text-[#0F1629]" : "bg-ag-card/90 text-ag-secondary hover:text-white border border-black/20"
+              showNDVI ? "bg-[var(--ag-accent)] text-[var(--ag-accent-text)]" : "bg-ag-card/90 text-ag-secondary hover:text-white border border-black/20"
             }`}>
             <Leaf size={12} /> Vegetation
           </button>
         </div>
         {scoutMode && (
           <div style={{ position: "absolute", top: 92, left: 60, zIndex: 10 }}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#34D399] text-[#0F1629] shadow-lg animate-pulse">
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--ag-accent)] text-[var(--ag-accent-text)] shadow-lg animate-pulse">
             Click anywhere on the map to drop a scout pin
           </div>
         )}

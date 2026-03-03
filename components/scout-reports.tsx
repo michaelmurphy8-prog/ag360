@@ -80,9 +80,9 @@ const GROWTH_STAGES = [
 const ISSUE_TYPES = ['insect', 'disease', 'weed', 'nutrient', 'abiotic_stress', 'other']
 
 const SEVERITY_LEVELS = [
-  { value: 'low', label: 'Low', color: 'bg-[#34D399]/[0.10] text-[#34D399]' },
-  { value: 'medium', label: 'Medium', color: 'bg-[#F59E0B]/[0.10] text-[#F59E0B]' },
-  { value: 'high', label: 'High', color: 'bg-[#EF4444]/[0.10] text-[#EF4444]' },
+  { value: 'low', label: 'Low', color: 'bg-[var(--ag-accent)]/[0.10] text-[var(--ag-green)]' },
+  { value: 'medium', label: 'Medium', color: 'bg-[#F59E0B]/[0.10] text-[var(--ag-yellow)]' },
+  { value: 'high', label: 'High', color: 'bg-[var(--ag-red)]/[0.10] text-[var(--ag-red)]' },
 ]
 
 const SYMPTOM_OPTIONS = [
@@ -91,8 +91,8 @@ const SYMPTOM_OPTIONS = [
   'Root damage', 'Leaf curling', 'Discolouration', 'Premature ripening', 'Other',
 ]
 
-const inputClass = "w-full text-sm border border-white/[0.10] rounded-lg px-2.5 py-2 bg-white/[0.04] text-ag-primary placeholder:text-ag-dim focus:outline-none focus:border-[#34D399]/50"
-const selectClass = "w-full text-sm border border-white/[0.10] rounded-lg px-2.5 py-2 bg-[#111827] text-ag-primary focus:outline-none focus:border-[#34D399]/50"
+const inputClass = "w-full text-sm border border-[var(--ag-border-solid)] rounded-lg px-2.5 py-2 bg-[var(--ag-bg-hover)] text-ag-primary placeholder:text-ag-dim focus:outline-none focus:border-[var(--ag-accent)]/50"
+const selectClass = "w-full text-sm border border-[var(--ag-border-solid)] rounded-lg px-2.5 py-2 bg-[var(--ag-bg-card)] text-ag-primary focus:outline-none focus:border-[var(--ag-accent)]/50"
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -173,7 +173,7 @@ export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-1.5 bg-[#34D399] text-[#080C15] text-xs font-semibold px-4 py-2 rounded-full hover:bg-[#6EE7B7] transition-colors"
+          className="flex items-center gap-1.5 bg-[var(--ag-accent)] text-[var(--ag-accent-text)] text-xs font-semibold px-4 py-2 rounded-full hover:bg-[var(--ag-accent-hover)] transition-colors"
         >
           <Plus size={14} /> Add Scout Report
         </button>
@@ -181,7 +181,7 @@ export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
 
       {/* New Entry Form */}
       {showForm && (
-        <div className="bg-[#111827] border border-[#34D399]/20 rounded-xl p-5 space-y-4">
+        <div className="bg-[var(--ag-bg-card)] border border-[var(--ag-accent-border)] rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-ag-primary">New Scout Report</h3>
             <button onClick={() => setShowForm(false)} className="text-ag-muted hover:text-ag-primary transition-colors"><X size={16} /></button>
@@ -220,8 +220,8 @@ export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
                   <button key={t} onClick={() => setForm(p => ({ ...p, issue_type: t }))}
                     className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition-all ${
                       form.issue_type === t
-                        ? 'bg-[#34D399] text-[#080C15]'
-                        : 'bg-white/[0.03] border border-white/[0.06] text-ag-muted hover:text-ag-primary'
+                        ? 'bg-[var(--ag-accent)] text-[var(--ag-accent-text)]'
+                        : 'bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] text-ag-muted hover:text-ag-primary'
                     }`}>
                     {t.replace('_', ' ')}
                   </button>
@@ -234,7 +234,7 @@ export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
                 {SEVERITY_LEVELS.map(s => (
                   <button key={s.value} onClick={() => setForm(p => ({ ...p, severity: s.value }))}
                     className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                      form.severity === s.value ? s.color : 'bg-white/[0.03] border border-white/[0.06] text-ag-muted hover:text-ag-primary'
+                      form.severity === s.value ? s.color : 'bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] text-ag-muted hover:text-ag-primary'
                     }`}>
                     {s.label}
                   </button>
@@ -250,8 +250,8 @@ export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
                 <button key={s} onClick={() => toggleSymptom(s)}
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
                     form.symptoms.includes(s)
-                      ? 'bg-[#34D399] text-[#080C15]'
-                      : 'bg-white/[0.03] border border-white/[0.06] text-ag-muted hover:text-ag-primary'
+                      ? 'bg-[var(--ag-accent)] text-[var(--ag-accent-text)]'
+                      : 'bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] text-ag-muted hover:text-ag-primary'
                   }`}>
                   {s}
                 </button>
@@ -266,7 +266,7 @@ export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
           </div>
 
           <button onClick={saveEntry} disabled={saving || !form.date}
-            className="flex items-center gap-1.5 bg-[#34D399] text-[#080C15] text-xs font-semibold px-5 py-2 rounded-full hover:bg-[#6EE7B7] transition-colors disabled:opacity-40">
+            className="flex items-center gap-1.5 bg-[var(--ag-accent)] text-[var(--ag-accent-text)] text-xs font-semibold px-5 py-2 rounded-full hover:bg-[var(--ag-accent-hover)] transition-colors disabled:opacity-40">
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
             {saving ? 'Saving...' : 'Save Report'}
           </button>
@@ -277,11 +277,11 @@ export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
       {loading ? (
         <div className="flex items-center justify-center py-8 gap-1.5">
           {[0, 150, 300].map(d => (
-            <div key={d} className="w-2 h-2 rounded-full bg-[#34D399] animate-bounce" style={{ animationDelay: `${d}ms` }} />
+            <div key={d} className="w-2 h-2 rounded-full bg-[var(--ag-accent)] animate-bounce" style={{ animationDelay: `${d}ms` }} />
           ))}
         </div>
       ) : entries.length === 0 && !showForm ? (
-        <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-8 text-center">
+        <div className="bg-[var(--ag-bg-card)] border border-[var(--ag-border)] rounded-xl p-8 text-center">
           <Sprout size={24} className="mx-auto text-ag-muted mb-2" />
           <p className="text-sm text-ag-muted">No scout reports yet. Add your first one above.</p>
         </div>
@@ -354,19 +354,19 @@ function EntryCard({ entry, expanded, onToggle, onDelete, onUpdateRecommendation
   }
 
   const severityColor = entry.severity === 'high'
-    ? 'bg-[#EF4444]/[0.10] text-[#EF4444]'
+    ? 'bg-[var(--ag-red)]/[0.10] text-[var(--ag-red)]'
     : entry.severity === 'medium'
-      ? 'bg-[#F59E0B]/[0.10] text-[#F59E0B]'
-      : 'bg-[#34D399]/[0.10] text-[#34D399]'
+      ? 'bg-[#F59E0B]/[0.10] text-[var(--ag-yellow)]'
+      : 'bg-[var(--ag-accent)]/[0.10] text-[var(--ag-green)]'
 
   return (
-    <div className="bg-[#111827] border border-white/[0.06] rounded-xl overflow-hidden">
+    <div className="bg-[var(--ag-bg-card)] border border-[var(--ag-border)] rounded-xl overflow-hidden">
       {/* Header */}
       <button onClick={onToggle} className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="text-[10px] text-ag-muted font-mono font-medium whitespace-nowrap">{new Date(entry.date).toLocaleDateString('en-CA')}</div>
           {entry.field_name && <span className="text-sm font-medium text-ag-primary truncate">{entry.field_name}</span>}
-          {entry.crop && <span className="text-[10px] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded font-medium text-ag-secondary">{entry.crop}</span>}
+          {entry.crop && <span className="text-[10px] bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] px-2 py-0.5 rounded font-medium text-ag-secondary">{entry.crop}</span>}
           {entry.severity && <span className={`text-[10px] px-2 py-0.5 rounded font-semibold ${severityColor}`}>{entry.severity}</span>}
           {entry.issue_type && <span className="text-[10px] text-ag-muted capitalize">{entry.issue_type.replace('_', ' ')}</span>}
         </div>
@@ -375,7 +375,7 @@ function EntryCard({ entry, expanded, onToggle, onDelete, onUpdateRecommendation
 
       {/* Expanded Content */}
       {expanded && (
-        <div className="px-5 pb-5 border-t border-white/[0.06] pt-4 space-y-4">
+        <div className="px-5 pb-5 border-t border-[var(--ag-border)] pt-4 space-y-4">
           {/* Details Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
             {entry.growth_stage && (
@@ -385,7 +385,7 @@ function EntryCard({ entry, expanded, onToggle, onDelete, onUpdateRecommendation
               <div className="col-span-2">
                 <span className="text-[10px] text-ag-muted block mb-1 uppercase tracking-[1px]">Symptoms</span>
                 <div className="flex flex-wrap gap-1">{entry.symptoms.map(s => (
-                  <span key={s} className="text-[10px] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded text-ag-secondary">{s}</span>
+                  <span key={s} className="text-[10px] bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] px-2 py-0.5 rounded text-ag-secondary">{s}</span>
                 ))}</div>
               </div>
             )}
@@ -395,8 +395,8 @@ function EntryCard({ entry, expanded, onToggle, onDelete, onUpdateRecommendation
           </div>
 
           {entry.recommendation && (
-            <div className="bg-[#34D399]/[0.04] border border-[#34D399]/15 rounded-lg px-4 py-3">
-              <span className="text-[10px] font-semibold text-[#34D399] block mb-1 uppercase tracking-[1px]">Recommendation</span>
+            <div className="bg-[var(--ag-accent)]/[0.04] border border-[var(--ag-accent)]/15 rounded-lg px-4 py-3">
+              <span className="text-[10px] font-semibold text-[var(--ag-green)] block mb-1 uppercase tracking-[1px]">Recommendation</span>
               <p className="text-sm text-ag-secondary leading-relaxed whitespace-pre-line">{entry.recommendation}</p>
             </div>
           )}
@@ -406,7 +406,7 @@ function EntryCard({ entry, expanded, onToggle, onDelete, onUpdateRecommendation
             <div className="flex items-center justify-between mb-2">
               <span className="font-mono text-[10px] font-semibold text-ag-secondary uppercase tracking-[2px]">Photos ({photos.length}/3)</span>
               {photos.length < 3 && (
-                <label className="flex items-center gap-1 text-xs font-semibold text-[#34D399] hover:text-[#6EE7B7] cursor-pointer transition-colors">
+                <label className="flex items-center gap-1 text-xs font-semibold text-[var(--ag-green)] hover:text-[var(--ag-green)] cursor-pointer transition-colors">
                   {uploading ? <Loader2 size={12} className="animate-spin" /> : <Camera size={12} />}
                   {uploading ? 'Uploading...' : 'Add Photo'}
                   <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={handleUpload} className="hidden" disabled={uploading} />
@@ -420,22 +420,22 @@ function EntryCard({ entry, expanded, onToggle, onDelete, onUpdateRecommendation
                   <div key={photo.id} className="relative group">
                     <button onClick={() => setSelectedPhoto(photo)} className="block">
                       <img src={photo.image_url} alt={photo.file_name || 'Scout photo'}
-                        className="w-20 h-20 object-cover rounded-lg border border-white/[0.10] hover:border-[#34D399]/50 transition-colors" />
+                        className="w-20 h-20 object-cover rounded-lg border border-[var(--ag-border-solid)] hover:border-[var(--ag-accent)]/50 transition-colors" />
                     </button>
                     {photo.analyzed_at && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#34D399] rounded-full flex items-center justify-center">
-                        <CheckCircle size={10} className="text-[#080C15]" />
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-[var(--ag-accent)] rounded-full flex items-center justify-center">
+                        <CheckCircle size={10} className="text-[var(--ag-accent-text)]" />
                       </div>
                     )}
                     <button onClick={() => deletePhoto(photo.id)}
-                      className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#EF4444] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      className="absolute -bottom-1 -right-1 w-5 h-5 bg-[var(--ag-red)] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <Trash2 size={10} className="text-white" />
                     </button>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="border border-dashed border-white/[0.10] rounded-lg p-4 text-center hover:border-[#34D399]/30 transition-colors">
+              <div className="border border-dashed border-[var(--ag-border-solid)] rounded-lg p-4 text-center hover:border-[var(--ag-accent)]/30 transition-colors">
                 <label className="cursor-pointer">
                   <Camera size={20} className="mx-auto text-ag-dim mb-1" />
                   <p className="text-[10px] text-ag-dim">Tap to take a photo or upload from gallery</p>
@@ -467,7 +467,7 @@ function EntryCard({ entry, expanded, onToggle, onDelete, onUpdateRecommendation
 
           {/* Delete Entry */}
           <div className="pt-2 border-t border-white/[0.04] flex justify-end">
-            <button onClick={onDelete} className="text-xs text-[#EF4444]/60 hover:text-[#EF4444] flex items-center gap-1 transition-colors">
+            <button onClick={onDelete} className="text-xs text-[var(--ag-red)]/60 hover:text-[var(--ag-red)] flex items-center gap-1 transition-colors">
               <Trash2 size={12} /> Delete Report
             </button>
           </div>
@@ -517,39 +517,39 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
   }
 
   function confidenceColor(c: number) {
-    if (c >= 0.8) return 'text-[#34D399] bg-[#34D399]/[0.08]'
-    if (c >= 0.6) return 'text-[#F59E0B] bg-[#F59E0B]/[0.08]'
-    return 'text-[#EF4444] bg-[#EF4444]/[0.08]'
+    if (c >= 0.8) return 'text-[var(--ag-green)] bg-[var(--ag-accent)]/[0.08]'
+    if (c >= 0.6) return 'text-[var(--ag-yellow)] bg-[#F59E0B]/[0.08]'
+    return 'text-[var(--ag-red)] bg-[var(--ag-red-dim)]'
   }
 
   function CategoryIcon({ cat }: { cat: string }) {
     const cls = "w-4 h-4 flex-shrink-0"
     switch (cat) {
-      case 'insect': return <Bug className={cls + " text-[#EF4444]"} />
+      case 'insect': return <Bug className={cls + " text-[var(--ag-red)]"} />
       case 'disease': return <Shield className={cls + " text-[#818CF8]"} />
-      case 'weed': return <Sprout className={cls + " text-[#34D399]"} />
-      case 'nutrient': return <FlaskConical className={cls + " text-[#38BDF8]"} />
+      case 'weed': return <Sprout className={cls + " text-[var(--ag-green)]"} />
+      case 'nutrient': return <FlaskConical className={cls + " text-[var(--ag-blue)]"} />
       case 'abiotic_stress': return <Thermometer className={cls + " text-[#F97316]"} />
-      case 'growth_stage': return <Sprout className={cls + " text-[#34D399]"} />
+      case 'growth_stage': return <Sprout className={cls + " text-[var(--ag-green)]"} />
       default: return <HelpCircle className={cls + " text-ag-muted"} />
     }
   }
 
   return (
-    <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-3">
+    <div className="bg-white/[0.02] border border-[var(--ag-border)] rounded-xl p-4 space-y-3">
       <div className="flex items-start justify-between">
         <span className="font-mono text-[10px] font-semibold text-ag-secondary uppercase tracking-[2px]">Photo Analysis</span>
         <button onClick={onClose} className="text-ag-dim hover:text-ag-primary transition-colors"><X size={14} /></button>
       </div>
 
       {/* Image */}
-      <img src={photo.image_url} alt="Scout photo" className="w-full max-h-64 object-contain rounded-lg border border-white/[0.06] bg-[#0B0F19]" />
+      <img src={photo.image_url} alt="Scout photo" className="w-full max-h-64 object-contain rounded-lg border border-[var(--ag-border)] bg-[#0B0F19]" />
 
       {/* Ask Lily Button */}
       {!analysis && !analyzing && (
         <button onClick={runAnalysis}
           className="w-full flex items-center justify-center gap-2 text-sm font-semibold py-2.5 rounded-full transition-all"
-          style={{ background: "linear-gradient(135deg, #34D399, #2DD4A8)", color: "#080C15" }}>
+          style={{ background: "linear-gradient(135deg, var(--ag-accent), var(--ag-accent-hover))", color: "var(--ag-bg-base)" }}>
           <LilyIcon size={18} /> Ask Lily to Analyze
         </button>
       )}
@@ -558,7 +558,7 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
       {analyzing && (
         <div className="text-center py-4">
           <div className="relative inline-block mb-2">
-            <div className="absolute inset-0 rounded-full bg-[#34D399]/20 blur-md animate-pulse" style={{ animationDuration: "2s" }} />
+            <div className="absolute inset-0 rounded-full bg-[var(--ag-accent)]/20 blur-md animate-pulse" style={{ animationDuration: "2s" }} />
             <div className="relative"><LilyIcon size={32} /></div>
           </div>
           <p className="text-sm text-ag-muted">Lily is analyzing your field photo...</p>
@@ -569,7 +569,7 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
       {analysis && (
         <div className="space-y-3">
           {/* Summary */}
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-3">
+          <div className="bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-4 py-3">
             <p className="text-sm text-ag-primary leading-relaxed">{analysis.summary}</p>
           </div>
 
@@ -577,14 +577,14 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
           {analysis.detections.length > 0 && (
             <div className="space-y-2">
               {analysis.detections.map((d, i) => (
-                <div key={i} className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-3">
+                <div key={i} className="bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-4 py-3">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-ag-primary flex items-center gap-2">
                       <CategoryIcon cat={d.category} /> {d.label}
                     </span>
                     <div className="flex items-center gap-2">
                       <span className={`text-[10px] px-2 py-0.5 rounded font-semibold ${
-                        d.severity === 'high' ? 'bg-[#EF4444]/[0.10] text-[#EF4444]' : d.severity === 'medium' ? 'bg-[#F59E0B]/[0.10] text-[#F59E0B]' : 'bg-[#34D399]/[0.10] text-[#34D399]'
+                        d.severity === 'high' ? 'bg-[var(--ag-red)]/[0.10] text-[var(--ag-red)]' : d.severity === 'medium' ? 'bg-[#F59E0B]/[0.10] text-[var(--ag-yellow)]' : 'bg-[var(--ag-accent)]/[0.10] text-[var(--ag-green)]'
                       }`}>
                         {d.severity}
                       </span>
@@ -594,7 +594,7 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
                     </div>
                   </div>
                   {d.confidence < 0.6 && (
-                    <div className="flex items-center gap-1 text-[10px] text-[#EF4444] mb-1">
+                    <div className="flex items-center gap-1 text-[10px] text-[var(--ag-red)] mb-1">
                       <AlertTriangle size={11} /> Low confidence — confirm with your agronomist or provincial guide
                     </div>
                   )}
@@ -609,7 +609,7 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
           )}
 
           {/* Expand / Collapse Details */}
-          <button onClick={() => setShowDetails(!showDetails)} className="text-xs text-[#34D399] font-medium flex items-center gap-1 hover:text-[#6EE7B7] transition-colors">
+          <button onClick={() => setShowDetails(!showDetails)} className="text-xs text-[var(--ag-green)] font-medium flex items-center gap-1 hover:text-[var(--ag-green)] transition-colors">
             {showDetails ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
             {showDetails ? 'Hide details' : 'Show details'}
           </button>
@@ -618,11 +618,11 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
             <>
               {/* Recommended Actions */}
               {analysis.recommended_actions.length > 0 && (
-                <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-3">
+                <div className="bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-4 py-3">
                   <span className="font-mono text-[10px] font-semibold text-ag-secondary block mb-1.5 uppercase tracking-[1.5px]">Recommended Actions</span>
                   {analysis.recommended_actions.map((a, i) => (
                     <p key={i} className="text-sm text-ag-secondary mb-0.5 flex items-start gap-2">
-                      <span className="w-1 h-1 rounded-full bg-[#34D399] mt-[7px] flex-shrink-0" /> {a}
+                      <span className="w-1 h-1 rounded-full bg-[var(--ag-accent)] mt-[7px] flex-shrink-0" /> {a}
                     </p>
                   ))}
                 </div>
@@ -630,7 +630,7 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
 
               {/* What to Check Next */}
               {analysis.what_to_check_next.length > 0 && (
-                <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-3">
+                <div className="bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-4 py-3">
                   <span className="font-mono text-[10px] font-semibold text-ag-secondary flex items-center gap-1.5 mb-1.5 uppercase tracking-[1.5px]">
                     <HelpCircle size={11} /> What to Check Next
                   </span>
@@ -644,7 +644,7 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
 
               {/* Product Recommendations */}
               {analysis.product_recommendations && analysis.product_recommendations.length > 0 && (
-                <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-3">
+                <div className="bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-4 py-3">
                   <span className="font-mono text-[10px] font-semibold text-ag-secondary flex items-center gap-1.5 block mb-2 uppercase tracking-[1.5px]">
                     <FlaskConical size={11} /> Product Recommendations
                   </span>
@@ -652,17 +652,17 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
                     <div key={i} className="mb-3 last:mb-0 pb-3 last:pb-0 border-b border-white/[0.04] last:border-0">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-medium text-ag-primary">{p.product}</span>
-                        <span className="text-[10px] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded font-medium text-ag-secondary">Group {p.group}</span>
+                        <span className="text-[10px] bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] px-2 py-0.5 rounded font-medium text-ag-secondary">Group {p.group}</span>
                       </div>
                       <p className="text-xs text-ag-muted mb-1">{p.active_ingredient}</p>
                       <div className="grid grid-cols-2 gap-2 text-xs mt-1">
-                        <div><span className="text-ag-muted">Rate:</span> <span className="text-[#34D399] font-semibold">{p.rate}</span></div>
+                        <div><span className="text-ag-muted">Rate:</span> <span className="text-[var(--ag-green)] font-semibold">{p.rate}</span></div>
                         {p.water_volume && <div><span className="text-ag-muted">Water:</span> <span className="text-ag-primary">{p.water_volume}</span></div>}
                         {p.timing && <div><span className="text-ag-muted">Timing:</span> <span className="text-ag-primary">{p.timing}</span></div>}
                         {p.phi_days !== undefined && <div><span className="text-ag-muted">PHI:</span> <span className="text-ag-primary">{p.phi_days} days</span></div>}
                       </div>
                       {p.tank_mix_notes && (
-                        <div className="flex items-start gap-1.5 text-xs text-[#F59E0B] bg-[#F59E0B]/[0.06] border border-[#F59E0B]/15 rounded px-2 py-1 mt-1.5">
+                        <div className="flex items-start gap-1.5 text-xs text-[var(--ag-yellow)] bg-[var(--ag-yellow)/0.06] border border-[#F59E0B]/15 rounded px-2 py-1 mt-1.5">
                           <AlertTriangle size={10} className="mt-0.5 flex-shrink-0" /> {p.tank_mix_notes}
                         </div>
                       )}
@@ -670,7 +670,7 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
                         <div className="mt-1.5 text-xs text-ag-muted space-y-0.5">
                           {p.precautions.map((pr, j) => (
                             <p key={j} className="flex items-start gap-1.5">
-                              <AlertTriangle size={10} className="mt-0.5 flex-shrink-0 text-[#F59E0B]" /> {pr}
+                              <AlertTriangle size={10} className="mt-0.5 flex-shrink-0 text-[var(--ag-yellow)]" /> {pr}
                             </p>
                           ))}
                         </div>
@@ -684,16 +684,16 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
               {/* Spray Water Checklist */}
               {analysis.spray_water_checklist?.triggered && (
                 <div className="bg-[#F59E0B]/[0.04] border border-[#F59E0B]/15 rounded-lg px-4 py-3">
-                  <span className="font-mono text-[10px] font-semibold text-[#F59E0B] flex items-center gap-1.5 block mb-1 uppercase tracking-[1.5px]">
+                  <span className="font-mono text-[10px] font-semibold text-[var(--ag-yellow)] flex items-center gap-1.5 block mb-1 uppercase tracking-[1.5px]">
                     <Droplets size={11} /> Water Compatibility
                   </span>
                   {analysis.spray_water_checklist.questions.map((q, i) => (
-                    <p key={i} className="text-sm text-[#F59E0B]/80 mb-0.5 flex items-start gap-1.5">
+                    <p key={i} className="text-sm text-[var(--ag-yellow)]/80 mb-0.5 flex items-start gap-1.5">
                       <HelpCircle size={11} className="mt-0.5 flex-shrink-0" /> {q}
                     </p>
                   ))}
                   {analysis.spray_water_checklist.notes.map((n, i) => (
-                    <p key={i} className="text-xs text-[#F59E0B]/60 mt-1 flex items-start gap-1.5">
+                    <p key={i} className="text-xs text-[var(--ag-yellow)]/60 mt-1 flex items-start gap-1.5">
                       <AlertTriangle size={10} className="mt-0.5 flex-shrink-0" /> {n}
                     </p>
                   ))}
@@ -702,14 +702,14 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
 
               {/* References */}
               {analysis.references.length > 0 && (
-                <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-3">
+                <div className="bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-4 py-3">
                   <span className="font-mono text-[10px] font-semibold text-ag-secondary flex items-center gap-1.5 block mb-1.5 uppercase tracking-[1.5px]">
                     <BookOpen size={11} /> References
                   </span>
                   {analysis.references.map((r, i) => (
                     <div key={i} className="text-xs text-ag-muted mb-1">
                       <span className="font-medium text-ag-primary">{r.title}</span>
-                      <span className="ml-1 text-ag-dim bg-white/[0.04] px-1.5 py-0.5 rounded">{r.type}</span>
+                      <span className="ml-1 text-ag-dim bg-[var(--ag-bg-hover)] px-1.5 py-0.5 rounded">{r.type}</span>
                       <p className="mt-0.5">{r.note}</p>
                     </div>
                   ))}
@@ -721,7 +721,7 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
           {/* Save to Entry */}
           <button onClick={handleSaveToEntry}
             className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-full transition-all"
-            style={{ background: "linear-gradient(135deg, #34D399, #2DD4A8)", color: "#080C15" }}>
+            style={{ background: "linear-gradient(135deg, var(--ag-accent), var(--ag-accent-hover))", color: "var(--ag-bg-base)" }}>
             <CheckCircle size={14} /> Save to Report
           </button>
 

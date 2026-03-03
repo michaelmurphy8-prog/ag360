@@ -142,30 +142,30 @@ export default function OperationsPage() {
       {kpis && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <KpiCard
-            icon={MapPin} iconColor="#34D399" label="Total Acres"
+            icon={MapPin} iconColor="var(--ag-green)" label="Total Acres"
             value={fmt(kpis.totalAcres)}
             subtitle={`${kpis.totalFields} fields · ${kpis.seededCount} seeded`}
-            donut={{ value: kpis.seededCount, max: kpis.totalFields, color: "#34D399", showLabel: true }}
+            donut={{ value: kpis.seededCount, max: kpis.totalFields, color: "var(--ag-green)", showLabel: true }}
           />
           <KpiCard
-            icon={DollarSign} iconColor="#FBBF24" label="Total Costs"
+            icon={DollarSign} iconColor="var(--ag-yellow)" label="Total Costs"
             value={<>${fmt(kpis.totalActualCost)}</>}
             subtitle={`$${fmtD(kpis.avgCostPerAcre)}/ac avg`}
             donut={{
               value: kpis.totalActualCost,
               max: kpis.totalBudgetCost || kpis.totalActualCost,
-              color: kpis.totalActualCost > kpis.totalBudgetCost ? "#EF4444" : "#34D399",
+              color: kpis.totalActualCost > kpis.totalBudgetCost ? "var(--ag-red)" : "var(--ag-green)",
               showLabel: true,
             }}
           />
           <KpiCard
-            icon={Target} iconColor="#60A5FA" label="Total Revenue"
+            icon={Target} iconColor="var(--ag-blue)" label="Total Revenue"
             value={<>${fmt(kpis.totalActualRevenue)}</>}
             subtitle={`$${kpis.seededAcres > 0 ? fmtD(kpis.totalActualRevenue / kpis.seededAcres) : "0.00"}/ac`}
           />
           <KpiCard
             icon={kpis.netMarginActual >= 0 ? TrendingUp : TrendingDown}
-            iconColor={kpis.netMarginActual >= 0 ? "#34D399" : "#EF4444"}
+            iconColor={kpis.netMarginActual >= 0 ? "var(--ag-green)" : "var(--ag-red)"}
             label="Net Margin"
             value={
               <span className={kpis.netMarginActual >= 0 ? "text-emerald-400" : "text-red-400"}>
@@ -176,7 +176,7 @@ export default function OperationsPage() {
             donut={{
               value: Math.abs(kpis.netMarginActual),
               max: kpis.totalActualRevenue || 1,
-              color: kpis.netMarginActual >= 0 ? "#34D399" : "#EF4444",
+              color: kpis.netMarginActual >= 0 ? "var(--ag-green)" : "var(--ag-red)",
             }}
           />
         </div>
@@ -188,7 +188,7 @@ export default function OperationsPage() {
         {/* Crop Mix */}
         <div className="bg-ag-card border border-ag rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
-            <Sprout size={14} className="text-[#34D399]" />
+            <Sprout size={14} className="text-[var(--ag-green)]" />
             <span className="text-[11px] font-semibold tracking-[1.5px] uppercase text-ag-muted">
               Crop Mix — {cropYear}
             </span>
@@ -210,7 +210,7 @@ export default function OperationsPage() {
                           {fmt(data.acres)} ac · {data.count} field{data.count !== 1 ? "s" : ""}
                         </span>
                       </div>
-                      <div className="w-full h-2 bg-white/[0.06] rounded-full overflow-hidden">
+                      <div className="w-full h-2 bg-[var(--ag-bg-active)] rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-500"
                           style={{ width: `${pct}%`, backgroundColor: CROP_COLORS[crop] || "#9ca3af" }}
@@ -229,7 +229,7 @@ export default function OperationsPage() {
         {kpis && (
           <div className="bg-ag-card border border-ag rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <BarChart3 size={14} className="text-[#60A5FA]" />
+              <BarChart3 size={14} className="text-[var(--ag-blue)]" />
               <span className="text-[11px] font-semibold tracking-[1.5px] uppercase text-ag-muted">
                 Budget vs Actual
               </span>
@@ -245,11 +245,11 @@ export default function OperationsPage() {
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white/[0.03] rounded-lg px-3 py-2.5">
+                  <div className="bg-[var(--ag-bg-hover)] rounded-lg px-3 py-2.5">
                     <p className="text-[10px] text-ag-muted tracking-wide uppercase">Budget</p>
                     <p className="text-lg font-bold text-ag-primary">${fmt(kpis.totalBudgetCost)}</p>
                   </div>
-                  <div className="bg-white/[0.03] rounded-lg px-3 py-2.5">
+                  <div className="bg-[var(--ag-bg-hover)] rounded-lg px-3 py-2.5">
                     <p className="text-[10px] text-ag-muted tracking-wide uppercase">Actual</p>
                     <p className="text-lg font-bold text-ag-primary">${fmt(kpis.totalActualCost)}</p>
                   </div>
@@ -266,11 +266,11 @@ export default function OperationsPage() {
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white/[0.03] rounded-lg px-3 py-2.5">
+                  <div className="bg-[var(--ag-bg-hover)] rounded-lg px-3 py-2.5">
                     <p className="text-[10px] text-ag-muted tracking-wide uppercase">Budget</p>
                     <p className="text-lg font-bold text-ag-primary">${fmt(kpis.totalBudgetRevenue)}</p>
                   </div>
-                  <div className="bg-white/[0.03] rounded-lg px-3 py-2.5">
+                  <div className="bg-[var(--ag-bg-hover)] rounded-lg px-3 py-2.5">
                     <p className="text-[10px] text-ag-muted tracking-wide uppercase">Actual</p>
                     <p className="text-lg font-bold text-ag-primary">${fmt(kpis.totalActualRevenue)}</p>
                   </div>
@@ -304,38 +304,38 @@ export default function OperationsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Link
           href="/fields"
-          className="bg-ag-card border border-ag rounded-xl p-5 hover:border-[#34D399]/40 transition-all group"
+          className="bg-ag-card border border-ag rounded-xl p-5 hover:border-[var(--ag-accent)]/40 transition-all group"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#34D399]/10 flex items-center justify-center">
-                <MapPin size={20} className="text-[#34D399]" />
+              <div className="w-10 h-10 rounded-lg bg-[var(--ag-accent)]/10 flex items-center justify-center">
+                <MapPin size={20} className="text-[var(--ag-green)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-ag-primary group-hover:text-[#34D399] transition-colors">Fields</p>
+                <p className="text-sm font-semibold text-ag-primary group-hover:text-[var(--ag-green)] transition-colors">Fields</p>
                 <p className="text-xs text-ag-muted">
                   {kpis ? `${kpis.totalFields} fields · ${fmt(kpis.totalAcres)} acres` : "Manage your fields"}
                 </p>
               </div>
             </div>
-            <ArrowRight size={16} className="text-ag-dim group-hover:text-[#34D399] transition-colors" />
+            <ArrowRight size={16} className="text-ag-dim group-hover:text-[var(--ag-green)] transition-colors" />
           </div>
         </Link>
         <Link
           href="/imports"
-          className="bg-ag-card border border-ag rounded-xl p-5 hover:border-[#34D399]/40 transition-all group"
+          className="bg-ag-card border border-ag rounded-xl p-5 hover:border-[var(--ag-accent)]/40 transition-all group"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#60A5FA]/10 flex items-center justify-center">
-                <Upload size={20} className="text-[#60A5FA]" />
+              <div className="w-10 h-10 rounded-lg bg-[var(--ag-blue)]/10 flex items-center justify-center">
+                <Upload size={20} className="text-[var(--ag-blue)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-ag-primary group-hover:text-[#34D399] transition-colors">Import Data</p>
+                <p className="text-sm font-semibold text-ag-primary group-hover:text-[var(--ag-green)] transition-colors">Import Data</p>
                 <p className="text-xs text-ag-muted">Upload Excel files, scale tickets, and more</p>
               </div>
             </div>
-            <ArrowRight size={16} className="text-ag-dim group-hover:text-[#34D399] transition-colors" />
+            <ArrowRight size={16} className="text-ag-dim group-hover:text-[var(--ag-green)] transition-colors" />
           </div>
         </Link>
       </div>

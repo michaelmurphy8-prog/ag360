@@ -76,9 +76,9 @@ export default function FileDropZone({ onFileSelect, accept = ".xlsx,.csv,.xls",
 
   if (selectedFile) {
     return (
-      <div className="flex items-center gap-3 p-4 rounded-lg bg-[#1E293B]/50 border border-[#22C55E]/30">
-        <div className="p-2 rounded-lg bg-[#22C55E]/10">
-          <FileSpreadsheet className="w-6 h-6 text-[#22C55E]" />
+      <div className="flex items-center gap-3 p-4 rounded-lg bg-[var(--ag-border-solid)]/50 border border-[var(--ag-accent-border)]">
+        <div className="p-2 rounded-lg bg-[var(--ag-green-dim)]">
+          <FileSpreadsheet className="w-6 h-6 text-[var(--ag-green)]" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-ag-primary truncate">{selectedFile.name}</p>
@@ -86,7 +86,7 @@ export default function FileDropZone({ onFileSelect, accept = ".xlsx,.csv,.xls",
         </div>
         <button
           onClick={clearFile}
-          className="p-1.5 rounded-md hover:bg-[#1E293B] text-ag-secondary hover:text-ag-primary transition-colors"
+          className="p-1.5 rounded-md hover:bg-[var(--ag-bg-active)] text-ag-secondary hover:text-ag-primary transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
@@ -104,14 +104,14 @@ export default function FileDropZone({ onFileSelect, accept = ".xlsx,.csv,.xls",
       className={`
         relative flex flex-col items-center justify-center gap-3 p-8 rounded-lg border-2 border-dashed cursor-pointer transition-all duration-200
         ${isDragging
-          ? "border-[#22C55E] bg-[#22C55E]/5"
+          ? "border-[#22C55E] bg-[var(--ag-accent)]/5"
           : "border-ag hover:border-ag-hover hover:bg-ag-card/50"
         }
         ${disabled ? "opacity-50 cursor-not-allowed" : ""}
       `}
     >
-      <div className={`p-3 rounded-full transition-colors ${isDragging ? "bg-[#22C55E]/10" : "bg-[#1E293B]"}`}>
-        <Upload className={`w-6 h-6 ${isDragging ? "text-[#22C55E]" : "text-ag-secondary"}`} />
+      <div className={`p-3 rounded-full transition-colors ${isDragging ? "bg-[var(--ag-green-dim)]" : "bg-[var(--ag-border-solid)]"}`}>
+        <Upload className={`w-6 h-6 ${isDragging ? "text-[var(--ag-green)]" : "text-ag-secondary"}`} />
       </div>
       <div className="text-center">
         <p className="text-sm font-medium text-ag-primary">

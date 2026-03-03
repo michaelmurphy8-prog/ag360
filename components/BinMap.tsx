@@ -63,10 +63,10 @@ const BIN_TYPES = [
 const GRADES = ["#1", "#2", "#3", "Feed", "Sample", "Tough", "Damp"];
 
 const T = {
-  bg: "#0B1120", card: "#111827", border: "rgba(255,255,255,0.06)",
-  text: "#F1F5F9", text2: "#CBD5E1", text3: "#64748B", text4: "#475569",
-  green: "#34D399", greenBg: "rgba(52,211,153,0.08)",
-  red: "#F87171", blue: "#60A5FA",
+  bg: "var(--ag-bg-primary)", card: "var(--ag-bg-card)", border: "rgba(255,255,255,0.06)",
+  text: "var(--ag-text-primary)", text2: "#CBD5E1", text3: "var(--ag-text-muted)", text4: "var(--ag-text-dim)",
+  green: "var(--ag-green)", greenBg: "var(--ag-green-dim)",
+  red: "var(--ag-red)", blue: "var(--ag-blue)",
 };
 
 const fmtNum = (n: number) => n.toLocaleString("en-CA", { maximumFractionDigits: 0 });
@@ -78,7 +78,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 const selectStyle: React.CSSProperties = {
-  ...inputStyle, appearance: "auto" as any, background: "#111827",
+  ...inputStyle, appearance: "auto" as any, background: "var(--ag-bg-card)",
 };
 
 // Default: Saskatchewan farmland

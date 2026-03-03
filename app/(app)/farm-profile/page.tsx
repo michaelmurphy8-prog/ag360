@@ -135,11 +135,11 @@ function fmt(n: number) {
 }
 
 const inputClass =
-  "w-full text-sm border border-white/[0.10] rounded-[10px] px-3 py-2 outline-none focus:border-[#34D399]/50 bg-white/[0.04] text-ag-primary placeholder:text-ag-muted";
+  "w-full text-sm border border-[var(--ag-border-solid)] rounded-[10px] px-3 py-2 outline-none focus:border-[var(--ag-accent)]/50 bg-[var(--ag-bg-hover)] text-ag-primary placeholder:text-ag-muted";
 const selectClass =
-  "w-full text-sm border border-white/[0.10] rounded-[10px] px-3 py-2 outline-none focus:border-[#34D399]/50 bg-[#111827] text-ag-primary";
+  "w-full text-sm border border-[var(--ag-border-solid)] rounded-[10px] px-3 py-2 outline-none focus:border-[var(--ag-accent)]/50 bg-[var(--ag-bg-card)] text-ag-primary";
 const costInputClass =
-  "w-24 text-sm text-right border border-white/[0.10] rounded-[8px] px-2 py-1.5 outline-none focus:border-[#34D399]/50 bg-white/[0.04] text-ag-primary";
+  "w-24 text-sm text-right border border-[var(--ag-border-solid)] rounded-[8px] px-2 py-1.5 outline-none focus:border-[var(--ag-accent)]/50 bg-[var(--ag-bg-hover)] text-ag-primary";
 
 // Generate crop year options (current year -2 to +1)
 const currentYear = new Date().getFullYear();
@@ -317,13 +317,13 @@ export default function FarmProfilePage() {
         <div className="flex items-center gap-3">
           {/* Sync Status Indicator */}
           {syncStatus === "synced" && (
-            <span className="flex items-center gap-1.5 text-xs font-medium text-[#34D399] bg-[#34D399]/[0.08] px-3 py-1.5 rounded-full border border-[#34D399]/20">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--ag-green)] bg-[var(--ag-accent)]/[0.08] px-3 py-1.5 rounded-full border border-[var(--ag-accent-border)]">
               <RefreshCw size={11} />
               Synced to Marketing
             </span>
           )}
           {syncStatus === "error" && (
-            <span className="flex items-center gap-1.5 text-xs font-medium text-[#EF4444] bg-[#EF4444]/[0.08] px-3 py-1.5 rounded-full border border-[#EF4444]/20">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--ag-red)] bg-[var(--ag-red-dim)] px-3 py-1.5 rounded-full border border-[var(--ag-red)]/20">
               Sync failed
             </span>
           )}
@@ -334,8 +334,8 @@ export default function FarmProfilePage() {
             style={{
               background: saved
                 ? "rgba(52,211,153,0.12)"
-                : "linear-gradient(135deg, #34D399, #2DD4A8)",
-              color: saved ? "#34D399" : "#080C15",
+                : "linear-gradient(135deg, var(--ag-accent), var(--ag-accent-hover))",
+              color: saved ? "var(--ag-green)" : "var(--ag-bg-base)",
               border: saved ? "1px solid rgba(52,211,153,0.25)" : "none",
               opacity: saving ? 0.7 : 1,
             }}
@@ -358,7 +358,7 @@ export default function FarmProfilePage() {
 
       {/* Profit Summary Strip */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
+        <div className="bg-[var(--ag-bg-card)] rounded-xl border border-[var(--ag-border)] p-5">
           <p className="font-mono text-[11px] font-bold text-ag-primary uppercase tracking-[1.5px]">
             Gross Revenue
           </p>
@@ -367,7 +367,7 @@ export default function FarmProfilePage() {
           </p>
           <p className="text-xs text-ag-muted mt-1">CAD · all crops</p>
         </div>
-        <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
+        <div className="bg-[var(--ag-bg-card)] rounded-xl border border-[var(--ag-border)] p-5">
           <p className="font-mono text-[11px] font-bold text-ag-primary uppercase tracking-[1.5px]">
             Total Costs
           </p>
@@ -377,20 +377,20 @@ export default function FarmProfilePage() {
           <p className="text-xs text-ag-muted mt-1">CAD · fixed + variable</p>
         </div>
         <div
-          className={`rounded-xl border p-5 ${totalNet >= 0 ? "bg-[#34D399]/[0.06] border-[#34D399]/20" : "bg-[#EF4444]/[0.06] border-[#EF4444]/20"}`}
+          className={`rounded-xl border p-5 ${totalNet >= 0 ? "bg-[var(--ag-accent)]/[0.06] border-[var(--ag-accent-border)]" : "bg-[var(--ag-red)]/[0.06] border-[var(--ag-red)]/20"}`}
         >
           <p className="font-mono text-[11px] font-bold text-ag-primary uppercase tracking-[1.5px]">
             Net Profit
           </p>
           <p
-            className={`text-2xl font-bold mt-1 ${totalNet >= 0 ? "text-[#34D399]" : "text-[#EF4444]"}`}
+            className={`text-2xl font-bold mt-1 ${totalNet >= 0 ? "text-[var(--ag-green)]" : "text-[var(--ag-red)]"}`}
           >
             {totalNet < 0 ? "-" : ""}
             {fmt(totalNet)}
           </p>
           <p className="text-xs text-ag-muted mt-1">CAD · estimated</p>
         </div>
-        <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
+        <div className="bg-[var(--ag-bg-card)] rounded-xl border border-[var(--ag-border)] p-5">
           <p className="font-mono text-[11px] font-bold text-ag-primary uppercase tracking-[1.5px]">
             Total Production
           </p>
@@ -404,7 +404,7 @@ export default function FarmProfilePage() {
       </div>
 
       {/* Farm Details */}
-      <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-6 space-y-5">
+      <div className="bg-[var(--ag-bg-card)] rounded-xl border border-[var(--ag-border)] p-6 space-y-5">
         <h2 className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px]">
           Farm Details
         </h2>
@@ -500,8 +500,8 @@ export default function FarmProfilePage() {
                 onClick={() => setProfile({ ...profile, riskProfile: r })}
                 className={`text-xs font-semibold px-4 py-2 rounded-full border transition-all duration-200 ${
                   profile.riskProfile === r
-                    ? "bg-[#34D399] text-[#080C15] border-[#34D399]"
-                    : "bg-transparent text-ag-muted border-white/[0.10] hover:text-ag-secondary hover:border-white/[0.15]"
+                    ? "bg-[var(--ag-accent)] text-[var(--ag-accent-text)] border-[var(--ag-accent)]"
+                    : "bg-transparent text-ag-muted border-[var(--ag-border-solid)] hover:text-[var(--ag-text-secondary)] hover:border-white/[0.15]"
                 }`}
               >
                 {r}
@@ -512,8 +512,8 @@ export default function FarmProfilePage() {
       </div>
 
       {/* Crop Tabs */}
-      <div className="bg-[#111827] rounded-xl border border-white/[0.06] overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+      <div className="bg-[var(--ag-bg-card)] rounded-xl border border-[var(--ag-border)] overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--ag-border)]">
           <div className="flex items-center gap-4">
             <h2 className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px]">
               Crops, Inventory & Cost Calculator
@@ -528,10 +528,10 @@ export default function FarmProfilePage() {
                     cropYear: Number(e.target.value),
                   })
                 }
-                className="appearance-none text-xs font-semibold bg-white/[0.04] border border-white/[0.10] rounded-full px-3 py-1.5 pr-7 text-ag-primary outline-none focus:border-[#34D399]/50 cursor-pointer"
+                className="appearance-none text-xs font-semibold bg-[var(--ag-bg-hover)] border border-[var(--ag-border-solid)] rounded-full px-3 py-1.5 pr-7 text-ag-primary outline-none focus:border-[var(--ag-accent)]/50 cursor-pointer"
               >
                 {CROP_YEARS.map((y) => (
-                  <option key={y} value={y} className="bg-[#111827]">
+                  <option key={y} value={y} className="bg-[var(--ag-bg-card)]">
                     {y}
                   </option>
                 ))}
@@ -544,22 +544,22 @@ export default function FarmProfilePage() {
           </div>
           <button
             onClick={addCrop}
-            className="flex items-center gap-1 text-xs font-semibold text-[#34D399] hover:text-[#6EE7B7] transition-colors"
+            className="flex items-center gap-1 text-xs font-semibold text-[var(--ag-green)] hover:text-[var(--ag-green)] transition-colors"
           >
             <Plus size={12} /> Add Crop
           </button>
         </div>
 
         {/* Crop Tab Headers */}
-        <div className="flex border-b border-white/[0.06] px-6 gap-2 overflow-x-auto">
+        <div className="flex border-b border-[var(--ag-border)] px-6 gap-2 overflow-x-auto">
           {profile.inventory.map((c, i) => (
             <button
               key={i}
               onClick={() => setActiveTab(i)}
               className={`text-xs font-semibold px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === i
-                  ? "border-[#34D399] text-[#34D399]"
-                  : "border-transparent text-ag-muted hover:text-ag-secondary"
+                  ? "border-[var(--ag-accent)] text-[var(--ag-green)]"
+                  : "border-transparent text-ag-muted hover:text-[var(--ag-text-secondary)]"
               }`}
             >
               {c.crop || `Crop ${i + 1}`}
@@ -580,14 +580,14 @@ export default function FarmProfilePage() {
                     onChange={(e) =>
                       updateCrop(index, "crop", e.target.value)
                     }
-                    className="text-sm font-semibold border border-white/[0.10] rounded-[10px] px-3 py-2 outline-none focus:border-[#34D399]/50 bg-[#111827] text-ag-primary"
+                    className="text-sm font-semibold border border-[var(--ag-border-solid)] rounded-[10px] px-3 py-2 outline-none focus:border-[var(--ag-accent)]/50 bg-[var(--ag-bg-card)] text-ag-primary"
                   >
                     <option value="">Select crop</option>
                     {CROPS.map((c) => (
                       <option key={c}>{c}</option>
                     ))}
                   </select>
-                  <div className="flex rounded-full border border-white/[0.10] overflow-hidden">
+                  <div className="flex rounded-full border border-[var(--ag-border-solid)] overflow-hidden">
                     {(["on_hand", "forecast"] as InventoryMode[]).map(
                       (mode) => (
                         <button
@@ -595,8 +595,8 @@ export default function FarmProfilePage() {
                           onClick={() => updateCrop(index, "mode", mode)}
                           className={`text-xs font-semibold px-4 py-1.5 transition-colors ${
                             crop.mode === mode
-                              ? "bg-[#34D399] text-[#080C15]"
-                              : "text-ag-muted hover:bg-white/[0.04]"
+                              ? "bg-[var(--ag-accent)] text-[var(--ag-accent-text)]"
+                              : "text-ag-muted hover:bg-[var(--ag-bg-hover)]"
                           }`}
                         >
                           {mode === "on_hand" ? "On Hand" : "Forecast"}
@@ -607,7 +607,7 @@ export default function FarmProfilePage() {
                 </div>
                 <button
                   onClick={() => removeCrop(index)}
-                  className="text-xs text-[#EF4444] hover:text-red-400 flex items-center gap-1 transition-colors"
+                  className="text-xs text-[var(--ag-red)] hover:text-red-400 flex items-center gap-1 transition-colors"
                 >
                   <Trash2 size={12} /> Remove
                 </button>
@@ -664,7 +664,7 @@ export default function FarmProfilePage() {
                       <label className="text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">
                         Forecast (bu)
                       </label>
-                      <div className="text-sm font-bold text-[#34D399] px-3 py-2">
+                      <div className="text-sm font-bold text-[var(--ag-green)] px-3 py-2">
                         {(crop.acres * crop.aph).toLocaleString()} bu
                       </div>
                     </div>
@@ -743,7 +743,7 @@ export default function FarmProfilePage() {
                       </div>
                     </div>
                   ))}
-                  <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
+                  <div className="flex items-center justify-between pt-2 border-t border-[var(--ag-border)]">
                     <span className="text-xs font-bold text-ag-primary">
                       Total Fixed
                     </span>
@@ -794,7 +794,7 @@ export default function FarmProfilePage() {
                       </div>
                     </div>
                   ))}
-                  <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
+                  <div className="flex items-center justify-between pt-2 border-t border-[var(--ag-border)]">
                     <span className="text-xs font-bold text-ag-primary">
                       Total Variable
                     </span>
@@ -836,7 +836,7 @@ export default function FarmProfilePage() {
                     Net Profit
                   </p>
                   <p
-                    className={`text-lg font-bold mt-1 ${calc.netProfit >= 0 ? "text-[#34D399]" : "text-[#EF4444]"}`}
+                    className={`text-lg font-bold mt-1 ${calc.netProfit >= 0 ? "text-[var(--ag-green)]" : "text-[var(--ag-red)]"}`}
                   >
                     {calc.netProfit < 0 ? "-" : ""}
                     {fmt(calc.netProfit)}

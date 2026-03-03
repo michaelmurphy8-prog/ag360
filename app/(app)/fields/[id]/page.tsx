@@ -43,16 +43,16 @@ const CATEGORY_ORDER = [
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Seed: "#34D399", Fertilizer: "#60A5FA", Chemical: "#F59E0B",
-  Fuel: "#EF4444", Labour: "#8B5CF6", "Land Rent": "#EC4899",
+  Seed: "var(--ag-green)", Fertilizer: "var(--ag-blue)", Chemical: "var(--ag-yellow)",
+  Fuel: "var(--ag-red)", Labour: "#8B5CF6", "Land Rent": "#EC4899",
   "Custom Work": "#14B8A6", "Crop Insurance": "#F97316", Other: "#6B7280",
 };
 
 const STATUS_COLORS: Record<string, string> = {
   planned: "bg-[#334155] text-ag-secondary",
-  seeded: "bg-[#1E3A5F] text-[#60A5FA]",
+  seeded: "bg-[#1E3A5F] text-[var(--ag-blue)]",
   growing: "bg-[#14532D] text-[#4ADE80]",
-  harvested: "bg-[#78350F] text-[#FBBF24]",
+  harvested: "bg-[#78350F] text-[var(--ag-yellow)]",
 };
 
 function fmt(n: number): string {
@@ -161,7 +161,7 @@ export default function FieldDetailPage() {
     return acc;
   }, {} as Record<string, Cost[]>);
 
-  const cropColor = crop ? CROP_COLORS[crop.crop_type] || "#9ca3af" : "#1E293B";
+  const cropColor = crop ? CROP_COLORS[crop.crop_type] || "#9ca3af" : "var(--ag-border-solid)";
   const expectedProd = crop ? (parseFloat(String(crop.expected_yield_bu_ac)) || 0) * (parseFloat(String(crop.seeded_acres)) || field.acres) : 0;
 
   return (
@@ -214,14 +214,14 @@ export default function FieldDetailPage() {
           <div className="flex gap-2">
             <button
               onClick={() => setShowAddRevenue(true)}
-              className="flex items-center gap-2 border border-[#34D399]/40 text-[#34D399] hover:bg-[#34D399]/10 px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+              className="flex items-center gap-2 border border-[var(--ag-accent)]/40 text-[var(--ag-green)] hover:bg-[var(--ag-accent)]/10 px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
             >
               <Plus size={16} />
               Revenue
             </button>
             <button
               onClick={() => setShowAddCost(true)}
-              className="flex items-center gap-2 bg-[#34D399] hover:bg-[#2CC48D] text-[#0F1629] px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+              className="flex items-center gap-2 bg-[var(--ag-accent)] hover:bg-[var(--ag-accent-hover)] text-[var(--ag-accent-text)] px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
             >
               <Plus size={16} />
               Cost
@@ -235,7 +235,7 @@ export default function FieldDetailPage() {
         <div className="bg-ag-card border border-ag rounded-xl p-4 flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp size={13} className="text-[#34D399]" />
+              <TrendingUp size={13} className="text-[var(--ag-green)]" />
               <span className="text-[10px] font-semibold tracking-[1.5px] uppercase text-ag-muted">Revenue</span>
             </div>
             <p className="text-xl font-bold text-white">${fmt(totalRevenue_)}</p>
@@ -246,7 +246,7 @@ export default function FieldDetailPage() {
         <div className="bg-ag-card border border-ag rounded-xl p-4 flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <DollarSign size={13} className="text-[#FBBF24]" />
+              <DollarSign size={13} className="text-[var(--ag-yellow)]" />
               <span className="text-[10px] font-semibold tracking-[1.5px] uppercase text-ag-muted">Costs</span>
             </div>
             <p className="text-xl font-bold text-white">${fmt(totalCost)}</p>
@@ -255,7 +255,7 @@ export default function FieldDetailPage() {
           {budgetCostTotal > 0 && (
             <MiniDonut
               value={actualCostTotal} max={budgetCostTotal}
-              color={actualCostTotal > budgetCostTotal ? "#EF4444" : "#34D399"}
+              color={actualCostTotal > budgetCostTotal ? "var(--ag-red)" : "var(--ag-green)"}
               showLabel
             />
           )}
@@ -263,7 +263,7 @@ export default function FieldDetailPage() {
 
         <div className="bg-ag-card border border-ag rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
-            <BarChart3 size={13} className={netMargin >= 0 ? "text-[#34D399]" : "text-[#EF4444]"} />
+            <BarChart3 size={13} className={netMargin >= 0 ? "text-[var(--ag-green)]" : "text-[var(--ag-red)]"} />
             <span className="text-[10px] font-semibold tracking-[1.5px] uppercase text-ag-muted">Net Margin</span>
           </div>
           <p className={`text-xl font-bold ${netMargin >= 0 ? "text-emerald-400" : "text-red-400"}`}>
@@ -276,7 +276,7 @@ export default function FieldDetailPage() {
 
         <div className="bg-ag-card border border-ag rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
-            <Target size={13} className={variance > 0 ? "text-[#EF4444]" : "text-[#34D399]"} />
+            <Target size={13} className={variance > 0 ? "text-[var(--ag-red)]" : "text-[var(--ag-green)]"} />
             <span className="text-[10px] font-semibold tracking-[1.5px] uppercase text-ag-muted">Variance</span>
           </div>
           <p className={`text-xl font-bold ${variance > 0 ? "text-red-400" : "text-emerald-400"}`}>
@@ -301,12 +301,12 @@ export default function FieldDetailPage() {
               </span>
             </div>
           </div>
-          <div className="w-full h-3 bg-white/[0.06] rounded-full overflow-hidden">
+          <div className="w-full h-3 bg-[var(--ag-bg-active)] rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{
                 width: `${Math.min(budgetPct, 100)}%`,
-                backgroundColor: budgetPct > 100 ? "#EF4444" : budgetPct > 85 ? "#FBBF24" : "#34D399",
+                backgroundColor: budgetPct > 100 ? "var(--ag-red)" : budgetPct > 85 ? "var(--ag-yellow)" : "var(--ag-green)",
               }}
             />
           </div>
@@ -317,7 +317,7 @@ export default function FieldDetailPage() {
       {activeTab === "costs" && Object.keys(grouped).length > 0 && (
         <div className="bg-ag-card border border-ag rounded-xl p-5 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <DollarSign size={14} className="text-[#FBBF24]" />
+            <DollarSign size={14} className="text-[var(--ag-yellow)]" />
             <span className="text-[11px] font-semibold tracking-[1.5px] uppercase text-ag-muted">
               Cost Breakdown — {costView}
             </span>
@@ -338,7 +338,7 @@ export default function FieldDetailPage() {
                       <span className="text-sm text-ag-secondary font-medium">${fmtD(catTotal)}</span>
                     </div>
                   </div>
-                  <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-[var(--ag-bg-active)] rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{ width: `${pct}%`, backgroundColor: CATEGORY_COLORS[category] || "#6B7280" }}
@@ -355,7 +355,7 @@ export default function FieldDetailPage() {
       {crop && crop.expected_yield_bu_ac && (
         <div className="bg-ag-card border border-ag rounded-xl p-4 mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Wheat size={16} className="text-[#FBBF24]" />
+            <Wheat size={16} className="text-[var(--ag-yellow)]" />
             <div>
               <span className="text-[11px] font-semibold tracking-[1.5px] uppercase text-ag-muted">Expected Production</span>
               <p className="text-lg font-bold text-white">{fmt(expectedProd)} bu</p>
@@ -376,7 +376,7 @@ export default function FieldDetailPage() {
           <button
             onClick={() => setActiveTab("costs")}
             className={`px-5 py-2 text-sm font-semibold transition-colors ${
-              activeTab === "costs" ? "bg-[#34D399] text-[#0F1629]" : "bg-ag-card text-ag-muted hover:text-ag-secondary"
+              activeTab === "costs" ? "bg-[var(--ag-accent)] text-[var(--ag-accent-text)]" : "bg-ag-card text-ag-muted hover:text-[var(--ag-text-secondary)]"
             }`}
           >
             Costs
@@ -384,7 +384,7 @@ export default function FieldDetailPage() {
           <button
             onClick={() => setActiveTab("revenue")}
             className={`px-5 py-2 text-sm font-semibold transition-colors ${
-              activeTab === "revenue" ? "bg-[#34D399] text-[#0F1629]" : "bg-ag-card text-ag-muted hover:text-ag-secondary"
+              activeTab === "revenue" ? "bg-[var(--ag-accent)] text-[var(--ag-accent-text)]" : "bg-ag-card text-ag-muted hover:text-[var(--ag-text-secondary)]"
             }`}
           >
             Revenue
@@ -394,7 +394,7 @@ export default function FieldDetailPage() {
           <button
             onClick={() => setCostView("budget")}
             className={`px-4 py-2 text-sm font-semibold transition-colors ${
-              costView === "budget" ? "bg-[#60A5FA] text-[#0F1629]" : "bg-ag-card text-ag-muted hover:text-ag-secondary"
+              costView === "budget" ? "bg-[var(--ag-blue)] text-[var(--ag-accent-text)]" : "bg-ag-card text-ag-muted hover:text-[var(--ag-text-secondary)]"
             }`}
           >
             Budget
@@ -402,7 +402,7 @@ export default function FieldDetailPage() {
           <button
             onClick={() => setCostView("actual")}
             className={`px-4 py-2 text-sm font-semibold transition-colors ${
-              costView === "actual" ? "bg-[#60A5FA] text-[#0F1629]" : "bg-ag-card text-ag-muted hover:text-ag-secondary"
+              costView === "actual" ? "bg-[var(--ag-blue)] text-[var(--ag-accent-text)]" : "bg-ag-card text-ag-muted hover:text-[var(--ag-text-secondary)]"
             }`}
           >
             Actual
@@ -431,7 +431,7 @@ export default function FieldDetailPage() {
                       </div>
                       <span className="text-sm font-semibold text-ag-primary">${fmtD(categoryTotal)}</span>
                     </div>
-                    <div className="divide-y divide-[#1E293B]/60">
+                    <div className="divide-y divide-[var(--ag-border-solid)]/60">
                       {items.map((cost) => (
                         <div key={cost.id} className="flex items-center justify-between px-4 py-3">
                           <div className="flex-1">
@@ -460,13 +460,13 @@ export default function FieldDetailPage() {
                 );
               })}
               {/* Total bar */}
-              <div className="bg-[#34D399]/10 border border-[#34D399]/20 rounded-xl px-4 py-3 flex items-center justify-between">
-                <span className="text-[#34D399] font-semibold">
+              <div className="bg-[var(--ag-accent)]/10 border border-[var(--ag-accent-border)] rounded-xl px-4 py-3 flex items-center justify-between">
+                <span className="text-[var(--ag-green)] font-semibold">
                   Total {costView === "budget" ? "Budget" : "Actual"} Cost
                 </span>
                 <div className="text-right">
-                  <p className="text-[#34D399] font-bold text-lg">${fmtD(totalCost)}</p>
-                  <p className="text-[#34D399]/60 text-xs">${fmtD(costPerAcre)}/ac</p>
+                  <p className="text-[var(--ag-green)] font-bold text-lg">${fmtD(totalCost)}</p>
+                  <p className="text-[var(--ag-green)]/60 text-xs">${fmtD(costPerAcre)}/ac</p>
                 </div>
               </div>
             </div>
@@ -487,12 +487,12 @@ export default function FieldDetailPage() {
               <div className="bg-ag-card border border-ag rounded-xl overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-ag">
                   <div className="flex items-center gap-2">
-                    <TrendingUp size={14} className="text-[#34D399]" />
+                    <TrendingUp size={14} className="text-[var(--ag-green)]" />
                     <span className="text-sm font-semibold text-ag-primary">Revenue Entries</span>
                   </div>
                   <span className="text-sm font-semibold text-ag-primary">${fmtD(totalRevenue_)}</span>
                 </div>
-                <div className="divide-y divide-[#1E293B]/60">
+                <div className="divide-y divide-[var(--ag-border-solid)]/60">
                   {filteredRevenue.map((rev) => (
                     <div key={rev.id} className="flex items-center justify-between px-4 py-3">
                       <div className="flex-1">
@@ -521,13 +521,13 @@ export default function FieldDetailPage() {
                 </div>
               </div>
               {/* Total bar */}
-              <div className="bg-[#34D399]/10 border border-[#34D399]/20 rounded-xl px-4 py-3 flex items-center justify-between">
-                <span className="text-[#34D399] font-semibold">
+              <div className="bg-[var(--ag-accent)]/10 border border-[var(--ag-accent-border)] rounded-xl px-4 py-3 flex items-center justify-between">
+                <span className="text-[var(--ag-green)] font-semibold">
                   Total {costView === "budget" ? "Budget" : "Actual"} Revenue
                 </span>
                 <div className="text-right">
-                  <p className="text-[#34D399] font-bold text-lg">${fmtD(totalRevenue_)}</p>
-                  <p className="text-[#34D399]/60 text-xs">${fmtD(revenuePerAcre)}/ac</p>
+                  <p className="text-[var(--ag-green)] font-bold text-lg">${fmtD(totalRevenue_)}</p>
+                  <p className="text-[var(--ag-green)]/60 text-xs">${fmtD(revenuePerAcre)}/ac</p>
                 </div>
               </div>
             </div>
@@ -544,15 +544,15 @@ export default function FieldDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <button
           onClick={() => window.location.href = crop ? `/marketing?crop=${encodeURIComponent(crop.crop_type)}` : "/marketing"}
-          className="bg-ag-card border border-ag rounded-xl p-4 hover:border-[#34D399]/40 transition-all text-left group"
+          className="bg-ag-card border border-ag rounded-xl p-4 hover:border-[var(--ag-accent)]/40 transition-all text-left group"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center">
-                <FileText size={18} className="text-[#F59E0B]" />
+                <FileText size={18} className="text-[var(--ag-yellow)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-ag-primary group-hover:text-[#34D399] transition-colors">Contracts</p>
+                <p className="text-sm font-semibold text-ag-primary group-hover:text-[var(--ag-green)] transition-colors">Contracts</p>
                 <p className="text-xs text-ag-muted">
                   {crop ? `View ${crop.crop_type} contracts` : "No crop assigned"}
                 </p>
@@ -563,15 +563,15 @@ export default function FieldDetailPage() {
 
         <button
           onClick={() => window.location.href = crop ? `/inventory?crop=${encodeURIComponent(crop.crop_type)}` : "/inventory"}
-          className="bg-ag-card border border-ag rounded-xl p-4 hover:border-[#34D399]/40 transition-all text-left group"
+          className="bg-ag-card border border-ag rounded-xl p-4 hover:border-[var(--ag-accent)]/40 transition-all text-left group"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-[#60A5FA]/10 flex items-center justify-center">
-                <Package size={18} className="text-[#60A5FA]" />
+              <div className="w-9 h-9 rounded-lg bg-[var(--ag-blue)]/10 flex items-center justify-center">
+                <Package size={18} className="text-[var(--ag-blue)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-ag-primary group-hover:text-[#34D399] transition-colors">Inventory Bins</p>
+                <p className="text-sm font-semibold text-ag-primary group-hover:text-[var(--ag-green)] transition-colors">Inventory Bins</p>
                 <p className="text-xs text-ag-muted">{crop ? `View ${crop.crop_type} storage` : "View linked storage"}</p>
               </div>
             </div>
@@ -580,15 +580,15 @@ export default function FieldDetailPage() {
 
         <button
           onClick={() => window.location.href = "/agronomy?tab=spray"}
-          className="bg-ag-card border border-ag rounded-xl p-4 hover:border-[#34D399]/40 transition-all text-left group"
+          className="bg-ag-card border border-ag rounded-xl p-4 hover:border-[var(--ag-accent)]/40 transition-all text-left group"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-[#34D399]/10 flex items-center justify-center">
-                <Bug size={18} className="text-[#34D399]" />
+              <div className="w-9 h-9 rounded-lg bg-[var(--ag-accent)]/10 flex items-center justify-center">
+                <Bug size={18} className="text-[var(--ag-green)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-ag-primary group-hover:text-[#34D399] transition-colors">Spray Records</p>
+                <p className="text-sm font-semibold text-ag-primary group-hover:text-[var(--ag-green)] transition-colors">Spray Records</p>
                 <p className="text-xs text-ag-muted">View spray calendar</p>
               </div>
             </div>

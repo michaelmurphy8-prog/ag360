@@ -43,10 +43,10 @@ export default function MapLegend({
         </div>
       ))}
       {showBins && yards.length > 0 && (
-        <><div className="border-t border-ag my-2" /><div className="flex items-center gap-2 mb-1"><div className="w-3 h-3 rounded bg-[#1E293B] border border-[#34D399] flex-shrink-0" /><span className="text-xs text-ag-primary flex-1">Bin Yards</span><span className="text-[10px] text-ag-muted">{yards.length}</span></div></>
+        <><div className="border-t border-ag my-2" /><div className="flex items-center gap-2 mb-1"><div className="w-3 h-3 rounded bg-[var(--ag-border-solid)] border border-[var(--ag-accent)] flex-shrink-0" /><span className="text-xs text-ag-primary flex-1">Bin Yards</span><span className="text-[10px] text-ag-muted">{yards.length}</span></div></>
       )}
       {showWeather && weather.length > 0 && (
-        <><div className="border-t border-ag my-2" /><div className="flex items-center gap-2"><Thermometer size={12} className="text-[#60A5FA]" /><span className="text-xs text-ag-primary">Live Weather</span></div></>
+        <><div className="border-t border-ag my-2" /><div className="flex items-center gap-2"><Thermometer size={12} className="text-[var(--ag-blue)]" /><span className="text-xs text-ag-primary">Live Weather</span></div></>
       )}
       {showRadar && (
         <>

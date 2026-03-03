@@ -117,11 +117,11 @@ export default function AddServiceLogModal({ assets, preselectedAssetId, scanDat
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#111827] border border-white/[0.06] rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
+      <div className="bg-[var(--ag-bg-card)] border border-[var(--ag-border)] rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+        <div className="px-6 py-4 border-b border-[var(--ag-border)] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#34D399]/10 flex items-center justify-center">
-              <Wrench size={16} className="text-[#34D399]" />
+            <div className="w-9 h-9 rounded-xl bg-[var(--ag-accent)]/10 flex items-center justify-center">
+              <Wrench size={16} className="text-[var(--ag-green)]" />
             </div>
             <div>
               <h2 className="text-base font-semibold text-ag-primary">Log Service</h2>
@@ -135,9 +135,9 @@ export default function AddServiceLogModal({ assets, preselectedAssetId, scanDat
           {/* Scan result banner */}
           {scanData && (
             <div className={`rounded-lg p-3 border text-xs ${
-              scanData.confidence === 'high' ? 'bg-[#34D399]/10 border-[#34D399]/20 text-[#34D399]' :
-              scanData.confidence === 'medium' ? 'bg-[#F59E0B]/10 border-[#F59E0B]/20 text-[#F59E0B]' :
-              'bg-[#EF4444]/10 border-[#EF4444]/20 text-[#EF4444]'
+              scanData.confidence === 'high' ? 'bg-[var(--ag-accent)]/10 border-[var(--ag-accent-border)] text-[var(--ag-green)]' :
+              scanData.confidence === 'medium' ? 'bg-[#F59E0B]/10 border-[var(--ag-yellow)/0.2] text-[var(--ag-yellow)]' :
+              'bg-[var(--ag-red)]/10 border-[var(--ag-red)]/20 text-[var(--ag-red)]'
             }`}>
               <p className="font-semibold">AI Scanned — {scanData.confidence} confidence</p>
               {scanData.raw_unit_description && (
@@ -150,7 +150,7 @@ export default function AddServiceLogModal({ assets, preselectedAssetId, scanDat
           <div>
             <label className="text-xs font-semibold text-ag-secondary uppercase tracking-wide">Unit *</label>
             <select value={form.assetId} onChange={e => update("assetId", e.target.value)}
-              className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[#34D399]/40 focus:outline-none">
+              className="w-full mt-1 bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[var(--ag-accent)]/40 focus:outline-none">
               <option value="">Select unit...</option>
               {assets.map(a => (
                 <option key={a.id} value={a.id}>{a.name} — {a.make} {a.model}</option>
@@ -172,12 +172,12 @@ export default function AddServiceLogModal({ assets, preselectedAssetId, scanDat
             <div>
               <label className="text-xs font-semibold text-ag-secondary uppercase tracking-wide">Date *</label>
               <input type="date" value={form.date} onChange={e => update("date", e.target.value)}
-                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[#34D399]/40 focus:outline-none" />
+                className="w-full mt-1 bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[var(--ag-accent)]/40 focus:outline-none" />
             </div>
             <div>
               <label className="text-xs font-semibold text-ag-secondary uppercase tracking-wide">Category</label>
               <select value={form.serviceCategory} onChange={e => update("serviceCategory", e.target.value)}
-                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[#34D399]/40 focus:outline-none">
+                className="w-full mt-1 bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[var(--ag-accent)]/40 focus:outline-none">
                 {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
@@ -187,7 +187,7 @@ export default function AddServiceLogModal({ assets, preselectedAssetId, scanDat
           <div>
             <label className="text-xs font-semibold text-ag-secondary uppercase tracking-wide">Service Type *</label>
             <select value={form.type} onChange={e => update("type", e.target.value)}
-              className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[#34D399]/40 focus:outline-none">
+              className="w-full mt-1 bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[var(--ag-accent)]/40 focus:outline-none">
               <option value="">Select type...</option>
               {SERVICE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
@@ -198,24 +198,24 @@ export default function AddServiceLogModal({ assets, preselectedAssetId, scanDat
             <div>
               <label className="text-xs font-semibold text-ag-secondary uppercase tracking-wide">Cost ($)</label>
               <input type="number" step="0.01" value={form.cost} onChange={e => update("cost", e.target.value)} placeholder="0.00"
-                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[#34D399]/40 focus:outline-none" />
+                className="w-full mt-1 bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[var(--ag-accent)]/40 focus:outline-none" />
             </div>
             <div>
               <label className="text-xs font-semibold text-ag-secondary uppercase tracking-wide">Hours at Service</label>
               <input type="number" value={form.hoursAtService} onChange={e => update("hoursAtService", e.target.value)} placeholder="0"
-                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[#34D399]/40 focus:outline-none" />
+                className="w-full mt-1 bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[var(--ag-accent)]/40 focus:outline-none" />
             </div>
             {isPowerUnit && (
               <div>
                 <label className="text-xs font-semibold text-ag-secondary uppercase tracking-wide">KM at Service</label>
                 <input type="number" value={form.kmAtService} onChange={e => update("kmAtService", e.target.value)} placeholder="0"
-                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[#34D399]/40 focus:outline-none" />
+                  className="w-full mt-1 bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[var(--ag-accent)]/40 focus:outline-none" />
               </div>
             )}
             <div>
               <label className="text-xs font-semibold text-ag-secondary uppercase tracking-wide">Labor Hours</label>
               <input type="number" step="0.5" value={form.laborHours} onChange={e => update("laborHours", e.target.value)} placeholder="0"
-                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[#34D399]/40 focus:outline-none" />
+                className="w-full mt-1 bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[var(--ag-accent)]/40 focus:outline-none" />
             </div>
           </div>
 
@@ -223,19 +223,19 @@ export default function AddServiceLogModal({ assets, preselectedAssetId, scanDat
           <div>
             <label className="text-xs font-semibold text-ag-secondary uppercase tracking-wide">Parts Used</label>
             <input type="text" value={form.partsUsed} onChange={e => update("partsUsed", e.target.value)} placeholder="e.g., 2x oil filters, 10L 15W-40"
-              className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[#34D399]/40 focus:outline-none" />
+              className="w-full mt-1 bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[var(--ag-accent)]/40 focus:outline-none" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-ag-secondary uppercase tracking-wide">Vendor / Shop</label>
               <input type="text" value={form.vendor} onChange={e => update("vendor", e.target.value)} placeholder="e.g., Prairie Equipment"
-                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[#34D399]/40 focus:outline-none" />
+                className="w-full mt-1 bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[var(--ag-accent)]/40 focus:outline-none" />
             </div>
             <div>
               <label className="text-xs font-semibold text-ag-secondary uppercase tracking-wide">Performed By</label>
               <input type="text" value={form.performedBy} onChange={e => update("performedBy", e.target.value)} placeholder="e.g., Mike, Dealer Tech"
-                className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[#34D399]/40 focus:outline-none" />
+                className="w-full mt-1 bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[var(--ag-accent)]/40 focus:outline-none" />
             </div>
           </div>
 
@@ -243,7 +243,7 @@ export default function AddServiceLogModal({ assets, preselectedAssetId, scanDat
           <div>
             <label className="text-xs font-semibold text-ag-secondary uppercase tracking-wide">Notes</label>
             <textarea rows={3} value={form.notes} onChange={e => update("notes", e.target.value)} placeholder="Additional details..."
-              className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[#34D399]/40 focus:outline-none resize-none" />
+              className="w-full mt-1 bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[var(--ag-accent)]/40 focus:outline-none resize-none" />
           </div>
 
           {/* Attachments */}
@@ -254,13 +254,13 @@ export default function AddServiceLogModal({ assets, preselectedAssetId, scanDat
             {attachments.length > 0 && (
               <div className="space-y-2 mb-3">
                 {attachments.map((att, i) => (
-                  <div key={i} className="flex items-center gap-3 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2">
-                    <FileText size={14} className="text-[#60A5FA] flex-shrink-0" />
+                  <div key={i} className="flex items-center gap-3 bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-lg px-3 py-2">
+                    <FileText size={14} className="text-[var(--ag-blue)] flex-shrink-0" />
                     <a href={att.url} target="_blank" rel="noopener noreferrer"
-                      className="text-xs text-[#60A5FA] hover:underline truncate flex-1">
+                      className="text-xs text-[var(--ag-blue)] hover:underline truncate flex-1">
                       {att.filename}
                     </a>
-                    <button onClick={() => removeAttachment(i)} className="text-ag-muted hover:text-[#EF4444] transition-colors">
+                    <button onClick={() => removeAttachment(i)} className="text-ag-muted hover:text-[var(--ag-red)] transition-colors">
                       <Trash2 size={12} />
                     </button>
                   </div>
@@ -271,7 +271,7 @@ export default function AddServiceLogModal({ assets, preselectedAssetId, scanDat
             {/* Upload button */}
             <input ref={fileRef} type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" className="hidden" onChange={handleUpload} />
             <button onClick={() => fileRef.current?.click()} disabled={uploading}
-              className="flex items-center gap-2 text-xs font-semibold text-ag-secondary border border-dashed border-white/[0.1] rounded-lg px-4 py-3 w-full hover:border-[#34D399]/30 hover:text-[#34D399] transition-colors disabled:opacity-50">
+              className="flex items-center gap-2 text-xs font-semibold text-ag-secondary border border-dashed border-white/[0.1] rounded-lg px-4 py-3 w-full hover:border-[var(--ag-accent)]/30 hover:text-[var(--ag-green)] transition-colors disabled:opacity-50">
               {uploading ? (
                 <><Upload size={14} className="animate-pulse" /> Uploading...</>
               ) : (
@@ -282,10 +282,10 @@ export default function AddServiceLogModal({ assets, preselectedAssetId, scanDat
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-white/[0.06] flex justify-end gap-2">
+        <div className="px-6 py-4 border-t border-[var(--ag-border)] flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 text-sm text-ag-secondary hover:text-white transition-colors">Cancel</button>
           <button onClick={handleSave} disabled={!form.assetId || !form.type || saving}
-            className="px-5 py-2 text-sm font-semibold bg-[#34D399] text-[#080C15] rounded-full hover:bg-[#6EE7B7] transition-colors disabled:opacity-50">
+            className="px-5 py-2 text-sm font-semibold bg-[var(--ag-accent)] text-[var(--ag-accent-text)] rounded-full hover:bg-[var(--ag-accent-hover)] transition-colors disabled:opacity-50">
             {saving ? "Saving..." : "Log Service"}
           </button>
         </div>

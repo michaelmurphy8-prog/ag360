@@ -24,18 +24,18 @@ const PAGE_SIZE = 20;
 const STATUS_CONFIG = {
   valid: {
     icon: CheckCircle2,
-    color: "text-[#22C55E]",
-    bg: "bg-[#22C55E]/5",
+    color: "text-[var(--ag-green)]",
+    bg: "bg-[var(--ag-accent)]/5",
   },
   warning: {
     icon: AlertTriangle,
-    color: "text-[#F59E0B]",
+    color: "text-[var(--ag-yellow)]",
     bg: "bg-[#F59E0B]/5",
   },
   error: {
     icon: AlertCircle,
-    color: "text-[#EF4444]",
-    bg: "bg-[#EF4444]/5",
+    color: "text-[var(--ag-red)]",
+    bg: "bg-[var(--ag-red)]/5",
   },
 };
 
@@ -79,7 +79,7 @@ export default function PreviewTable({
           className={
             "px-2 py-0.5 rounded text-xs font-medium transition-colors " +
             (filter === "all"
-              ? "bg-[#1E293B] text-ag-primary"
+              ? "bg-[var(--ag-border-solid)] text-ag-primary"
               : "text-ag-secondary hover:text-ag-primary")
           }
         >
@@ -93,8 +93,8 @@ export default function PreviewTable({
           className={
             "px-2 py-0.5 rounded text-xs font-medium transition-colors " +
             (filter === "valid"
-              ? "bg-[#22C55E]/10 text-[#22C55E]"
-              : "text-[#22C55E]/70 hover:text-[#22C55E]")
+              ? "bg-[var(--ag-green-dim)] text-[var(--ag-green)]"
+              : "text-[var(--ag-green)]/70 hover:text-[var(--ag-green)]")
           }
         >
           Valid ({summary.valid})
@@ -108,8 +108,8 @@ export default function PreviewTable({
             className={
               "px-2 py-0.5 rounded text-xs font-medium transition-colors " +
               (filter === "warning"
-                ? "bg-[#F59E0B]/10 text-[#F59E0B]"
-                : "text-[#F59E0B]/70 hover:text-[#F59E0B]")
+                ? "bg-[#F59E0B]/10 text-[var(--ag-yellow)]"
+                : "text-[var(--ag-yellow)]/70 hover:text-[var(--ag-yellow)]")
             }
           >
             Warnings ({summary.warnings})
@@ -124,8 +124,8 @@ export default function PreviewTable({
             className={
               "px-2 py-0.5 rounded text-xs font-medium transition-colors " +
               (filter === "error"
-                ? "bg-[#EF4444]/10 text-[#EF4444]"
-                : "text-[#EF4444]/70 hover:text-[#EF4444]")
+                ? "bg-[var(--ag-red)]/10 text-[var(--ag-red)]"
+                : "text-[var(--ag-red)]/70 hover:text-[var(--ag-red)]")
             }
           >
             Errors ({summary.errors})
@@ -152,7 +152,7 @@ export default function PreviewTable({
                   >
                     {col.header}
                     {col.required && (
-                      <span className="text-[#22C55E] ml-0.5">*</span>
+                      <span className="text-[var(--ag-green)] ml-0.5">*</span>
                     )}
                   </th>
                 ))}
@@ -178,7 +178,7 @@ export default function PreviewTable({
                   <React.Fragment key={row.rowIndex}>
                     <tr
                       className={
-                        "border-b border-ag/50 transition-colors hover:bg-[#1E293B]/30 " +
+                        "border-b border-ag/50 transition-colors hover:bg-[var(--ag-bg-active)] " +
                         statusConf.bg +
                         (isExcluded ? " opacity-40" : "")
                       }
@@ -198,8 +198,8 @@ export default function PreviewTable({
                         const hasWarn = warnFields.has(col.key);
 
                         let cellColor = "text-ag-primary";
-                        if (hasError) cellColor = "text-[#EF4444] bg-[#EF4444]/5";
-                        else if (hasWarn) cellColor = "text-[#F59E0B]";
+                        if (hasError) cellColor = "text-[var(--ag-red)] bg-[var(--ag-red)]/5";
+                        else if (hasWarn) cellColor = "text-[var(--ag-yellow)]";
 
                         return (
                           <td
@@ -236,8 +236,8 @@ export default function PreviewTable({
                                 className={
                                   "text-xs " +
                                   (msg.severity === "error"
-                                    ? "text-[#EF4444]"
-                                    : "text-[#F59E0B]")
+                                    ? "text-[var(--ag-red)]"
+                                    : "text-[var(--ag-yellow)]")
                                 }
                               >
                                 {msg.message}
@@ -277,7 +277,7 @@ export default function PreviewTable({
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="p-1 rounded hover:bg-[#1E293B] disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-1 rounded hover:bg-[var(--ag-bg-active)] disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -287,7 +287,7 @@ export default function PreviewTable({
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="p-1 rounded hover:bg-[#1E293B] disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-1 rounded hover:bg-[var(--ag-bg-active)] disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

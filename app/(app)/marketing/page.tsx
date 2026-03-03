@@ -18,12 +18,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 // ─── Theme ──────────────────────────────────────────────
 const T = {
-  bg: "#0B1120", card: "#111827", cardAlt: "#151F32",
+  bg: "var(--ag-bg-primary)", card: "var(--ag-bg-card)", cardAlt: "var(--ag-bg-secondary)",
   border: "rgba(255,255,255,0.06)", borderHover: "rgba(255,255,255,0.12)",
-  text: "#F1F5F9", text2: "#CBD5E1", text3: "#64748B", text4: "#475569",
-  green: "#34D399", greenBg: "rgba(52,211,153,0.08)",
-  red: "#F87171", redBg: "rgba(248,113,113,0.08)",
-  blue: "#60A5FA", blueBg: "rgba(96,165,250,0.08)",
+  text: "var(--ag-text-primary)", text2: "#CBD5E1", text3: "var(--ag-text-muted)", text4: "var(--ag-text-dim)",
+  green: "var(--ag-green)", greenBg: "var(--ag-green-dim)",
+  red: "var(--ag-red)", redBg: "var(--ag-red-dim)",
+  blue: "var(--ag-blue)", blueBg: "rgba(96,165,250,0.08)",
   gold: "#F5A623", goldBg: "rgba(245,166,35,0.08)",
   purple: "#A78BFA", purpleBg: "rgba(167,139,250,0.08)",
 };

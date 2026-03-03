@@ -32,7 +32,7 @@ export default function MapControls({
         ]).map(s => (
           <button key={s.key} onClick={() => setMapStyle(s.key)}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
-              mapStyle === s.key ? "bg-[#34D399] text-[#0F1629]" : "bg-black/70 text-ag-secondary hover:text-white"
+              mapStyle === s.key ? "bg-[var(--ag-accent)] text-[var(--ag-accent-text)]" : "bg-black/70 text-ag-secondary hover:text-white"
             }`}>
             <s.icon size={12} /> {s.label}
           </button>
@@ -42,7 +42,7 @@ export default function MapControls({
         {(["crop", "status", "margin", "budget"] as const).map(m => (
           <button key={m} onClick={() => setColorMode(m)}
             className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
-              colorMode === m ? "bg-[#60A5FA] text-[#0F1629]" : "bg-black/70 text-ag-secondary hover:text-white"
+              colorMode === m ? "bg-[var(--ag-blue)] text-[var(--ag-accent-text)]" : "bg-black/70 text-ag-secondary hover:text-white"
             }`}>
             {m.charAt(0).toUpperCase() + m.slice(1)}
           </button>
@@ -51,13 +51,13 @@ export default function MapControls({
       <div className="flex rounded-lg border border-black/20 overflow-hidden shadow-lg">
         <button onClick={() => setShowBins(!showBins)}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
-            showBins ? "bg-[#F59E0B] text-[#0F1629]" : "bg-black/70 text-ag-secondary hover:text-white"
+            showBins ? "bg-[#F59E0B] text-[var(--ag-accent-text)]" : "bg-black/70 text-ag-secondary hover:text-white"
           }`}>
           <Warehouse size={12} /> Bins
         </button>
         <button onClick={() => setShowWeather(!showWeather)}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
-            showWeather ? "bg-[#60A5FA] text-[#0F1629]" : "bg-black/70 text-ag-secondary hover:text-white"
+            showWeather ? "bg-[var(--ag-blue)] text-[var(--ag-accent-text)]" : "bg-black/70 text-ag-secondary hover:text-white"
           }`}>
           <CloudRain size={12} /> Weather
         </button>
@@ -69,7 +69,7 @@ export default function MapControls({
         </button>
         <button onClick={() => setShowWind(!showWind)}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
-            showWind ? "bg-[#34D399] text-[#0F1629]" : "bg-black/70 text-ag-secondary hover:text-white"
+            showWind ? "bg-[var(--ag-accent)] text-[var(--ag-accent-text)]" : "bg-black/70 text-ag-secondary hover:text-white"
           }`}>
           <Navigation size={12} /> Wind
         </button>
