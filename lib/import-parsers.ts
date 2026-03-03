@@ -158,6 +158,8 @@ const CROP_TYPES: Record<string, string> = {
   flax: "Flax",
   "lentils - red": "Lentils - Red",
   "red lentils": "Lentils - Red",
+  "small red lentils": "Lentils - Red",
+  "large green lentils": "Lentils - Green",
   "lentils - green": "Lentils - Green",
   "green lentils": "Lentils - Green",
   lentils: "Lentils - Red",

@@ -40,13 +40,13 @@ const TYPE_CONFIG = {
   fields: {
     label: "Fields",
     apiPath: "/api/import/fields",
-    successLink: "/operations/fields",
+    successLink: "/fields",
     successLabel: "View Fields",
   },
   seeding: {
     label: "Seeding Records",
     apiPath: "/api/import/seeding",
-    successLink: "/operations/fields",
+    successLink: "/fields",
     successLabel: "View Fields",
   },
   harvest: {
