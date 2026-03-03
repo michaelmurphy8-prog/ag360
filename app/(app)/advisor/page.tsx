@@ -302,7 +302,7 @@ export default function AdvisorPage() {
             <div className="relative">
               <div className="absolute inset-0 rounded-full bg-[var(--ag-accent)]/20 blur-md" />
               <div className="relative w-11 h-11 rounded-full flex items-center justify-center"
-                style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))", border: "1px solid rgba(52,211,153,0.25)" }}>
+                style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))", border: "1px solid var(--ag-accent-border)" }}>
                 <LilyIcon size={24} />
               </div>
             </div>
@@ -354,7 +354,7 @@ export default function AdvisorPage() {
             <div className="relative mb-8">
               <div className="absolute inset-0 rounded-full bg-[var(--ag-accent)]/10 blur-2xl scale-150 animate-pulse" style={{ animationDuration: "3s" }} />
               <div className="relative w-20 h-20 rounded-full flex items-center justify-center"
-                style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.12), rgba(52,211,153,0.04))", border: "1px solid rgba(52,211,153,0.20)" }}>
+                style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.12), rgba(52,211,153,0.04))", border: "1px solid var(--ag-accent-border)" }}>
                 <LilyIcon size={44} />
               </div>
             </div>
@@ -372,14 +372,14 @@ export default function AdvisorPage() {
               {PROMPT_CHIPS.map(({ text, icon: Icon }) => (
                 <button key={text} onClick={() => sendMessage(text)}
                   className="group flex items-start gap-3 text-left px-4 py-3 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
-                  style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}
+                  style={{ background: "var(--ag-bg-hover)", border: "1px solid var(--ag-border)" }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = "rgba(52,211,153,0.04)";
                     e.currentTarget.style.borderColor = "rgba(52,211,153,0.15)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.02)";
-                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
+                    e.currentTarget.style.background = "var(--ag-bg-hover)";
+                    e.currentTarget.style.borderColor = "var(--ag-border)";
                   }}>
                   <Icon size={14} className="text-ag-muted group-hover:text-[var(--ag-green)] mt-0.5 flex-shrink-0 transition-colors" />
                   <span className="text-[12px] text-ag-secondary group-hover:text-ag-primary leading-snug transition-colors">{text}</span>
@@ -396,7 +396,7 @@ export default function AdvisorPage() {
               <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 {msg.role === "assistant" && (
                   <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-1"
-                    style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))", border: "1px solid rgba(52,211,153,0.20)" }}>
+                    style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))", border: "1px solid var(--ag-accent-border)" }}>
                     <LilyIcon size={16} />
                   </div>
                 )}
@@ -407,7 +407,7 @@ export default function AdvisorPage() {
                 }`}
                   style={msg.role === "user"
                     ? { background: "linear-gradient(135deg, var(--ag-accent), var(--ag-accent-hover))" }
-                    : { background: "rgba(17,24,39,0.8)", border: "1px solid rgba(255,255,255,0.06)" }
+                    : { background: "var(--ag-bg-card)", border: "1px solid var(--ag-border)" }
                   }>
                   {msg.role === "assistant"
                     ? <LilyMessage content={typeof msg.content === "string" ? msg.content : msg.content.map((b: any) => b.text || "").join("\n")} />
@@ -422,7 +422,7 @@ export default function AdvisorPage() {
                       }}
                       id={`copy-${i}`}
                       className="absolute -bottom-6 right-0 opacity-0 group-hover/msg:opacity-100 transition-opacity text-[10px] font-medium px-2.5 py-1 rounded-md"
-                      style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", color: "var(--ag-text-secondary)" }}
+                      style={{ background: "var(--ag-border)", border: "1px solid rgba(255,255,255,0.08)", color: "var(--ag-text-secondary)" }}
                     >
                       Copy
                     </button>
@@ -439,11 +439,11 @@ export default function AdvisorPage() {
             {streamingText && (
               <div className="flex gap-3 justify-start">
                 <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-1"
-                  style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))", border: "1px solid rgba(52,211,153,0.20)" }}>
+                  style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))", border: "1px solid var(--ag-accent-border)" }}>
                   <LilyIcon size={16} />
                 </div>
                 <div className="max-w-2xl rounded-2xl rounded-bl-md px-5 py-4"
-                  style={{ background: "rgba(17,24,39,0.8)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  style={{ background: "var(--ag-bg-card)", border: "1px solid var(--ag-border)" }}>
                   <LilyMessage content={streamingText} />
                   <span className="inline-block w-[3px] h-[16px] bg-[var(--ag-accent)] ml-1 animate-pulse rounded-full" style={{ animationDuration: "0.8s" }} />
                 </div>
@@ -453,11 +453,11 @@ export default function AdvisorPage() {
             {loading && !streamingText && (
               <div className="flex gap-3 justify-start">
                 <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-1"
-                  style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))", border: "1px solid rgba(52,211,153,0.20)" }}>
+                  style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.15), rgba(52,211,153,0.05))", border: "1px solid var(--ag-accent-border)" }}>
                   <LilyIcon size={16} />
                 </div>
                 <div className="rounded-2xl rounded-bl-md px-5 py-4"
-                  style={{ background: "rgba(17,24,39,0.8)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  style={{ background: "var(--ag-bg-card)", border: "1px solid var(--ag-border)" }}>
                   <div className="flex items-center gap-2">
                     <div className="flex gap-1">
                       {[0, 150, 300].map(d => (
@@ -480,14 +480,14 @@ export default function AdvisorPage() {
         className="flex-shrink-0 rounded-xl px-4 py-3 transition-all duration-300"
         style={{
           background: inputFocused
-            ? "linear-gradient(135deg, rgba(17,24,39,0.95), rgba(17,24,39,0.90))"
-            : "rgba(17,24,39,0.8)",
+            ? "linear-gradient(135deg, var(--ag-bg-card), var(--ag-bg-card))"
+            : "var(--ag-bg-card)",
           border: inputFocused
-            ? "1px solid rgba(52,211,153,0.25)"
-            : "1px solid rgba(255,255,255,0.06)",
+            ? "1px solid var(--ag-accent-border)"
+            : "1px solid var(--ag-border)",
           boxShadow: inputFocused
-            ? "0 0 20px rgba(52,211,153,0.06), inset 0 1px 0 rgba(255,255,255,0.03)"
-            : "inset 0 1px 0 rgba(255,255,255,0.02)",
+            ? "0 0 20px var(--ag-accent-bg), inset 0 1px 0 var(--ag-bg-hover)"
+            : "inset 0 1px 0 var(--ag-bg-hover)",
         }}
       >
         {/* Attachment preview */}
@@ -495,7 +495,7 @@ export default function AdvisorPage() {
           <div className="flex gap-2 flex-wrap mb-2">
             {attachments.map((att, i) => (
               <div key={i} className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg"
-                style={{ background: "var(--ag-green-dim)", border: "1px solid rgba(52,211,153,0.20)", color: "var(--ag-green)" }}>
+                style={{ background: "var(--ag-green-dim)", border: "1px solid var(--ag-accent-border)", color: "var(--ag-green)" }}>
                 {att.type.startsWith("image/") ? <Image size={11} /> : <FileText size={11} />}
                 <span className="max-w-[120px] truncate">{att.name}</span>
                 <button onClick={() => removeAttachment(i)} className="hover:text-white transition-colors ml-0.5"><X size={10} /></button>
@@ -514,7 +514,7 @@ export default function AdvisorPage() {
           />
           <button onClick={() => fileInputRef.current?.click()}
             className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 hover:bg-[var(--ag-bg-active)]"
-            style={{ background: "rgba(255,255,255,0.04)" }}
+            style={{ background: "var(--ag-bg-hover)" }}
             title="Attach file">
             <Paperclip size={14} className="text-ag-muted" />
           </button>
@@ -531,8 +531,8 @@ export default function AdvisorPage() {
           <button onClick={() => sendMessage(input)} disabled={loading || (!input.trim() && attachments.length === 0)}
             className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 disabled:opacity-30"
             style={{
-              background: (!input.trim() && attachments.length === 0) || loading ? "rgba(255,255,255,0.04)" : "linear-gradient(135deg, var(--ag-accent), var(--ag-accent-hover))",
-              boxShadow: (input.trim() || attachments.length > 0) && !loading ? "0 2px 8px rgba(52,211,153,0.25)" : "none",
+              background: (!input.trim() && attachments.length === 0) || loading ? "var(--ag-bg-hover)" : "linear-gradient(135deg, var(--ag-accent), var(--ag-accent-hover))",
+              boxShadow: (input.trim() || attachments.length > 0) && !loading ? "0 2px 8px var(--ag-accent-border)" : "none",
             }}>
             <Send size={14} className={(input.trim() || attachments.length > 0) && !loading ? "text-[var(--ag-accent-text)]" : "text-ag-dim"} />
           </button>
