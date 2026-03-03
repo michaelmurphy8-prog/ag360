@@ -114,7 +114,7 @@ function NavGroup({ item, pathname }: { item: NavItem; pathname: string }) {
         <ChevronDown size={14} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} style={{ color: "var(--ag-text-muted)" }} />
       </button>
       {open && (
-        <div className="ml-[26px] pl-3 mt-0.5 space-y-0.5" style={{ borderLeft: "1px solid var(--ag-border-subtle)" }}>
+        <div className="ml-[26px] pl-3 mt-0.5 space-y-0.5" style={{ borderLeft: "1px solid var(--ag-border)" }}>
           {item.children!.map((child) => {
             const active = pathname === child.href;
             return (
@@ -172,10 +172,10 @@ export default function SideNav() {
 
   return (
     <aside className="w-56 h-screen flex flex-col fixed left-0 top-0 z-50"
-      style={{ backgroundColor: "var(--ag-bg-base)", borderRight: "1px solid var(--ag-border-subtle)" }}>
+      style={{ backgroundColor: "var(--ag-bg-base)", borderRight: "1px solid var(--ag-border)" }}>
 
       {/* ── Logo ──────────────────────────────────────── */}
-      <div className="px-5 py-5" style={{ borderBottom: "1px solid var(--ag-border-subtle)" }}>
+      <div className="px-5 py-5" style={{ borderBottom: "1px solid var(--ag-border)" }}>
         <Logo />
         <p className="text-[10px] mt-1 tracking-[2px] uppercase"
           style={{ fontFamily: "'JetBrains Mono', monospace", color: "var(--ag-text-muted)" }}>
@@ -207,7 +207,7 @@ export default function SideNav() {
       </nav>
 
       {/* ── Settings (expandable) ─────────────────────── */}
-      <div className="px-2.5 py-2" style={{ borderTop: "1px solid var(--ag-border-subtle)" }}>
+      <div className="px-2.5 py-2" style={{ borderTop: "1px solid var(--ag-border)" }}>
         <button onClick={() => setSettingsOpen(!settingsOpen)}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150"
           style={{
@@ -219,7 +219,7 @@ export default function SideNav() {
           <ChevronDown size={14} className={`transition-transform duration-200 ${settingsOpen ? "rotate-180" : ""}`} style={{ color: "var(--ag-text-muted)" }} />
         </button>
         {settingsOpen && (
-          <div className="ml-[26px] pl-3 mt-0.5 space-y-0.5" style={{ borderLeft: "1px solid var(--ag-border-subtle)" }}>
+          <div className="ml-[26px] pl-3 mt-0.5 space-y-0.5" style={{ borderLeft: "1px solid var(--ag-border)" }}>
             {[
               { label: "Appearance", href: "/settings/appearance", icon: Palette },
               { label: "Account", href: "/settings/account", icon: UserCog },
@@ -244,7 +244,7 @@ export default function SideNav() {
       </div>
 
       {/* ── User + Theme Toggle ───────────────────────── */}
-      <div className="px-4 py-3.5" style={{ borderTop: "1px solid var(--ag-border-subtle)" }}>
+      <div className="px-4 py-3.5" style={{ borderTop: "1px solid var(--ag-border)" }}>
         <div className="flex items-center gap-3">
           <UserButton afterSignOutUrl="/"
             appearance={{ elements: { avatarBox: "w-7 h-7" } }} />
