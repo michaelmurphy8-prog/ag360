@@ -242,12 +242,20 @@ export default function MapsPage() {
     mapRef.current = map;
     // Scout mode — click to drop pin
     map.on("click", (e) => {
-      if (!(window as any).__scoutMode) return;
-      setScoutClickCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
-      setScoutModalOpen(true);
-      setScoutMode(false);
-      (window as any).__scoutMode = false;
-      if (map.getCanvas()) map.getCanvas().style.cursor = "";
+      if ((window as any).__scoutMode) {
+        setScoutClickCoords({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+        setScoutModalOpen(true);
+        setScoutMode(false);
+        (window as any).__scoutMode = false;
+        if (map.getCanvas()) map.getCanvas().style.cursor = "";
+        return;
+      }
+      // Deselect field when clicking empty map space
+      const features = map.queryRenderedFeatures(e.point);
+      const hitMarker = (e.originalEvent?.target as HTMLElement)?.closest?.(".mapboxgl-marker");
+      if (!hitMarker && features.every(f => !f.source?.includes("field"))) {
+        setSelectedField(null);
+      }
     });
     return () => { map.remove(); mapRef.current = null; drawRef.current = null; };
   }, [loading]);

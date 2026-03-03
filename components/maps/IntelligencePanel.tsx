@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import {
-  MapPin, Wheat, DollarSign, BarChart3, Package, ArrowRight,
+  MapPin, Wheat, DollarSign, BarChart3, Package, ArrowRight, X,
   PenTool, Trash2, Grid3x3, Upload, Download, AlertTriangle,
   Thermometer, Wind, Droplets, Square,
 } from "lucide-react";
@@ -162,7 +162,12 @@ export default function IntelligencePanel({
         {/* Selected Field */}
         {selectedField ? (
           <div>
-            <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[#64748B] mb-3">Selected Field</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[#64748B]">Selected Field</p>
+              <button onClick={() => setSelectedField(null)} className="p-1 rounded-md hover:bg-[#1E293B] text-[#64748B] hover:text-[#E2E8F0] transition-colors">
+                <X size={14} />
+              </button>
+            </div>
             <div className="bg-[#0F1629] border border-[#1E293B] rounded-xl overflow-hidden">
               <div className="h-1 w-full" style={{ backgroundColor: CROP_COLORS[selectedField.crop_type || ""] || "#1E293B" }} />
               <div className="p-4">
