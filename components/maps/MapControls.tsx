@@ -32,7 +32,7 @@ export default function MapControls({
         ]).map(s => (
           <button key={s.key} onClick={() => setMapStyle(s.key)}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
-              mapStyle === s.key ? "bg-[#34D399] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white"
+              mapStyle === s.key ? "bg-[#34D399] text-[#0F1629]" : "bg-black/70 text-ag-secondary hover:text-white"
             }`}>
             <s.icon size={12} /> {s.label}
           </button>
@@ -42,7 +42,7 @@ export default function MapControls({
         {(["crop", "status", "margin", "budget"] as const).map(m => (
           <button key={m} onClick={() => setColorMode(m)}
             className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
-              colorMode === m ? "bg-[#60A5FA] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white"
+              colorMode === m ? "bg-[#60A5FA] text-[#0F1629]" : "bg-black/70 text-ag-secondary hover:text-white"
             }`}>
             {m.charAt(0).toUpperCase() + m.slice(1)}
           </button>
@@ -51,25 +51,25 @@ export default function MapControls({
       <div className="flex rounded-lg border border-black/20 overflow-hidden shadow-lg">
         <button onClick={() => setShowBins(!showBins)}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
-            showBins ? "bg-[#F59E0B] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white"
+            showBins ? "bg-[#F59E0B] text-[#0F1629]" : "bg-black/70 text-ag-secondary hover:text-white"
           }`}>
           <Warehouse size={12} /> Bins
         </button>
         <button onClick={() => setShowWeather(!showWeather)}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
-            showWeather ? "bg-[#60A5FA] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white"
+            showWeather ? "bg-[#60A5FA] text-[#0F1629]" : "bg-black/70 text-ag-secondary hover:text-white"
           }`}>
           <CloudRain size={12} /> Weather
         </button>
         <button onClick={() => setShowRadar(!showRadar)}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
-            showRadar ? "bg-[#8B5CF6] text-white" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white"
+            showRadar ? "bg-[#8B5CF6] text-white" : "bg-black/70 text-ag-secondary hover:text-white"
           }`}>
           <Eye size={12} /> Radar
         </button>
         <button onClick={() => setShowWind(!showWind)}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
-            showWind ? "bg-[#34D399] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white"
+            showWind ? "bg-[#34D399] text-[#0F1629]" : "bg-black/70 text-ag-secondary hover:text-white"
           }`}>
           <Navigation size={12} /> Wind
         </button>

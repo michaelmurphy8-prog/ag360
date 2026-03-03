@@ -129,13 +129,13 @@ function getWeatherInfo(code: number) {
 function KPICard({ label, value, sub, highlight, trend }: { label: string; value: string; sub?: string; highlight?: boolean; trend?: "up" | "down" | "neutral" }) {
   return (
     <div className={`rounded-xl border p-5 ${highlight ? "bg-[#F59E0B]/[0.06] border-[#F59E0B]/20" : "bg-[#111827] border-white/[0.06]"}`}>
-      <p className="font-mono text-[11px] font-bold text-[#F1F5F9] uppercase tracking-[1.5px]">{label}</p>
+      <p className="font-mono text-[11px] font-bold text-ag-primary uppercase tracking-[1.5px]">{label}</p>
       <div className="flex items-end gap-2 mt-1">
-        <p className={`text-2xl font-bold ${highlight ? "text-[#F59E0B]" : "text-[#F1F5F9]"}`}>{value}</p>
+        <p className={`text-2xl font-bold ${highlight ? "text-[#F59E0B]" : "text-ag-primary"}`}>{value}</p>
         {trend === "up" && <TrendingUp size={14} className="text-[#34D399] mb-1" />}
         {trend === "down" && <TrendingDown size={14} className="text-[#EF4444] mb-1" />}
       </div>
-      {sub && <p className="text-xs text-[#64748B] mt-1">{sub}</p>}
+      {sub && <p className="text-xs text-ag-muted mt-1">{sub}</p>}
     </div>
   );
 }
@@ -155,18 +155,18 @@ function CropCard({ crop, holdings, contracts }: { crop: FarmProfile["inventory"
   return (
     <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-5 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="font-bold text-[#F1F5F9] text-base">{crop.crop}</p>
+        <p className="font-bold text-ag-primary text-base">{crop.crop}</p>
         <span className={`text-xs font-semibold px-2 py-1 rounded-full ${margin >= 0 ? "bg-[#34D399]/[0.08] text-[#34D399]" : "bg-[#EF4444]/[0.08] text-[#EF4444]"}`}>
           {margin >= 0 ? "+" : ""}{fmt(margin)}/bu margin
         </span>
       </div>
       <div className="grid grid-cols-3 gap-2 text-xs">
-        <div><p className="text-[#64748B]">On Hand</p><p className="font-bold text-[#F1F5F9]">{totalBu.toLocaleString()} bu</p></div>
-        <div><p className="text-[#64748B]">Est. Value</p><p className="font-bold text-[#34D399]">{fmt(estValue)}</p></div>
-        <div><p className="text-[#64748B]">Break-even</p><p className="font-bold text-[#F1F5F9]">${breakEven.toFixed(2)}/bu</p></div>
+        <div><p className="text-ag-muted">On Hand</p><p className="font-bold text-ag-primary">{totalBu.toLocaleString()} bu</p></div>
+        <div><p className="text-ag-muted">Est. Value</p><p className="font-bold text-[#34D399]">{fmt(estValue)}</p></div>
+        <div><p className="text-ag-muted">Break-even</p><p className="font-bold text-ag-primary">${breakEven.toFixed(2)}/bu</p></div>
       </div>
       <div>
-        <div className="flex justify-between text-xs text-[#64748B] mb-1">
+        <div className="flex justify-between text-xs text-ag-muted mb-1">
           <span>{contracted.toLocaleString()} bu contracted</span>
           <span>{pctContracted}%</span>
         </div>
@@ -223,7 +223,7 @@ function WatchlistWidget() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Star size={14} className="text-[#F59E0B] fill-[#F59E0B]" />
-          <p className="font-mono text-[11px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">Market Watchlist</p>
+          <p className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px]">Market Watchlist</p>
         </div>
         <Link href="/grain360/prices" className="text-xs text-[#34D399] font-medium hover:text-[#6EE7B7] transition-colors">
           View All Prices →
@@ -236,19 +236,19 @@ function WatchlistWidget() {
           const isDown = price && price.priceChange < 0;
           return (
             <div key={item.symbol} className="bg-white/[0.03] rounded-[10px] p-3 border border-white/[0.06]">
-              <p className="text-xs text-[#64748B] truncate mb-1">{item.label}</p>
+              <p className="text-xs text-ag-muted truncate mb-1">{item.label}</p>
               {price ? (
                 <>
-                  <p className="text-base font-bold text-[#F1F5F9]">
+                  <p className="text-base font-bold text-ag-primary">
                     {item.type === "cash" ? `$${price.lastPrice.toFixed(2)}` : price.lastPrice.toFixed(2)}
                   </p>
-                  <p className={`text-xs font-medium mt-0.5 ${isUp ? "text-[#34D399]" : isDown ? "text-[#EF4444]" : "text-[#64748B]"}`}>
+                  <p className={`text-xs font-medium mt-0.5 ${isUp ? "text-[#34D399]" : isDown ? "text-[#EF4444]" : "text-ag-muted"}`}>
                     {isUp ? "+" : ""}{price.priceChange.toFixed(2)}
                     {item.type === "futures" && ` (${price.percentChange.toFixed(2)}%)`}
                   </p>
                 </>
               ) : (
-                <p className="text-sm text-[#64748B]">—</p>
+                <p className="text-sm text-ag-muted">—</p>
               )}
             </div>
           );
@@ -370,7 +370,7 @@ export default function Grain360Page() {
     setReminders(reminders.filter(r => r.id !== id));
   }
 
-  const inputClass = "w-full text-sm border border-white/[0.10] rounded-[10px] px-3 py-2 outline-none focus:border-[#34D399]/50 bg-white/[0.04] text-[#F1F5F9] placeholder:text-[#64748B]";
+  const inputClass = "w-full text-sm border border-white/[0.10] rounded-[10px] px-3 py-2 outline-none focus:border-[#34D399]/50 bg-white/[0.04] text-ag-primary placeholder:text-ag-muted";
   const priorityColor = { low: "#34D399", medium: "#F59E0B", high: "#EF4444" };
 
   return (
@@ -378,8 +378,8 @@ export default function Grain360Page() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[28px] font-bold text-[#F1F5F9] tracking-tight">Grain360</h1>
-          <p className="text-[13px] text-[#64748B] mt-1">
+          <h1 className="text-[28px] font-bold text-ag-primary tracking-tight">Grain360</h1>
+          <p className="text-[13px] text-ag-muted mt-1">
             {profile ? `${profile.farmName} · ${profile.totalAcres.toLocaleString()} acres · ${profile.riskProfile} risk` : "Complete your Farm Profile to unlock full insights"}
           </p>
         </div>
@@ -401,7 +401,7 @@ export default function Grain360Page() {
       {/* Crop Position Cards */}
       {profile && profile.inventory.length > 0 && (
         <div>
-          <p className="font-mono text-[11px] font-semibold text-[#94A3B8] uppercase tracking-[2px] mb-3">Crop Positions</p>
+          <p className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px] mb-3">Crop Positions</p>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
             {profile.inventory.filter(c => c.crop).map((crop, i) => (
               <CropCard key={i} crop={crop} holdings={holdings} contracts={contracts} />
@@ -417,13 +417,13 @@ export default function Grain360Page() {
       <div className="grid grid-cols-3 gap-4">
         {/* Active Contracts */}
         <div className="col-span-2 bg-[#111827] rounded-xl border border-white/[0.06] p-5">
-          <p className="font-mono text-[11px] font-semibold text-[#94A3B8] uppercase tracking-[2px] mb-4">Active Contracts</p>
+          <p className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px] mb-4">Active Contracts</p>
           {contracts.length === 0 ? (
-            <p className="text-sm text-[#64748B] py-4 text-center">No contracts yet — go to Inventory to add sales.</p>
+            <p className="text-sm text-ag-muted py-4 text-center">No contracts yet — go to Inventory to add sales.</p>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-xs font-semibold text-[#64748B] uppercase tracking-wide border-b border-white/[0.06]">
+                <tr className="text-xs font-semibold text-ag-muted uppercase tracking-wide border-b border-white/[0.06]">
                   <th className="text-left pb-2 pr-4">Crop</th>
                   <th className="text-left pb-2 pr-4">Type</th>
                   <th className="text-right pb-2 pr-4">Qty</th>
@@ -434,10 +434,10 @@ export default function Grain360Page() {
               <tbody className="divide-y divide-white/[0.04]">
                 {contracts.slice(0, 6).map((c, i) => (
                   <tr key={i}>
-                    <td className="py-2 pr-4 font-semibold text-[#F1F5F9]">{c.crop}</td>
+                    <td className="py-2 pr-4 font-semibold text-ag-primary">{c.crop}</td>
                     <td className="py-2 pr-4"><span className="text-xs bg-[#34D399]/[0.08] text-[#34D399] font-semibold px-2 py-0.5 rounded-full">{c.contract_type}</span></td>
-                    <td className="py-2 pr-4 text-right text-[#94A3B8]">{Number(c.quantity_bu).toLocaleString()} bu</td>
-                    <td className="py-2 pr-4 text-right text-[#64748B]">{c.price_per_bu ? `$${c.price_per_bu}/bu` : "—"}</td>
+                    <td className="py-2 pr-4 text-right text-ag-secondary">{Number(c.quantity_bu).toLocaleString()} bu</td>
+                    <td className="py-2 pr-4 text-right text-ag-muted">{c.price_per_bu ? `$${c.price_per_bu}/bu` : "—"}</td>
                     <td className="py-2 text-right font-semibold text-[#34D399]">{c.price_per_bu ? fmt(Number(c.quantity_bu) * Number(c.price_per_bu)) : "—"}</td>
                   </tr>
                 ))}
@@ -449,7 +449,7 @@ export default function Grain360Page() {
         {/* Reminders */}
         <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
           <div className="flex items-center justify-between mb-4">
-            <p className="font-mono text-[11px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">To-Do / Reminders</p>
+            <p className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px]">To-Do / Reminders</p>
             <button onClick={() => setShowAddReminder(!showAddReminder)} className="text-xs font-semibold text-[#34D399] hover:text-[#6EE7B7] flex items-center gap-1 transition-colors">
               <Plus size={12} /> Add
             </button>
@@ -477,17 +477,17 @@ export default function Grain360Page() {
           )}
           <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-thin">
             {reminders.length === 0 ? (
-              <p className="text-xs text-[#64748B] text-center py-4">No reminders yet.</p>
+              <p className="text-xs text-ag-muted text-center py-4">No reminders yet.</p>
             ) : reminders.map((r, i) => (
               <div key={r.id || i} className="flex items-start gap-2 group">
                 <button onClick={() => r.id && toggleReminder(r.id)} className="mt-0.5 shrink-0">
                   {r.completed
                     ? <CheckCircle2 size={16} className="text-[#34D399]" />
-                    : <Circle size={16} className="text-[#64748B]" />}
+                    : <Circle size={16} className="text-ag-muted" />}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-xs font-semibold leading-tight ${r.completed ? "line-through text-[#64748B]" : "text-[#F1F5F9]"}`}>{r.title}</p>
-                  {r.due_date && <p className="text-xs text-[#64748B]">{r.due_date}</p>}
+                  <p className={`text-xs font-semibold leading-tight ${r.completed ? "line-through text-ag-muted" : "text-ag-primary"}`}>{r.title}</p>
+                  {r.due_date && <p className="text-xs text-ag-muted">{r.due_date}</p>}
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: priorityColor[r.priority] }} />
@@ -504,11 +504,11 @@ export default function Grain360Page() {
         {/* Monthly Spend Tracker */}
         <div className="col-span-2 bg-[#111827] rounded-xl border border-white/[0.06] p-5">
           <div className="flex items-center justify-between mb-4">
-            <p className="font-mono text-[11px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">Monthly Spend Tracker</p>
+            <p className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px]">Monthly Spend Tracker</p>
             <div className="flex gap-2">
               {(["spend", "income"] as const).map(tab => (
                 <button key={tab} onClick={() => setActiveMonthlyTab(tab)}
-                  className={`text-xs font-semibold px-3 py-1 rounded-full border transition-colors ${activeMonthlyTab === tab ? "bg-[#34D399] text-[#080C15] border-[#34D399]" : "text-[#64748B] border-white/[0.10] hover:text-[#94A3B8]"}`}>
+                  className={`text-xs font-semibold px-3 py-1 rounded-full border transition-colors ${activeMonthlyTab === tab ? "bg-[#34D399] text-[#080C15] border-[#34D399]" : "text-ag-muted border-white/[0.10] hover:text-ag-secondary"}`}>
                   {tab === "spend" ? "Expenses" : "Income"}
                 </button>
               ))}
@@ -521,13 +521,13 @@ export default function Grain360Page() {
               const over = m.actual > m.budget;
               return (
                 <div key={m.month} className={`p-3 rounded-[10px] ${isCurrent ? "bg-[#34D399]/[0.06] border border-[#34D399]/20" : "bg-white/[0.03]"}`}>
-                  <p className="text-xs font-bold text-[#F1F5F9]">{m.month}</p>
+                  <p className="text-xs font-bold text-ag-primary">{m.month}</p>
                   <div className="mt-2 h-16 bg-white/[0.06] rounded-full overflow-hidden flex items-end">
                     <div className="w-full rounded-full transition-all"
                       style={{ height: `${pct}%`, backgroundColor: over ? "#EF4444" : "#34D399", opacity: m.actual === 0 ? 0.2 : 0.85 }} />
                   </div>
-                  <p className="text-xs font-semibold text-[#F1F5F9] mt-1">{m.actual > 0 ? fmt(m.actual) : "—"}</p>
-                  <p className="text-xs text-[#64748B]">of {fmt(m.budget)}</p>
+                  <p className="text-xs font-semibold text-ag-primary mt-1">{m.actual > 0 ? fmt(m.actual) : "—"}</p>
+                  <p className="text-xs text-ag-muted">of {fmt(m.budget)}</p>
                   {m.actual > 0 && (
                     <p className={`text-xs font-semibold ${over ? "text-[#EF4444]" : "text-[#34D399]"}`}>
                       {over ? "+" : "-"}{Math.abs(100 - pct)}%
@@ -545,13 +545,13 @@ export default function Grain360Page() {
               const over = m.actual > m.budget;
               return (
                 <div key={m.month} className={`p-3 rounded-[10px] ${isCurrent ? "bg-[#34D399]/[0.06] border border-[#34D399]/20" : "bg-white/[0.03]"}`}>
-                  <p className="text-xs font-bold text-[#F1F5F9]">{m.month}</p>
+                  <p className="text-xs font-bold text-ag-primary">{m.month}</p>
                   <div className="mt-2 h-16 bg-white/[0.06] rounded-full overflow-hidden flex items-end">
                     <div className="w-full rounded-full transition-all"
                       style={{ height: `${pct}%`, backgroundColor: over ? "#EF4444" : "#34D399", opacity: m.actual === 0 ? 0.2 : 0.85 }} />
                   </div>
-                  <p className="text-xs font-semibold text-[#F1F5F9] mt-1">{m.actual > 0 ? fmt(m.actual) : "—"}</p>
-                  <p className="text-xs text-[#64748B]">of {fmt(m.budget)}</p>
+                  <p className="text-xs font-semibold text-ag-primary mt-1">{m.actual > 0 ? fmt(m.actual) : "—"}</p>
+                  <p className="text-xs text-ag-muted">of {fmt(m.budget)}</p>
                   {m.actual > 0 && (
                     <p className={`text-xs font-semibold ${over ? "text-[#EF4444]" : "text-[#34D399]"}`}>
                       {over ? "+" : "-"}{Math.abs(100 - pct)}%
@@ -565,16 +565,16 @@ export default function Grain360Page() {
 
         {/* Weather Widget */}
         <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
-          <p className="font-mono text-[11px] font-semibold text-[#94A3B8] uppercase tracking-[2px] mb-4">Weather · Swift Current</p>
+          <p className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px] mb-4">Weather · Swift Current</p>
           {weather ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-4xl font-bold text-[#F1F5F9]">{Math.round(weather.current.temperature_2m)}°C</p>
-                  <p className="text-xs text-[#94A3B8] mt-1">{getWeatherInfo(weather.current.weather_code).label}</p>
+                  <p className="text-4xl font-bold text-ag-primary">{Math.round(weather.current.temperature_2m)}°C</p>
+                  <p className="text-xs text-ag-secondary mt-1">{getWeatherInfo(weather.current.weather_code).label}</p>
                   <div className="flex items-center gap-1 mt-0.5">
-                    <Wind size={12} className="text-[#64748B]" />
-                    <p className="text-xs text-[#64748B]">{Math.round(weather.current.wind_speed_10m)} km/h</p>
+                    <Wind size={12} className="text-ag-muted" />
+                    <p className="text-xs text-ag-muted">{Math.round(weather.current.wind_speed_10m)} km/h</p>
                   </div>
                 </div>
                 {(() => {
@@ -588,19 +588,19 @@ export default function Grain360Page() {
                   const { Icon, label } = getWeatherInfo(weather.daily.weather_code[i]);
                   return (
                     <div key={i} className="flex items-center justify-between text-xs">
-                      <p className="text-[#64748B] w-10">{i === 0 ? "Today" : DAYS[date.getDay()]}</p>
-                      <Icon size={14} className="text-[#94A3B8]" />
+                      <p className="text-ag-muted w-10">{i === 0 ? "Today" : DAYS[date.getDay()]}</p>
+                      <Icon size={14} className="text-ag-secondary" />
                       <div className="flex items-center gap-1">
                         <Droplets size={10} className="text-[#38BDF8]" />
-                        <p className="text-[#64748B]">{weather.daily.precipitation_probability_max[i]}%</p>
+                        <p className="text-ag-muted">{weather.daily.precipitation_probability_max[i]}%</p>
                       </div>
-                      <p className="font-semibold text-[#F1F5F9]">{Math.round(weather.daily.temperature_2m_max[i])}° / {Math.round(weather.daily.temperature_2m_min[i])}°</p>
+                      <p className="font-semibold text-ag-primary">{Math.round(weather.daily.temperature_2m_max[i])}° / {Math.round(weather.daily.temperature_2m_min[i])}°</p>
                     </div>
                   );
                 })}
               </div>
             </div>
-          ) : <p className="text-xs text-[#64748B]">Loading weather...</p>}
+          ) : <p className="text-xs text-ag-muted">Loading weather...</p>}
         </div>
       </div>
 
@@ -611,12 +611,12 @@ export default function Grain360Page() {
             <LilyIcon size={20} />
           </div>
           <div>
-            <p className="text-sm font-bold text-[#F1F5F9]">Ask Lily</p>
-            <p className="text-xs text-[#64748B]">Quick question without leaving Grain360</p>
+            <p className="text-sm font-bold text-ag-primary">Ask Lily</p>
+            <p className="text-xs text-ag-muted">Quick question without leaving Grain360</p>
           </div>
         </div>
         {lilyResponse && (
-          <div className="mb-4 p-4 bg-white/[0.03] rounded-xl text-sm text-[#94A3B8] leading-relaxed max-h-48 overflow-y-auto scrollbar-thin">
+          <div className="mb-4 p-4 bg-white/[0.03] rounded-xl text-sm text-ag-secondary leading-relaxed max-h-48 overflow-y-auto scrollbar-thin">
             {lilyResponse}
             {lilyLoading && <span className="inline-block w-1.5 h-3.5 bg-[#34D399] ml-0.5 animate-pulse rounded-sm" />}
           </div>
@@ -625,7 +625,7 @@ export default function Grain360Page() {
           <input type="text" value={lilyInput} onChange={e => setLilyInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && askLily()}
             placeholder="Ask about your grain position, basis, sell plan..."
-            className="flex-1 text-sm text-[#F1F5F9] placeholder:text-[#64748B] outline-none bg-transparent" />
+            className="flex-1 text-sm text-ag-primary placeholder:text-ag-muted outline-none bg-transparent" />
           <button onClick={askLily} disabled={lilyLoading || !lilyInput.trim()}
             className="w-8 h-8 rounded-full bg-[#34D399] flex items-center justify-center hover:bg-[#6EE7B7] disabled:opacity-40 transition-colors">
             <Send size={14} className="text-[#080C15]" />
@@ -634,7 +634,7 @@ export default function Grain360Page() {
         <div className="flex flex-wrap gap-2 mt-3">
           {["What's my best crop to sell right now?", "Should I price more canola?", "Build me a sell plan"].map(chip => (
             <button key={chip} onClick={() => { setLilyInput(chip); }}
-              className="text-xs bg-white/[0.04] border border-white/[0.08] text-[#94A3B8] px-3 py-1.5 rounded-full hover:bg-white/[0.08] hover:text-[#F1F5F9] transition-colors">
+              className="text-xs bg-white/[0.04] border border-white/[0.08] text-ag-secondary px-3 py-1.5 rounded-full hover:bg-white/[0.08] hover:text-ag-primary transition-colors">
               {chip}
             </button>
           ))}

@@ -31,11 +31,11 @@ const T = {
 };
 
 const inputClass =
-  "w-full bg-white/[0.04] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] placeholder-[#475569] focus:outline-none focus:border-[#34D399]/50 transition-colors";
+  "w-full bg-white/[0.04] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-ag-primary placeholder-[#475569] focus:outline-none focus:border-[#34D399]/50 transition-colors";
 const selectClass =
-  "bg-[#111827] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] focus:outline-none focus:border-[#34D399]/50 transition-colors";
+  "bg-[#111827] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-ag-primary focus:outline-none focus:border-[#34D399]/50 transition-colors";
 const labelClass =
-  "block text-[10px] uppercase tracking-[2px] font-mono font-semibold text-[#64748B] mb-1.5";
+  "block text-[10px] uppercase tracking-[2px] font-mono font-semibold text-ag-muted mb-1.5";
 
 interface Account {
   id: string;
@@ -601,7 +601,7 @@ export default function ScanDocumentModal({
                         type="text"
                         value={line.description}
                         onChange={(e) => updateLine(i, "description", e.target.value)}
-                        className="bg-transparent text-sm text-[#F1F5F9] outline-none placeholder-[#475569]"
+                        className="bg-transparent text-sm text-ag-primary outline-none placeholder-[#475569]"
                         placeholder="Line description"
                       />
                       <select
@@ -614,7 +614,7 @@ export default function ScanDocumentModal({
                             updateLine(i, "account_name", acc.name);
                           }
                         }}
-                        className="bg-[#111827] border border-white/[0.08] rounded px-1.5 py-1 text-xs text-[#F1F5F9] outline-none truncate"
+                        className="bg-[#111827] border border-white/[0.08] rounded px-1.5 py-1 text-xs text-ag-primary outline-none truncate"
                       >
                         <option value="">Select account</option>
                         {Object.entries(accountGroups).map(([group, accs]) => (
@@ -632,7 +632,7 @@ export default function ScanDocumentModal({
                         step="0.01"
                         value={line.debit || ""}
                         onChange={(e) => updateLine(i, "debit", parseFloat(e.target.value) || 0)}
-                        className="bg-transparent text-sm text-right text-[#F1F5F9] outline-none w-full font-mono"
+                        className="bg-transparent text-sm text-right text-ag-primary outline-none w-full font-mono"
                         placeholder="0.00"
                       />
                       <input
@@ -640,7 +640,7 @@ export default function ScanDocumentModal({
                         step="0.01"
                         value={line.credit || ""}
                         onChange={(e) => updateLine(i, "credit", parseFloat(e.target.value) || 0)}
-                        className="bg-transparent text-sm text-right text-[#F1F5F9] outline-none w-full font-mono"
+                        className="bg-transparent text-sm text-right text-ag-primary outline-none w-full font-mono"
                         placeholder="0.00"
                       />
                       <button

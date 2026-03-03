@@ -91,8 +91,8 @@ const SYMPTOM_OPTIONS = [
   'Root damage', 'Leaf curling', 'Discolouration', 'Premature ripening', 'Other',
 ]
 
-const inputClass = "w-full text-sm border border-white/[0.10] rounded-lg px-2.5 py-2 bg-white/[0.04] text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:border-[#34D399]/50"
-const selectClass = "w-full text-sm border border-white/[0.10] rounded-lg px-2.5 py-2 bg-[#111827] text-[#F1F5F9] focus:outline-none focus:border-[#34D399]/50"
+const inputClass = "w-full text-sm border border-white/[0.10] rounded-lg px-2.5 py-2 bg-white/[0.04] text-ag-primary placeholder:text-ag-dim focus:outline-none focus:border-[#34D399]/50"
+const selectClass = "w-full text-sm border border-white/[0.10] rounded-lg px-2.5 py-2 bg-[#111827] text-ag-primary focus:outline-none focus:border-[#34D399]/50"
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -168,8 +168,8 @@ export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-mono text-[11px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">Scout Reports</h2>
-          <p className="text-[10px] text-[#475569] mt-0.5">Log field observations with photos — ask Lily for instant diagnosis.</p>
+          <h2 className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px]">Scout Reports</h2>
+          <p className="text-[10px] text-ag-dim mt-0.5">Log field observations with photos — ask Lily for instant diagnosis.</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -183,28 +183,28 @@ export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
       {showForm && (
         <div className="bg-[#111827] border border-[#34D399]/20 rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-[#F1F5F9]">New Scout Report</h3>
-            <button onClick={() => setShowForm(false)} className="text-[#64748B] hover:text-[#F1F5F9] transition-colors"><X size={16} /></button>
+            <h3 className="text-sm font-semibold text-ag-primary">New Scout Report</h3>
+            <button onClick={() => setShowForm(false)} className="text-ag-muted hover:text-ag-primary transition-colors"><X size={16} /></button>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Date</label>
+              <label className="text-[10px] text-ag-muted font-semibold block mb-1 uppercase tracking-[1px]">Date</label>
               <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} className={inputClass} />
             </div>
             <div>
-              <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Field</label>
+              <label className="text-[10px] text-ag-muted font-semibold block mb-1 uppercase tracking-[1px]">Field</label>
               <input type="text" placeholder="e.g. North Quarter" value={form.field_name} onChange={e => setForm(p => ({ ...p, field_name: e.target.value }))} className={inputClass} />
             </div>
             <div>
-              <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Crop</label>
+              <label className="text-[10px] text-ag-muted font-semibold block mb-1 uppercase tracking-[1px]">Crop</label>
               <select value={form.crop} onChange={e => setForm(p => ({ ...p, crop: e.target.value }))} className={selectClass}>
                 <option value="">Select...</option>
                 {crops.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Growth Stage</label>
+              <label className="text-[10px] text-ag-muted font-semibold block mb-1 uppercase tracking-[1px]">Growth Stage</label>
               <select value={form.growth_stage} onChange={e => setForm(p => ({ ...p, growth_stage: e.target.value }))} className={selectClass}>
                 <option value="">Select...</option>
                 {GROWTH_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -214,14 +214,14 @@ export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Issue Type</label>
+              <label className="text-[10px] text-ag-muted font-semibold block mb-1 uppercase tracking-[1px]">Issue Type</label>
               <div className="flex flex-wrap gap-1.5">
                 {ISSUE_TYPES.map(t => (
                   <button key={t} onClick={() => setForm(p => ({ ...p, issue_type: t }))}
                     className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition-all ${
                       form.issue_type === t
                         ? 'bg-[#34D399] text-[#080C15]'
-                        : 'bg-white/[0.03] border border-white/[0.06] text-[#64748B] hover:text-[#F1F5F9]'
+                        : 'bg-white/[0.03] border border-white/[0.06] text-ag-muted hover:text-ag-primary'
                     }`}>
                     {t.replace('_', ' ')}
                   </button>
@@ -229,12 +229,12 @@ export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
               </div>
             </div>
             <div>
-              <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Severity</label>
+              <label className="text-[10px] text-ag-muted font-semibold block mb-1 uppercase tracking-[1px]">Severity</label>
               <div className="flex gap-1.5">
                 {SEVERITY_LEVELS.map(s => (
                   <button key={s.value} onClick={() => setForm(p => ({ ...p, severity: s.value }))}
                     className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                      form.severity === s.value ? s.color : 'bg-white/[0.03] border border-white/[0.06] text-[#64748B] hover:text-[#F1F5F9]'
+                      form.severity === s.value ? s.color : 'bg-white/[0.03] border border-white/[0.06] text-ag-muted hover:text-ag-primary'
                     }`}>
                     {s.label}
                   </button>
@@ -244,14 +244,14 @@ export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
           </div>
 
           <div>
-            <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Symptoms Observed</label>
+            <label className="text-[10px] text-ag-muted font-semibold block mb-1 uppercase tracking-[1px]">Symptoms Observed</label>
             <div className="flex flex-wrap gap-1.5">
               {SYMPTOM_OPTIONS.map(s => (
                 <button key={s} onClick={() => toggleSymptom(s)}
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
                     form.symptoms.includes(s)
                       ? 'bg-[#34D399] text-[#080C15]'
-                      : 'bg-white/[0.03] border border-white/[0.06] text-[#64748B] hover:text-[#F1F5F9]'
+                      : 'bg-white/[0.03] border border-white/[0.06] text-ag-muted hover:text-ag-primary'
                   }`}>
                   {s}
                 </button>
@@ -260,7 +260,7 @@ export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
           </div>
 
           <div>
-            <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Notes</label>
+            <label className="text-[10px] text-ag-muted font-semibold block mb-1 uppercase tracking-[1px]">Notes</label>
             <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2} placeholder="Additional observations..."
               className={inputClass + " resize-none"} />
           </div>
@@ -282,8 +282,8 @@ export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
         </div>
       ) : entries.length === 0 && !showForm ? (
         <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-8 text-center">
-          <Sprout size={24} className="mx-auto text-[#64748B] mb-2" />
-          <p className="text-sm text-[#64748B]">No scout reports yet. Add your first one above.</p>
+          <Sprout size={24} className="mx-auto text-ag-muted mb-2" />
+          <p className="text-sm text-ag-muted">No scout reports yet. Add your first one above.</p>
         </div>
       ) : (
         entries.map(entry => (
@@ -364,13 +364,13 @@ function EntryCard({ entry, expanded, onToggle, onDelete, onUpdateRecommendation
       {/* Header */}
       <button onClick={onToggle} className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="text-[10px] text-[#64748B] font-mono font-medium whitespace-nowrap">{new Date(entry.date).toLocaleDateString('en-CA')}</div>
-          {entry.field_name && <span className="text-sm font-medium text-[#F1F5F9] truncate">{entry.field_name}</span>}
-          {entry.crop && <span className="text-[10px] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded font-medium text-[#94A3B8]">{entry.crop}</span>}
+          <div className="text-[10px] text-ag-muted font-mono font-medium whitespace-nowrap">{new Date(entry.date).toLocaleDateString('en-CA')}</div>
+          {entry.field_name && <span className="text-sm font-medium text-ag-primary truncate">{entry.field_name}</span>}
+          {entry.crop && <span className="text-[10px] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded font-medium text-ag-secondary">{entry.crop}</span>}
           {entry.severity && <span className={`text-[10px] px-2 py-0.5 rounded font-semibold ${severityColor}`}>{entry.severity}</span>}
-          {entry.issue_type && <span className="text-[10px] text-[#64748B] capitalize">{entry.issue_type.replace('_', ' ')}</span>}
+          {entry.issue_type && <span className="text-[10px] text-ag-muted capitalize">{entry.issue_type.replace('_', ' ')}</span>}
         </div>
-        {expanded ? <ChevronUp size={16} className="text-[#475569]" /> : <ChevronDown size={16} className="text-[#475569]" />}
+        {expanded ? <ChevronUp size={16} className="text-ag-dim" /> : <ChevronDown size={16} className="text-ag-dim" />}
       </button>
 
       {/* Expanded Content */}
@@ -379,32 +379,32 @@ function EntryCard({ entry, expanded, onToggle, onDelete, onUpdateRecommendation
           {/* Details Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
             {entry.growth_stage && (
-              <div><span className="text-[10px] text-[#64748B] block uppercase tracking-[1px]">Growth Stage</span><span className="text-[#F1F5F9]">{entry.growth_stage}</span></div>
+              <div><span className="text-[10px] text-ag-muted block uppercase tracking-[1px]">Growth Stage</span><span className="text-ag-primary">{entry.growth_stage}</span></div>
             )}
             {entry.symptoms && entry.symptoms.length > 0 && (
               <div className="col-span-2">
-                <span className="text-[10px] text-[#64748B] block mb-1 uppercase tracking-[1px]">Symptoms</span>
+                <span className="text-[10px] text-ag-muted block mb-1 uppercase tracking-[1px]">Symptoms</span>
                 <div className="flex flex-wrap gap-1">{entry.symptoms.map(s => (
-                  <span key={s} className="text-[10px] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded text-[#94A3B8]">{s}</span>
+                  <span key={s} className="text-[10px] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded text-ag-secondary">{s}</span>
                 ))}</div>
               </div>
             )}
             {entry.notes && (
-              <div className="col-span-2"><span className="text-[10px] text-[#64748B] block uppercase tracking-[1px]">Notes</span><span className="text-[#94A3B8] text-sm">{entry.notes}</span></div>
+              <div className="col-span-2"><span className="text-[10px] text-ag-muted block uppercase tracking-[1px]">Notes</span><span className="text-ag-secondary text-sm">{entry.notes}</span></div>
             )}
           </div>
 
           {entry.recommendation && (
             <div className="bg-[#34D399]/[0.04] border border-[#34D399]/15 rounded-lg px-4 py-3">
               <span className="text-[10px] font-semibold text-[#34D399] block mb-1 uppercase tracking-[1px]">Recommendation</span>
-              <p className="text-sm text-[#94A3B8] leading-relaxed whitespace-pre-line">{entry.recommendation}</p>
+              <p className="text-sm text-ag-secondary leading-relaxed whitespace-pre-line">{entry.recommendation}</p>
             </div>
           )}
 
           {/* Photo Gallery */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">Photos ({photos.length}/3)</span>
+              <span className="font-mono text-[10px] font-semibold text-ag-secondary uppercase tracking-[2px]">Photos ({photos.length}/3)</span>
               {photos.length < 3 && (
                 <label className="flex items-center gap-1 text-xs font-semibold text-[#34D399] hover:text-[#6EE7B7] cursor-pointer transition-colors">
                   {uploading ? <Loader2 size={12} className="animate-spin" /> : <Camera size={12} />}
@@ -437,8 +437,8 @@ function EntryCard({ entry, expanded, onToggle, onDelete, onUpdateRecommendation
             ) : (
               <div className="border border-dashed border-white/[0.10] rounded-lg p-4 text-center hover:border-[#34D399]/30 transition-colors">
                 <label className="cursor-pointer">
-                  <Camera size={20} className="mx-auto text-[#475569] mb-1" />
-                  <p className="text-[10px] text-[#475569]">Tap to take a photo or upload from gallery</p>
+                  <Camera size={20} className="mx-auto text-ag-dim mb-1" />
+                  <p className="text-[10px] text-ag-dim">Tap to take a photo or upload from gallery</p>
                   <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={handleUpload} className="hidden" disabled={uploading} />
                 </label>
               </div>
@@ -531,15 +531,15 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
       case 'nutrient': return <FlaskConical className={cls + " text-[#38BDF8]"} />
       case 'abiotic_stress': return <Thermometer className={cls + " text-[#F97316]"} />
       case 'growth_stage': return <Sprout className={cls + " text-[#34D399]"} />
-      default: return <HelpCircle className={cls + " text-[#64748B]"} />
+      default: return <HelpCircle className={cls + " text-ag-muted"} />
     }
   }
 
   return (
     <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-3">
       <div className="flex items-start justify-between">
-        <span className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">Photo Analysis</span>
-        <button onClick={onClose} className="text-[#475569] hover:text-[#F1F5F9] transition-colors"><X size={14} /></button>
+        <span className="font-mono text-[10px] font-semibold text-ag-secondary uppercase tracking-[2px]">Photo Analysis</span>
+        <button onClick={onClose} className="text-ag-dim hover:text-ag-primary transition-colors"><X size={14} /></button>
       </div>
 
       {/* Image */}
@@ -561,7 +561,7 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
             <div className="absolute inset-0 rounded-full bg-[#34D399]/20 blur-md animate-pulse" style={{ animationDuration: "2s" }} />
             <div className="relative"><LilyIcon size={32} /></div>
           </div>
-          <p className="text-sm text-[#64748B]">Lily is analyzing your field photo...</p>
+          <p className="text-sm text-ag-muted">Lily is analyzing your field photo...</p>
         </div>
       )}
 
@@ -570,7 +570,7 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
         <div className="space-y-3">
           {/* Summary */}
           <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-3">
-            <p className="text-sm text-[#F1F5F9] leading-relaxed">{analysis.summary}</p>
+            <p className="text-sm text-ag-primary leading-relaxed">{analysis.summary}</p>
           </div>
 
           {/* Detections */}
@@ -579,7 +579,7 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
               {analysis.detections.map((d, i) => (
                 <div key={i} className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-3">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-[#F1F5F9] flex items-center gap-2">
+                    <span className="text-sm font-medium text-ag-primary flex items-center gap-2">
                       <CategoryIcon cat={d.category} /> {d.label}
                     </span>
                     <div className="flex items-center gap-2">
@@ -599,8 +599,8 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
                     </div>
                   )}
                   {showDetails && d.why.length > 0 && (
-                    <div className="mt-2 text-xs text-[#64748B] space-y-0.5">
-                      {d.why.map((w, j) => <p key={j} className="flex items-start gap-1.5"><ArrowRight size={10} className="mt-0.5 flex-shrink-0 text-[#475569]" /> {w}</p>)}
+                    <div className="mt-2 text-xs text-ag-muted space-y-0.5">
+                      {d.why.map((w, j) => <p key={j} className="flex items-start gap-1.5"><ArrowRight size={10} className="mt-0.5 flex-shrink-0 text-ag-dim" /> {w}</p>)}
                     </div>
                   )}
                 </div>
@@ -619,9 +619,9 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
               {/* Recommended Actions */}
               {analysis.recommended_actions.length > 0 && (
                 <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-3">
-                  <span className="font-mono text-[10px] font-semibold text-[#94A3B8] block mb-1.5 uppercase tracking-[1.5px]">Recommended Actions</span>
+                  <span className="font-mono text-[10px] font-semibold text-ag-secondary block mb-1.5 uppercase tracking-[1.5px]">Recommended Actions</span>
                   {analysis.recommended_actions.map((a, i) => (
-                    <p key={i} className="text-sm text-[#94A3B8] mb-0.5 flex items-start gap-2">
+                    <p key={i} className="text-sm text-ag-secondary mb-0.5 flex items-start gap-2">
                       <span className="w-1 h-1 rounded-full bg-[#34D399] mt-[7px] flex-shrink-0" /> {a}
                     </p>
                   ))}
@@ -631,12 +631,12 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
               {/* What to Check Next */}
               {analysis.what_to_check_next.length > 0 && (
                 <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-3">
-                  <span className="font-mono text-[10px] font-semibold text-[#94A3B8] flex items-center gap-1.5 mb-1.5 uppercase tracking-[1.5px]">
+                  <span className="font-mono text-[10px] font-semibold text-ag-secondary flex items-center gap-1.5 mb-1.5 uppercase tracking-[1.5px]">
                     <HelpCircle size={11} /> What to Check Next
                   </span>
                   {analysis.what_to_check_next.map((q, i) => (
-                    <p key={i} className="text-sm text-[#64748B] mb-0.5 flex items-start gap-2">
-                      <ArrowRight size={11} className="mt-0.5 flex-shrink-0 text-[#475569]" /> {q}
+                    <p key={i} className="text-sm text-ag-muted mb-0.5 flex items-start gap-2">
+                      <ArrowRight size={11} className="mt-0.5 flex-shrink-0 text-ag-dim" /> {q}
                     </p>
                   ))}
                 </div>
@@ -645,21 +645,21 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
               {/* Product Recommendations */}
               {analysis.product_recommendations && analysis.product_recommendations.length > 0 && (
                 <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-3">
-                  <span className="font-mono text-[10px] font-semibold text-[#94A3B8] flex items-center gap-1.5 block mb-2 uppercase tracking-[1.5px]">
+                  <span className="font-mono text-[10px] font-semibold text-ag-secondary flex items-center gap-1.5 block mb-2 uppercase tracking-[1.5px]">
                     <FlaskConical size={11} /> Product Recommendations
                   </span>
                   {analysis.product_recommendations.map((p, i) => (
                     <div key={i} className="mb-3 last:mb-0 pb-3 last:pb-0 border-b border-white/[0.04] last:border-0">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-[#F1F5F9]">{p.product}</span>
-                        <span className="text-[10px] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded font-medium text-[#94A3B8]">Group {p.group}</span>
+                        <span className="text-sm font-medium text-ag-primary">{p.product}</span>
+                        <span className="text-[10px] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded font-medium text-ag-secondary">Group {p.group}</span>
                       </div>
-                      <p className="text-xs text-[#64748B] mb-1">{p.active_ingredient}</p>
+                      <p className="text-xs text-ag-muted mb-1">{p.active_ingredient}</p>
                       <div className="grid grid-cols-2 gap-2 text-xs mt-1">
-                        <div><span className="text-[#64748B]">Rate:</span> <span className="text-[#34D399] font-semibold">{p.rate}</span></div>
-                        {p.water_volume && <div><span className="text-[#64748B]">Water:</span> <span className="text-[#F1F5F9]">{p.water_volume}</span></div>}
-                        {p.timing && <div><span className="text-[#64748B]">Timing:</span> <span className="text-[#F1F5F9]">{p.timing}</span></div>}
-                        {p.phi_days !== undefined && <div><span className="text-[#64748B]">PHI:</span> <span className="text-[#F1F5F9]">{p.phi_days} days</span></div>}
+                        <div><span className="text-ag-muted">Rate:</span> <span className="text-[#34D399] font-semibold">{p.rate}</span></div>
+                        {p.water_volume && <div><span className="text-ag-muted">Water:</span> <span className="text-ag-primary">{p.water_volume}</span></div>}
+                        {p.timing && <div><span className="text-ag-muted">Timing:</span> <span className="text-ag-primary">{p.timing}</span></div>}
+                        {p.phi_days !== undefined && <div><span className="text-ag-muted">PHI:</span> <span className="text-ag-primary">{p.phi_days} days</span></div>}
                       </div>
                       {p.tank_mix_notes && (
                         <div className="flex items-start gap-1.5 text-xs text-[#F59E0B] bg-[#F59E0B]/[0.06] border border-[#F59E0B]/15 rounded px-2 py-1 mt-1.5">
@@ -667,7 +667,7 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
                         </div>
                       )}
                       {p.precautions && p.precautions.length > 0 && (
-                        <div className="mt-1.5 text-xs text-[#64748B] space-y-0.5">
+                        <div className="mt-1.5 text-xs text-ag-muted space-y-0.5">
                           {p.precautions.map((pr, j) => (
                             <p key={j} className="flex items-start gap-1.5">
                               <AlertTriangle size={10} className="mt-0.5 flex-shrink-0 text-[#F59E0B]" /> {pr}
@@ -677,7 +677,7 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
                       )}
                     </div>
                   ))}
-                  <p className="text-[10px] text-[#475569] mt-2 italic">Always verify rates and PHI on the registered product label before application.</p>
+                  <p className="text-[10px] text-ag-dim mt-2 italic">Always verify rates and PHI on the registered product label before application.</p>
                 </div>
               )}
 
@@ -703,13 +703,13 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
               {/* References */}
               {analysis.references.length > 0 && (
                 <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-4 py-3">
-                  <span className="font-mono text-[10px] font-semibold text-[#94A3B8] flex items-center gap-1.5 block mb-1.5 uppercase tracking-[1.5px]">
+                  <span className="font-mono text-[10px] font-semibold text-ag-secondary flex items-center gap-1.5 block mb-1.5 uppercase tracking-[1.5px]">
                     <BookOpen size={11} /> References
                   </span>
                   {analysis.references.map((r, i) => (
-                    <div key={i} className="text-xs text-[#64748B] mb-1">
-                      <span className="font-medium text-[#F1F5F9]">{r.title}</span>
-                      <span className="ml-1 text-[#475569] bg-white/[0.04] px-1.5 py-0.5 rounded">{r.type}</span>
+                    <div key={i} className="text-xs text-ag-muted mb-1">
+                      <span className="font-medium text-ag-primary">{r.title}</span>
+                      <span className="ml-1 text-ag-dim bg-white/[0.04] px-1.5 py-0.5 rounded">{r.type}</span>
                       <p className="mt-0.5">{r.note}</p>
                     </div>
                   ))}
@@ -725,7 +725,7 @@ function PhotoAnalysisPanel({ photo, onClose, onAnalyzed, onSaveToEntry }: {
             <CheckCircle size={14} /> Save to Report
           </button>
 
-          <div className="flex items-center justify-center gap-1.5 text-[10px] text-[#475569]">
+          <div className="flex items-center justify-center gap-1.5 text-[10px] text-ag-dim">
             <AlertTriangle size={10} />
             <span>Lily provides guidance only — verify all product rates against the registered label before application.</span>
           </div>

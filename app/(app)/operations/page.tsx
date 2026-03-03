@@ -82,16 +82,16 @@ function KpiCard({
   donut?: { value: number; max: number; color: string; showLabel?: boolean };
 }) {
   return (
-    <div className="bg-[#0F1629] border border-[#1E293B] rounded-xl p-5 flex items-start justify-between">
+    <div className="bg-ag-card border border-ag rounded-xl p-5 flex items-start justify-between">
       <div className="flex-1">
         <div className="flex items-center gap-2 mb-2">
           <Icon size={14} style={{ color: iconColor }} />
-          <span className="text-[11px] font-semibold tracking-[1.5px] uppercase text-[#64748B]">
+          <span className="text-[11px] font-semibold tracking-[1.5px] uppercase text-ag-muted">
             {label}
           </span>
         </div>
         <div className="text-2xl font-bold text-white leading-none">{value}</div>
-        {subtitle && <p className="text-[12px] text-[#64748B] mt-1.5">{subtitle}</p>}
+        {subtitle && <p className="text-[12px] text-ag-muted mt-1.5">{subtitle}</p>}
       </div>
       {donut && (
         <MiniDonut
@@ -126,14 +126,14 @@ export default function OperationsPage() {
     load();
   }, []);
 
-  if (loading) return <div className="p-6 text-[#64748B]">Loading operations...</div>;
+  if (loading) return <div className="p-6 text-ag-muted">Loading operations...</div>;
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* ── Header ────────────────────────────────────── */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#F1F5F9]">Operations</h1>
-        <p className="text-[#64748B] text-sm mt-1">
+        <h1 className="text-2xl font-bold text-ag-primary">Operations</h1>
+        <p className="text-ag-muted text-sm mt-1">
           Farm operations overview — {cropYear} crop year
         </p>
       </div>
@@ -186,10 +186,10 @@ export default function OperationsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
 
         {/* Crop Mix */}
-        <div className="bg-[#0F1629] border border-[#1E293B] rounded-xl p-5">
+        <div className="bg-ag-card border border-ag rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <Sprout size={14} className="text-[#34D399]" />
-            <span className="text-[11px] font-semibold tracking-[1.5px] uppercase text-[#64748B]">
+            <span className="text-[11px] font-semibold tracking-[1.5px] uppercase text-ag-muted">
               Crop Mix — {cropYear}
             </span>
           </div>
@@ -204,9 +204,9 @@ export default function OperationsPage() {
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CROP_COLORS[crop] || "#9ca3af" }} />
-                          <span className="text-sm text-[#F1F5F9] font-medium">{crop}</span>
+                          <span className="text-sm text-ag-primary font-medium">{crop}</span>
                         </div>
-                        <span className="text-sm text-[#94A3B8]">
+                        <span className="text-sm text-ag-secondary">
                           {fmt(data.acres)} ac · {data.count} field{data.count !== 1 ? "s" : ""}
                         </span>
                       </div>
@@ -221,16 +221,16 @@ export default function OperationsPage() {
                 })}
             </div>
           ) : (
-            <p className="text-sm text-[#475569]">No crops assigned yet</p>
+            <p className="text-sm text-ag-dim">No crops assigned yet</p>
           )}
         </div>
 
         {/* Budget vs Actual */}
         {kpis && (
-          <div className="bg-[#0F1629] border border-[#1E293B] rounded-xl p-5">
+          <div className="bg-ag-card border border-ag rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 size={14} className="text-[#60A5FA]" />
-              <span className="text-[11px] font-semibold tracking-[1.5px] uppercase text-[#64748B]">
+              <span className="text-[11px] font-semibold tracking-[1.5px] uppercase text-ag-muted">
                 Budget vs Actual
               </span>
             </div>
@@ -239,19 +239,19 @@ export default function OperationsPage() {
               {/* Costs */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-[#94A3B8] font-medium">Costs</span>
+                  <span className="text-sm text-ag-secondary font-medium">Costs</span>
                   <span className={`text-sm font-semibold ${kpis.costVariance > 0 ? "text-red-400" : "text-emerald-400"}`}>
                     {kpis.costVariance > 0 ? "+" : ""}${fmt(kpis.costVariance)}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-white/[0.03] rounded-lg px-3 py-2.5">
-                    <p className="text-[10px] text-[#64748B] tracking-wide uppercase">Budget</p>
-                    <p className="text-lg font-bold text-[#F1F5F9]">${fmt(kpis.totalBudgetCost)}</p>
+                    <p className="text-[10px] text-ag-muted tracking-wide uppercase">Budget</p>
+                    <p className="text-lg font-bold text-ag-primary">${fmt(kpis.totalBudgetCost)}</p>
                   </div>
                   <div className="bg-white/[0.03] rounded-lg px-3 py-2.5">
-                    <p className="text-[10px] text-[#64748B] tracking-wide uppercase">Actual</p>
-                    <p className="text-lg font-bold text-[#F1F5F9]">${fmt(kpis.totalActualCost)}</p>
+                    <p className="text-[10px] text-ag-muted tracking-wide uppercase">Actual</p>
+                    <p className="text-lg font-bold text-ag-primary">${fmt(kpis.totalActualCost)}</p>
                   </div>
                 </div>
               </div>
@@ -259,7 +259,7 @@ export default function OperationsPage() {
               {/* Revenue */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-[#94A3B8] font-medium">Revenue</span>
+                  <span className="text-sm text-ag-secondary font-medium">Revenue</span>
                   <span className={`text-sm font-semibold ${(kpis.totalActualRevenue - kpis.totalBudgetRevenue) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                     {(kpis.totalActualRevenue - kpis.totalBudgetRevenue) >= 0 ? "+" : ""}
                     ${fmt(kpis.totalActualRevenue - kpis.totalBudgetRevenue)}
@@ -267,12 +267,12 @@ export default function OperationsPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-white/[0.03] rounded-lg px-3 py-2.5">
-                    <p className="text-[10px] text-[#64748B] tracking-wide uppercase">Budget</p>
-                    <p className="text-lg font-bold text-[#F1F5F9]">${fmt(kpis.totalBudgetRevenue)}</p>
+                    <p className="text-[10px] text-ag-muted tracking-wide uppercase">Budget</p>
+                    <p className="text-lg font-bold text-ag-primary">${fmt(kpis.totalBudgetRevenue)}</p>
                   </div>
                   <div className="bg-white/[0.03] rounded-lg px-3 py-2.5">
-                    <p className="text-[10px] text-[#64748B] tracking-wide uppercase">Actual</p>
-                    <p className="text-lg font-bold text-[#F1F5F9]">${fmt(kpis.totalActualRevenue)}</p>
+                    <p className="text-[10px] text-ag-muted tracking-wide uppercase">Actual</p>
+                    <p className="text-lg font-bold text-ag-primary">${fmt(kpis.totalActualRevenue)}</p>
                   </div>
                 </div>
               </div>
@@ -304,7 +304,7 @@ export default function OperationsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Link
           href="/fields"
-          className="bg-[#0F1629] border border-[#1E293B] rounded-xl p-5 hover:border-[#34D399]/40 transition-all group"
+          className="bg-ag-card border border-ag rounded-xl p-5 hover:border-[#34D399]/40 transition-all group"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -312,18 +312,18 @@ export default function OperationsPage() {
                 <MapPin size={20} className="text-[#34D399]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[#F1F5F9] group-hover:text-[#34D399] transition-colors">Fields</p>
-                <p className="text-xs text-[#64748B]">
+                <p className="text-sm font-semibold text-ag-primary group-hover:text-[#34D399] transition-colors">Fields</p>
+                <p className="text-xs text-ag-muted">
                   {kpis ? `${kpis.totalFields} fields · ${fmt(kpis.totalAcres)} acres` : "Manage your fields"}
                 </p>
               </div>
             </div>
-            <ArrowRight size={16} className="text-[#475569] group-hover:text-[#34D399] transition-colors" />
+            <ArrowRight size={16} className="text-ag-dim group-hover:text-[#34D399] transition-colors" />
           </div>
         </Link>
         <Link
           href="/imports"
-          className="bg-[#0F1629] border border-[#1E293B] rounded-xl p-5 hover:border-[#34D399]/40 transition-all group"
+          className="bg-ag-card border border-ag rounded-xl p-5 hover:border-[#34D399]/40 transition-all group"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -331,11 +331,11 @@ export default function OperationsPage() {
                 <Upload size={20} className="text-[#60A5FA]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[#F1F5F9] group-hover:text-[#34D399] transition-colors">Import Data</p>
-                <p className="text-xs text-[#64748B]">Upload Excel files, scale tickets, and more</p>
+                <p className="text-sm font-semibold text-ag-primary group-hover:text-[#34D399] transition-colors">Import Data</p>
+                <p className="text-xs text-ag-muted">Upload Excel files, scale tickets, and more</p>
               </div>
             </div>
-            <ArrowRight size={16} className="text-[#475569] group-hover:text-[#34D399] transition-colors" />
+            <ArrowRight size={16} className="text-ag-dim group-hover:text-[#34D399] transition-colors" />
           </div>
         </Link>
       </div>

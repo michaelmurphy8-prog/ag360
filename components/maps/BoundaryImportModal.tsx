@@ -81,14 +81,14 @@ export default function BoundaryImportModal({ fields, onClose, onAssign }: Props
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0B1120] border border-[#1E293B] rounded-2xl w-[640px] max-h-[80vh] overflow-hidden shadow-2xl">
+      <div className="bg-ag-primary border border-ag rounded-2xl w-[640px] max-h-[80vh] overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1E293B]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ag">
           <div>
-            <h2 className="text-base font-bold text-[#F1F5F9]">Import Field Boundaries</h2>
-            <p className="text-xs text-[#64748B] mt-0.5">Upload shapefile (.zip), KML, KMZ, or GeoJSON</p>
+            <h2 className="text-base font-bold text-ag-primary">Import Field Boundaries</h2>
+            <p className="text-xs text-ag-muted mt-0.5">Upload shapefile (.zip), KML, KMZ, or GeoJSON</p>
           </div>
-          <button onClick={onClose} className="text-[#64748B] hover:text-white"><X size={18}/></button>
+          <button onClick={onClose} className="text-ag-muted hover:text-white"><X size={18}/></button>
         </div>
 
         <div className="p-6 overflow-y-auto max-h-[60vh]">
@@ -96,19 +96,19 @@ export default function BoundaryImportModal({ fields, onClose, onAssign }: Props
           {!result && (
             <div
               onClick={() => fileRef.current?.click()}
-              className="border-2 border-dashed border-[#1E293B] rounded-xl p-8 text-center cursor-pointer hover:border-[#60A5FA]/40 transition-colors"
+              className="border-2 border-dashed border-ag rounded-xl p-8 text-center cursor-pointer hover:border-[#60A5FA]/40 transition-colors"
             >
               <input ref={fileRef} type="file" className="hidden" accept=".zip,.shp,.kml,.kmz,.json,.geojson" onChange={handleFile} />
               {parsing ? (
-                <div className="text-[#64748B]">
+                <div className="text-ag-muted">
                   <div className="animate-spin w-8 h-8 border-2 border-[#60A5FA] border-t-transparent rounded-full mx-auto mb-3"/>
                   <p className="text-sm">Parsing file...</p>
                 </div>
               ) : (
                 <>
-                  <Upload size={32} className="mx-auto text-[#475569] mb-3"/>
-                  <p className="text-sm text-[#94A3B8] mb-1">Drop file here or click to browse</p>
-                  <p className="text-xs text-[#475569]">Supports: .zip (shapefile), .kml, .kmz, .json, .geojson</p>
+                  <Upload size={32} className="mx-auto text-ag-dim mb-3"/>
+                  <p className="text-sm text-ag-secondary mb-1">Drop file here or click to browse</p>
+                  <p className="text-xs text-ag-dim">Supports: .zip (shapefile), .kml, .kmz, .json, .geojson</p>
                 </>
               )}
             </div>
@@ -134,7 +134,7 @@ export default function BoundaryImportModal({ fields, onClose, onAssign }: Props
           {result && result.features.length > 0 && (
             <div className="mt-4">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-[#64748B]">
+                <p className="text-[10px] font-semibold tracking-[1.5px] uppercase text-ag-muted">
                   {result.features.length} Polygon{result.features.length > 1 ? "s" : ""} Found
                 </p>
                 {result.features.length > 1 && (
@@ -148,7 +148,7 @@ export default function BoundaryImportModal({ fields, onClose, onAssign }: Props
                 const isSaved = saved.has(i);
 
                 return (
-                  <div key={i} className={`bg-[#0F1629] border rounded-lg p-3 mb-2 ${isSaved ? "border-[#34D399]/40" : "border-[#1E293B]"}`}>
+                  <div key={i} className={`bg-ag-card border rounded-lg p-3 mb-2 ${isSaved ? "border-[#34D399]/40" : "border-ag"}`}>
                     <div className="flex items-center gap-3">
                       <div className="flex-shrink-0">
                         {isSaved ? (
@@ -158,17 +158,17 @@ export default function BoundaryImportModal({ fields, onClose, onAssign }: Props
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-[#F1F5F9] font-medium">
+                        <p className="text-sm text-ag-primary font-medium">
                           {propName || `Polygon ${i + 1}`}
                         </p>
-                        <p className="text-xs text-[#64748B]">{acres} acres · {feature.geometry.type}</p>
+                        <p className="text-xs text-ag-muted">{acres} acres · {feature.geometry.type}</p>
                       </div>
                       {!isSaved && (
                         <div className="flex items-center gap-2">
                           <select
                             value={assignments[i] || ""}
                             onChange={e => setAssignments({ ...assignments, [i]: e.target.value })}
-                            className="bg-[#0B1120] border border-[#1E293B] rounded-lg px-2 py-1 text-xs text-[#F1F5F9] min-w-[140px]"
+                            className="bg-ag-primary border border-ag rounded-lg px-2 py-1 text-xs text-ag-primary min-w-[140px]"
                           >
                             <option value="">Assign to field...</option>
                             {fields.map(f => (
@@ -191,8 +191,8 @@ export default function BoundaryImportModal({ fields, onClose, onAssign }: Props
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[#1E293B]">
-          <button onClick={onClose} className="px-4 py-2 text-xs text-[#94A3B8] hover:text-white transition-colors">Close</button>
+        <div className="flex items-center justify-between px-6 py-4 border-t border-ag">
+          <button onClick={onClose} className="px-4 py-2 text-xs text-ag-secondary hover:text-white transition-colors">Close</button>
           {result && result.features.length > 1 && allAssigned && (
             <button onClick={assignAll} disabled={saving}
               className="flex items-center gap-2 px-4 py-2 bg-[#34D399] text-[#0F1629] rounded-lg text-xs font-semibold disabled:opacity-50 hover:bg-[#2AB385] transition-colors">

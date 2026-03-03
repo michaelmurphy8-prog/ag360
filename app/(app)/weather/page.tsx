@@ -111,7 +111,7 @@ export default function WeatherPage() {
   }
 
   if (!weather || !weather.daily || !weather.current) {
-    return <p className="text-sm text-[#64748B]">Failed to load weather data.</p>;
+    return <p className="text-sm text-ag-muted">Failed to load weather data.</p>;
   }
 
   const current = weather.current;
@@ -141,10 +141,10 @@ export default function WeatherPage() {
       {/* ── Header ────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[28px] font-bold text-[#F1F5F9] tracking-tight">Weather</h1>
+          <h1 className="text-[28px] font-bold text-ag-primary tracking-tight">Weather</h1>
           <div className="flex items-center gap-1.5 mt-1">
             <MapPin size={12} className="text-[#34D399]" />
-            <p className="text-[13px] text-[#64748B]">{location}</p>
+            <p className="text-[13px] text-ag-muted">{location}</p>
             <span className="text-[11px] text-[#34D399] font-mono ml-2">LIVE</span>
           </div>
         </div>
@@ -164,17 +164,17 @@ export default function WeatherPage() {
         <div className="relative flex items-start justify-between">
           {/* Left: temperature + info */}
           <div>
-            <p className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[2px] mb-3">
+            <p className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[2px] mb-3">
               Current Conditions
             </p>
             <div className="flex items-baseline gap-1">
-              <p className="text-[72px] font-bold text-[#F1F5F9] leading-none tracking-tight">
+              <p className="text-[72px] font-bold text-ag-primary leading-none tracking-tight">
                 {Math.round(current.temperature_2m)}
               </p>
-              <span className="text-[28px] font-light text-[#64748B]">°C</span>
+              <span className="text-[28px] font-light text-ag-muted">°C</span>
             </div>
-            <p className="text-[15px] text-[#94A3B8] mt-2">{heroLabel}</p>
-            <p className="text-[13px] text-[#64748B] mt-0.5">
+            <p className="text-[15px] text-ag-secondary mt-2">{heroLabel}</p>
+            <p className="text-[13px] text-ag-muted mt-0.5">
               Feels like {Math.round(current.apparent_temperature)}°C
             </p>
 
@@ -182,8 +182,8 @@ export default function WeatherPage() {
             <div className="flex items-center gap-1.5 mt-4">
               {tempTrend === "warming" && <ArrowUpRight size={14} className="text-[#F59E0B]" />}
               {tempTrend === "cooling" && <ArrowDownRight size={14} className="text-[#38BDF8]" />}
-              {tempTrend === "steady" && <Minus size={14} className="text-[#64748B]" />}
-              <span className="text-[12px] text-[#64748B] font-medium capitalize">{tempTrend} trend</span>
+              {tempTrend === "steady" && <Minus size={14} className="text-ag-muted" />}
+              <span className="text-[12px] text-ag-muted font-medium capitalize">{tempTrend} trend</span>
             </div>
           </div>
 
@@ -208,9 +208,9 @@ export default function WeatherPage() {
             >
               <div className="flex items-center gap-2 mb-2">
                 <stat.icon size={14} style={{ color: stat.color }} />
-                <p className="font-mono text-[10px] text-[#64748B] uppercase tracking-[1px]">{stat.label}</p>
+                <p className="font-mono text-[10px] text-ag-muted uppercase tracking-[1px]">{stat.label}</p>
               </div>
-              <p className="text-[18px] font-semibold text-[#F1F5F9]">{stat.value}</p>
+              <p className="text-[18px] font-semibold text-ag-primary">{stat.value}</p>
             </div>
           ))}
         </div>
@@ -219,8 +219,8 @@ export default function WeatherPage() {
       {/* ── 7-Day Forecast ─────────────────────────────────── */}
       <div className="bg-[#111827] rounded-2xl border border-white/[0.06] p-6">
         <div className="flex items-center justify-between mb-5">
-          <p className="font-mono text-[11px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">7-Day Forecast</p>
-          <div className="flex items-center gap-3 text-[10px] text-[#64748B]">
+          <p className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px]">7-Day Forecast</p>
+          <div className="flex items-center gap-3 text-[10px] text-ag-muted">
             {[
               { label: "Good", color: "#34D399" },
               { label: "Marginal", color: "#F59E0B" },
@@ -251,19 +251,19 @@ export default function WeatherPage() {
                     : "bg-white/[0.02] border border-transparent hover:bg-white/[0.04] hover:border-white/[0.06]"
                 }`}
               >
-                <p className={`text-[11px] font-semibold mb-0.5 ${isToday ? "text-[#34D399]" : "text-[#F1F5F9]"}`}>
+                <p className={`text-[11px] font-semibold mb-0.5 ${isToday ? "text-[#34D399]" : "text-ag-primary"}`}>
                   {isToday ? "Today" : DAYS[date.getDay()]}
                 </p>
-                <p className="text-[10px] text-[#475569] mb-3">
+                <p className="text-[10px] text-ag-dim mb-3">
                   {MONTHS[date.getMonth()]} {date.getDate()}
                 </p>
 
                 <Icon size={22} style={{ color }} className="mb-3" />
 
-                <p className="text-[15px] font-bold text-[#F1F5F9]">
+                <p className="text-[15px] font-bold text-ag-primary">
                   {Math.round(daily.temperature_2m_max[i])}°
                 </p>
-                <p className="text-[12px] text-[#475569] mb-2">
+                <p className="text-[12px] text-ag-dim mb-2">
                   {Math.round(daily.temperature_2m_min[i])}°
                 </p>
 
@@ -287,7 +287,7 @@ export default function WeatherPage() {
       {/* ── Growing Degree Days ─────────────────────────────── */}
       <div className="bg-[#111827] rounded-2xl border border-white/[0.06] p-6">
         <div className="flex items-center justify-between mb-6">
-          <p className="font-mono text-[11px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">
+          <p className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px]">
             Growing Degree Days
           </p>
           <div className="flex gap-1.5">
@@ -310,18 +310,18 @@ export default function WeatherPage() {
         <div className="flex items-end justify-between mb-4">
           <div>
             <div className="flex items-baseline gap-1">
-              <p className="text-[40px] font-bold text-[#F1F5F9] leading-none tracking-tight">
+              <p className="text-[40px] font-bold text-ag-primary leading-none tracking-tight">
                 {Math.round(totalEstimatedGDD)}
               </p>
-              <span className="text-[14px] font-medium text-[#64748B] ml-1">GDD</span>
+              <span className="text-[14px] font-medium text-ag-muted ml-1">GDD</span>
             </div>
-            <p className="text-[12px] text-[#64748B] mt-1.5">
+            <p className="text-[12px] text-ag-muted mt-1.5">
               Base {activeCrop.base}°C · Target {activeCrop.target} GDD
             </p>
           </div>
           <div className="text-right">
             <p className="text-[24px] font-bold" style={{ color: activeCrop.color }}>{gddPct}%</p>
-            <p className="text-[11px] text-[#64748B]">to maturity</p>
+            <p className="text-[11px] text-ag-muted">to maturity</p>
           </div>
         </div>
 
@@ -347,7 +347,7 @@ export default function WeatherPage() {
 
             return (
               <div key={i} className="flex flex-col items-center gap-2">
-                <p className={`text-[11px] ${isToday ? "text-[#F1F5F9] font-semibold" : "text-[#64748B]"}`}>
+                <p className={`text-[11px] ${isToday ? "text-ag-primary font-semibold" : "text-ag-muted"}`}>
                   {isToday ? "Today" : DAYS[date.getDay()]}
                 </p>
                 <div className="w-full h-20 bg-white/[0.03] rounded-lg overflow-hidden flex items-end p-0.5">
@@ -360,7 +360,7 @@ export default function WeatherPage() {
                     }}
                   />
                 </div>
-                <p className="text-[12px] font-semibold text-[#F1F5F9]">{gdd.toFixed(1)}</p>
+                <p className="text-[12px] font-semibold text-ag-primary">{gdd.toFixed(1)}</p>
               </div>
             );
           })}

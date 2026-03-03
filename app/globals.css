@@ -213,6 +213,29 @@
   --ag-logo-accent: #6B7F3A;
   --ag-donut-track: rgba(61, 57, 41, 0.08);
 }
+/* AG360 Theme Utilities */
+@layer utilities {
+  .bg-ag-base { background-color: var(--ag-bg-base); }
+  .bg-ag-primary { background-color: var(--ag-bg-primary); }
+  .bg-ag-secondary { background-color: var(--ag-bg-secondary); }
+  .bg-ag-card { background-color: var(--ag-bg-card); }
+  .bg-ag-hover { background-color: var(--ag-bg-hover); }
+  .bg-ag-active { background-color: var(--ag-bg-active); }
+  .border-ag { border-color: var(--ag-border); }
+  .border-ag-subtle { border-color: var(--ag-border-subtle); }
+  .border-ag-hover { border-color: var(--ag-border-hover); }
+  .text-ag-primary { color: var(--ag-text-primary); }
+  .text-ag-secondary { color: var(--ag-text-secondary); }
+  .text-ag-muted { color: var(--ag-text-muted); }
+  .text-ag-dim { color: var(--ag-text-dim); }
+  .text-ag-accent { color: var(--ag-accent); }
+  .text-ag-blue { color: var(--ag-blue); }
+  .text-ag-yellow { color: var(--ag-yellow); }
+  .text-ag-red { color: var(--ag-red); }
+  .text-ag-green { color: var(--ag-green); }
+  .shadow-ag { box-shadow: var(--ag-shadow); }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -18,7 +18,7 @@ export default function ImportDataPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0B1120]">
+    <div className="min-h-screen bg-ag-primary">
       <div className="max-w-5xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -26,9 +26,9 @@ export default function ImportDataPage() {
             <div className="p-2 rounded-lg bg-[#22C55E]/10">
               <Database className="w-5 h-5 text-[#22C55E]" />
             </div>
-            <h1 className="text-2xl font-bold text-[#E2E8F0]">Import Data</h1>
+            <h1 className="text-2xl font-bold text-ag-primary">Import Data</h1>
           </div>
-          <p className="text-[#94A3B8] ml-12">
+          <p className="text-ag-secondary ml-12">
             Bulk import your farm data from Excel or CSV files. Download a template, fill it in, and upload.
           </p>
         </div>
@@ -74,8 +74,8 @@ export default function ImportDataPage() {
         </div>
 
         {/* How It Works */}
-        <div className="mt-10 p-5 rounded-xl bg-[#0F1629] border border-[#1E293B]">
-          <h3 className="text-sm font-semibold text-[#E2E8F0] mb-4">How It Works</h3>
+        <div className="mt-10 p-5 rounded-xl bg-ag-card border border-ag">
+          <h3 className="text-sm font-semibold text-ag-primary mb-4">How It Works</h3>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
             <Step number={1} text="Download a template and fill in your data in Excel" />
             <ArrowRight className="w-4 h-4 text-[#334155] hidden sm:block shrink-0" />
@@ -113,16 +113,16 @@ function Step({ number, text }: { number: number; text: string }) {
       <div className="w-7 h-7 rounded-full bg-[#22C55E]/10 text-[#22C55E] flex items-center justify-center text-xs font-bold shrink-0">
         {number}
       </div>
-      <p className="text-sm text-[#94A3B8]">{text}</p>
+      <p className="text-sm text-ag-secondary">{text}</p>
     </div>
   );
 }
 
 function Tip({ title, text }: { title: string; text: string }) {
   return (
-    <div className="p-3 rounded-lg bg-[#0F1629]/50 border border-[#1E293B]/50">
-      <p className="text-xs font-medium text-[#E2E8F0] mb-0.5">{title}</p>
-      <p className="text-xs text-[#64748B] leading-relaxed">{text}</p>
+    <div className="p-3 rounded-lg bg-ag-card/50 border border-ag/50">
+      <p className="text-xs font-medium text-ag-primary mb-0.5">{title}</p>
+      <p className="text-xs text-ag-muted leading-relaxed">{text}</p>
     </div>
   );
 }

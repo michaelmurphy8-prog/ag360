@@ -196,8 +196,8 @@ function WaterfallChart({ revenue, expenses, netIncome }: {
     <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-6 hover:border-white/[0.10] transition-colors">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h3 className="text-sm font-bold text-[#F1F5F9]">Income Waterfall</h3>
-          <p className="text-xs text-[#475569] mt-0.5">Revenue → Expenses → Net Income</p>
+          <h3 className="text-sm font-bold text-ag-primary">Income Waterfall</h3>
+          <p className="text-xs text-ag-dim mt-0.5">Revenue → Expenses → Net Income</p>
         </div>
         <div className="flex items-center gap-4 text-[10px] font-mono uppercase tracking-wider">
           <div className="flex items-center gap-1.5">
@@ -269,8 +269,8 @@ function RevenueByCropChart({ revenueLines }: { revenueLines: PnLLine[] }) {
     <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-6 hover:border-white/[0.10] transition-colors">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h3 className="text-sm font-bold text-[#F1F5F9]">Revenue by Crop</h3>
-          <p className="text-xs text-[#475569] mt-0.5">Sorted by contribution</p>
+          <h3 className="text-sm font-bold text-ag-primary">Revenue by Crop</h3>
+          <p className="text-xs text-ag-dim mt-0.5">Sorted by contribution</p>
         </div>
         <span className="text-sm font-bold font-mono" style={{ color: T.green }}>
           ${total.toLocaleString("en-CA", { minimumFractionDigits: 0 })}
@@ -356,8 +356,8 @@ function ExpenseBreakdownChart({
     <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-6 hover:border-white/[0.10] transition-colors">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h3 className="text-sm font-bold text-[#F1F5F9]">Expense Breakdown</h3>
-          <p className="text-xs text-[#475569] mt-0.5">Click a category to see line items</p>
+          <h3 className="text-sm font-bold text-ag-primary">Expense Breakdown</h3>
+          <p className="text-xs text-ag-dim mt-0.5">Click a category to see line items</p>
         </div>
         <span className="text-sm font-bold font-mono" style={{ color: T.text1 }}>
           ${totalExpenses.toLocaleString("en-CA", { minimumFractionDigits: 0 })}
@@ -472,8 +472,8 @@ function RevenueExpenseDonut({ revenue, expenses }: { revenue: number; expenses:
 
   return (
     <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-6 hover:border-white/[0.10] transition-colors">
-      <h3 className="text-sm font-bold text-[#F1F5F9] mb-1">Revenue vs Expenses</h3>
-      <p className="text-xs text-[#475569] mb-4">Hover for details</p>
+      <h3 className="text-sm font-bold text-ag-primary mb-1">Revenue vs Expenses</h3>
+      <p className="text-xs text-ag-dim mb-4">Hover for details</p>
       <ResponsiveContainer width="100%" height={200}>
         <PieChart>
           <Pie
@@ -690,7 +690,7 @@ export default function PnLPage() {
           <select
             value={cropYear}
             onChange={(e) => setCropYear(e.target.value)}
-            className="bg-[#111827] border border-white/[0.10] rounded-lg px-3 py-1.5 text-sm text-[#F1F5F9] focus:outline-none focus:border-[#34D399]/50 transition-colors"
+            className="bg-[#111827] border border-white/[0.10] rounded-lg px-3 py-1.5 text-sm text-ag-primary focus:outline-none focus:border-[#34D399]/50 transition-colors"
           >
             {["2026", "2025", "2024", "2023"].map((y) => (
               <option key={y} value={y}>{y}</option>
@@ -711,8 +711,8 @@ export default function PnLPage() {
             onClick={() => setView(t.id)}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
               view === t.id
-                ? "bg-white/[0.08] text-[#F1F5F9] shadow-sm"
-                : "text-[#64748B] hover:text-[#94A3B8]"
+                ? "bg-white/[0.08] text-ag-primary shadow-sm"
+                : "text-ag-muted hover:text-ag-secondary"
             }`}
           >
             {t.label}

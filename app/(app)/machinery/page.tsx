@@ -18,8 +18,8 @@ function statusStyle(status: string) {
   if (status === "ACTIVE") return "bg-[#34D399]/[0.08] text-[#34D399]";
   if (status === "WATCH") return "bg-[#F59E0B]/[0.08] text-[#F59E0B]";
   if (status === "DOWN") return "bg-[#EF4444]/[0.08] text-[#EF4444]";
-  if (status === "SOLD") return "bg-white/[0.04] text-[#64748B]";
-  if (status === "RETIRED") return "bg-white/[0.04] text-[#64748B]";
+  if (status === "SOLD") return "bg-white/[0.04] text-ag-muted";
+  if (status === "RETIRED") return "bg-white/[0.04] text-ag-muted";
   return "bg-[#34D399]/[0.08] text-[#34D399]";
 }
 
@@ -75,17 +75,17 @@ export default function MachineryPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-[28px] font-bold text-[#F1F5F9] tracking-tight">Machinery</h1>
-        <p className="text-[13px] text-[#64748B] mt-1">Murphy Farms · {assets.length} assets tracked</p>
+        <h1 className="text-[28px] font-bold text-ag-primary tracking-tight">Machinery</h1>
+        <p className="text-[13px] text-ag-muted mt-1">Murphy Farms · {assets.length} assets tracked</p>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-5 gap-4">
         {kpis.map(kpi => (
           <div key={kpi.label} className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
-            <p className="font-mono text-[11px] font-bold text-[#F1F5F9] uppercase tracking-[1.5px]">{kpi.label}</p>
-            <p className="text-2xl font-bold text-[#F1F5F9] mt-1">{kpi.value}</p>
-            <p className="text-xs text-[#64748B] mt-1">{kpi.unit}</p>
+            <p className="font-mono text-[11px] font-bold text-ag-primary uppercase tracking-[1.5px]">{kpi.label}</p>
+            <p className="text-2xl font-bold text-ag-primary mt-1">{kpi.value}</p>
+            <p className="text-xs text-ag-muted mt-1">{kpi.unit}</p>
           </div>
         ))}
       </div>
@@ -94,13 +94,13 @@ export default function MachineryPage() {
       <div className="flex gap-1 bg-[#111827] rounded-xl border border-white/[0.06] p-1.5 w-fit">
         <button onClick={() => setActiveTab("fleet")}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-            activeTab === "fleet" ? "bg-white/[0.06] text-[#F1F5F9]" : "text-[#64748B] hover:text-[#94A3B8]"
+            activeTab === "fleet" ? "bg-white/[0.06] text-ag-primary" : "text-ag-muted hover:text-ag-secondary"
           }`}>
           <Tractor size={15} /> Fleet Assets
         </button>
         <button onClick={() => setActiveTab("service")}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-            activeTab === "service" ? "bg-white/[0.06] text-[#F1F5F9]" : "text-[#64748B] hover:text-[#94A3B8]"
+            activeTab === "service" ? "bg-white/[0.06] text-ag-primary" : "text-ag-muted hover:text-ag-secondary"
           }`}>
           <Wrench size={15} /> Service & Maintenance
         </button>
@@ -110,7 +110,7 @@ export default function MachineryPage() {
       {activeTab === "fleet" ? (
         <div className="bg-[#111827] rounded-xl border border-white/[0.06] overflow-hidden">
           <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
-            <h2 className="font-mono text-[11px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">Fleet Assets</h2>
+            <h2 className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px]">Fleet Assets</h2>
             <div className="flex items-center gap-2">
               <button onClick={() => setShowBulkUpload(true)}
                 className="flex items-center gap-1.5 text-xs font-semibold text-[#34D399] border border-[#34D399]/30 px-4 py-2 rounded-full hover:bg-[#34D399]/[0.06] transition-colors">
@@ -135,9 +135,9 @@ export default function MachineryPage() {
 
           <div className="divide-y divide-white/[0.04]">
             {loading ? (
-              <div className="px-6 py-12 text-center text-sm text-[#64748B]">Loading fleet...</div>
+              <div className="px-6 py-12 text-center text-sm text-ag-muted">Loading fleet...</div>
             ) : filtered.length === 0 ? (
-              <div className="px-6 py-12 text-center text-sm text-[#64748B]">
+              <div className="px-6 py-12 text-center text-sm text-ag-muted">
                 {assets.length === 0 ? "No assets yet — add one or use bulk upload." : "No assets match your current filters."}
               </div>
             ) : filtered.map(asset => (
@@ -147,8 +147,8 @@ export default function MachineryPage() {
                     <Tractor size={16} className="text-[#34D399]" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-[#F1F5F9]">{asset.name}</p>
-                    <p className="text-xs text-[#64748B] capitalize">
+                    <p className="text-sm font-semibold text-ag-primary">{asset.name}</p>
+                    <p className="text-xs text-ag-muted capitalize">
                       {asset.assetClass || asset.model} · {asset.year}
                       {asset.serialNumber ? ` · #${asset.serialNumber}` : ""}
                     </p>
@@ -156,22 +156,22 @@ export default function MachineryPage() {
                 </div>
                 <div className="flex items-center gap-8">
                   <div className="text-right">
-                    <p className="text-xs text-[#64748B]">Hours</p>
-                    <p className="text-sm font-semibold text-[#F1F5F9]">{asset.hoursTotal ? asset.hoursTotal.toLocaleString() : "—"}</p>
+                    <p className="text-xs text-ag-muted">Hours</p>
+                    <p className="text-sm font-semibold text-ag-primary">{asset.hoursTotal ? asset.hoursTotal.toLocaleString() : "—"}</p>
                   </div>
                   {asset.kmTotal && (
                     <div className="text-right">
-                      <p className="text-xs text-[#64748B]">KM</p>
-                      <p className="text-sm font-semibold text-[#F1F5F9]">{asset.kmTotal.toLocaleString()}</p>
+                      <p className="text-xs text-ag-muted">KM</p>
+                      <p className="text-sm font-semibold text-ag-primary">{asset.kmTotal.toLocaleString()}</p>
                     </div>
                   )}
                   <div className="text-right">
-                    <p className="text-xs text-[#64748B]">Est. Value</p>
-                    <p className="text-sm font-semibold text-[#F1F5F9]">{asset.currentValue ? `$${Math.round(Number(asset.currentValue)).toLocaleString()}` : "—"}</p>
+                    <p className="text-xs text-ag-muted">Est. Value</p>
+                    <p className="text-sm font-semibold text-ag-primary">{asset.currentValue ? `$${Math.round(Number(asset.currentValue)).toLocaleString()}` : "—"}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-[#64748B]">Next Service</p>
-                    <p className="text-sm font-semibold text-[#F1F5F9]">{asset.nextService ? (isNaN(Number(asset.nextService)) ? asset.nextService : `${Number(asset.nextService).toLocaleString()} hrs`) : "—"}</p>
+                    <p className="text-xs text-ag-muted">Next Service</p>
+                    <p className="text-sm font-semibold text-ag-primary">{asset.nextService ? (isNaN(Number(asset.nextService)) ? asset.nextService : `${Number(asset.nextService).toLocaleString()} hrs`) : "—"}</p>
                   </div>
                   <span className={`text-xs font-semibold px-3 py-1 rounded-full ${statusStyle(asset.status)}`}>{asset.status}</span>
                 </div>

@@ -599,7 +599,7 @@ const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
 
 export default function MarketingPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-96 text-[#64748B]">Loading...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center h-96 text-ag-muted">Loading...</div>}>
       <MarketingPageInner />
     </Suspense>
   );

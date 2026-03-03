@@ -41,14 +41,14 @@ const T = {
 
 // ─── Shared Styles ───────────────────────────────────────────
 const inputClass =
-  "w-full bg-white/[0.04] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] placeholder-[#475569] focus:outline-none focus:border-[#34D399]/50 transition-colors";
+  "w-full bg-white/[0.04] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-ag-primary placeholder-[#475569] focus:outline-none focus:border-[#34D399]/50 transition-colors";
 const selectClass =
-  "bg-[#111827] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] focus:outline-none focus:border-[#34D399]/50 transition-colors";
-const labelClass = "block text-[10px] uppercase tracking-[2px] font-mono font-semibold text-[#64748B] mb-1.5";
+  "bg-[#111827] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-ag-primary focus:outline-none focus:border-[#34D399]/50 transition-colors";
+const labelClass = "block text-[10px] uppercase tracking-[2px] font-mono font-semibold text-ag-muted mb-1.5";
 const btnPrimary =
   "flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl transition-all";
 const btnSecondary =
-  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border border-white/[0.10] text-[#94A3B8] hover:text-[#F1F5F9] hover:border-white/[0.16] transition-all";
+  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border border-white/[0.10] text-ag-secondary hover:text-ag-primary hover:border-white/[0.16] transition-all";
 
 // ─── Interfaces ──────────────────────────────────────────────
 interface Account {
@@ -141,8 +141,8 @@ function CashflowSparkline({ entries }: { entries: JournalEntry[] }) {
     <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.10] transition-colors">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-sm font-bold text-[#F1F5F9]">Cashflow</h3>
-          <p className="text-xs text-[#475569] mt-0.5">Daily money in &amp; out</p>
+          <h3 className="text-sm font-bold text-ag-primary">Cashflow</h3>
+          <p className="text-xs text-ag-dim mt-0.5">Daily money in &amp; out</p>
         </div>
         <div className="flex items-center gap-4 text-[10px] font-mono uppercase tracking-wider">
           <div className="flex items-center gap-1.5">
@@ -252,8 +252,8 @@ function LedgerDonut({ entries }: { entries: JournalEntry[] }) {
 
   return (
     <div className="bg-[#0F1729] border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.10] transition-colors">
-      <h3 className="text-sm font-bold text-[#F1F5F9] mb-1">YTD Split</h3>
-      <p className="text-xs text-[#475569] mb-3">Hover for details</p>
+      <h3 className="text-sm font-bold text-ag-primary mb-1">YTD Split</h3>
+      <p className="text-xs text-ag-dim mb-3">Hover for details</p>
       <ResponsiveContainer width="100%" height={160}>
         <PieChart>
           <Pie
@@ -711,8 +711,8 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
             onClick={() => setTab(t.id)}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
               tab === t.id
-                ? "bg-white/[0.08] text-[#F1F5F9] shadow-sm"
-                : "text-[#64748B] hover:text-[#94A3B8]"
+                ? "bg-white/[0.08] text-ag-primary shadow-sm"
+                : "text-ag-muted hover:text-ag-secondary"
             }`}
           >
             {t.label}

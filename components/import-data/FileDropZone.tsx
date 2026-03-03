@@ -81,12 +81,12 @@ export default function FileDropZone({ onFileSelect, accept = ".xlsx,.csv,.xls",
           <FileSpreadsheet className="w-6 h-6 text-[#22C55E]" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-[#E2E8F0] truncate">{selectedFile.name}</p>
-          <p className="text-xs text-[#94A3B8]">{formatSize(selectedFile.size)}</p>
+          <p className="text-sm font-medium text-ag-primary truncate">{selectedFile.name}</p>
+          <p className="text-xs text-ag-secondary">{formatSize(selectedFile.size)}</p>
         </div>
         <button
           onClick={clearFile}
-          className="p-1.5 rounded-md hover:bg-[#1E293B] text-[#94A3B8] hover:text-[#E2E8F0] transition-colors"
+          className="p-1.5 rounded-md hover:bg-[#1E293B] text-ag-secondary hover:text-ag-primary transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
@@ -105,19 +105,19 @@ export default function FileDropZone({ onFileSelect, accept = ".xlsx,.csv,.xls",
         relative flex flex-col items-center justify-center gap-3 p-8 rounded-lg border-2 border-dashed cursor-pointer transition-all duration-200
         ${isDragging
           ? "border-[#22C55E] bg-[#22C55E]/5"
-          : "border-[#1E293B] hover:border-[#334155] hover:bg-[#0F1629]/50"
+          : "border-ag hover:border-ag-hover hover:bg-ag-card/50"
         }
         ${disabled ? "opacity-50 cursor-not-allowed" : ""}
       `}
     >
       <div className={`p-3 rounded-full transition-colors ${isDragging ? "bg-[#22C55E]/10" : "bg-[#1E293B]"}`}>
-        <Upload className={`w-6 h-6 ${isDragging ? "text-[#22C55E]" : "text-[#94A3B8]"}`} />
+        <Upload className={`w-6 h-6 ${isDragging ? "text-[#22C55E]" : "text-ag-secondary"}`} />
       </div>
       <div className="text-center">
-        <p className="text-sm font-medium text-[#E2E8F0]">
+        <p className="text-sm font-medium text-ag-primary">
           {isDragging ? "Drop file here" : "Drag & drop your file here"}
         </p>
-        <p className="text-xs text-[#94A3B8] mt-1">or click to browse — .xlsx, .csv supported</p>
+        <p className="text-xs text-ag-secondary mt-1">or click to browse — .xlsx, .csv supported</p>
       </div>
       <input ref={inputRef} type="file" accept={accept} onChange={handleFileInput} className="hidden" disabled={disabled} />
     </div>

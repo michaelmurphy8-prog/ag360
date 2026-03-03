@@ -36,8 +36,8 @@ const CAT_COLORS: Record<string, string> = {
   Pulse: 'bg-[#38BDF8]/[0.08] text-[#38BDF8] border-[#38BDF8]/20',
 }
 
-const selectClass = "text-sm border border-white/[0.10] rounded-lg px-3 py-1.5 bg-[#111827] text-[#F1F5F9] focus:outline-none focus:border-[#34D399]/50"
-const inputClass = "w-full text-sm border border-white/[0.10] rounded-lg px-2 py-2 bg-white/[0.04] text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:border-[#34D399]/50"
+const selectClass = "text-sm border border-white/[0.10] rounded-lg px-3 py-1.5 bg-[#111827] text-ag-primary focus:outline-none focus:border-[#34D399]/50"
+const inputClass = "w-full text-sm border border-white/[0.10] rounded-lg px-2 py-2 bg-white/[0.04] text-ag-primary placeholder:text-ag-dim focus:outline-none focus:border-[#34D399]/50"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  MAIN PAGE
@@ -104,15 +104,15 @@ export default function AgronomyPage() {
       <div className="pb-5 mb-6 border-b border-white/[0.06]">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-[28px] font-bold text-[#F1F5F9] tracking-tight">Agronomy</h1>
-            <p className="text-[13px] text-[#64748B] mt-0.5">
+            <h1 className="text-[28px] font-bold text-ag-primary tracking-tight">Agronomy</h1>
+            <p className="text-[13px] text-ag-muted mt-0.5">
               Crop planning, scouting, protection & spray management
             </p>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
-              <label className="font-mono text-[9px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">Province</label>
+              <label className="font-mono text-[9px] font-semibold text-ag-muted uppercase tracking-[1.5px]">Province</label>
               <select
                 value={province}
                 onChange={e => {
@@ -127,7 +127,7 @@ export default function AgronomyPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="font-mono text-[9px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">Soil Zone</label>
+              <label className="font-mono text-[9px] font-semibold text-ag-muted uppercase tracking-[1.5px]">Soil Zone</label>
               <select
                 value={zone}
                 onChange={e => setZone(e.target.value as SoilZone)}
@@ -139,7 +139,7 @@ export default function AgronomyPage() {
               </select>
             </div>
 
-            <div className="font-mono text-[10px] text-[#64748B] bg-white/[0.03] border border-white/[0.06] px-3 py-1.5 rounded-lg hidden md:block">
+            <div className="font-mono text-[10px] text-ag-muted bg-white/[0.03] border border-white/[0.06] px-3 py-1.5 rounded-lg hidden md:block">
               Source: {sources.crop}
             </div>
           </div>
@@ -157,7 +157,7 @@ export default function AgronomyPage() {
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 ${
                   active
                     ? 'bg-[#34D399] text-[#080C15]'
-                    : 'text-[#64748B] hover:text-[#F1F5F9] hover:bg-white/[0.04]'
+                    : 'text-ag-muted hover:text-ag-primary hover:bg-white/[0.04]'
                 }`}
               >
                 <Icon size={14} />
@@ -212,13 +212,13 @@ function CropDashboard({ crops, zone, province }: { crops: Crop[], zone: SoilZon
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
               filterCat === cat
                 ? 'bg-[#34D399] text-[#080C15]'
-                : 'bg-white/[0.03] border border-white/[0.06] text-[#64748B] hover:text-[#F1F5F9] hover:border-white/[0.12]'
+                : 'bg-white/[0.03] border border-white/[0.06] text-ag-muted hover:text-ag-primary hover:border-white/[0.12]'
             }`}
           >
             {cat}
           </button>
         ))}
-        <span className="text-xs text-[#64748B] ml-2">{filtered.length} crops for {province} · {ZONE_LABELS[zone]} zone</span>
+        <span className="text-xs text-ag-muted ml-2">{filtered.length} crops for {province} · {ZONE_LABELS[zone]} zone</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -229,14 +229,14 @@ function CropDashboard({ crops, zone, province }: { crops: Crop[], zone: SoilZon
             <div key={crop.name} className="bg-[#111827] border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.12] transition-all duration-200 group">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h3 className="font-semibold text-[#F1F5F9] group-hover:text-white transition-colors">{crop.name}</h3>
+                  <h3 className="font-semibold text-ag-primary group-hover:text-white transition-colors">{crop.name}</h3>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold mt-1 inline-block ${CAT_COLORS[crop.cat]}`}>
                     {crop.cat}
                   </span>
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-[#34D399]">{zd.rev}</div>
-                  <div className="text-[10px] text-[#64748B]">gross/ac</div>
+                  <div className="text-[10px] text-ag-muted">gross/ac</div>
                 </div>
               </div>
 
@@ -247,19 +247,19 @@ function CropDashboard({ crops, zone, province }: { crops: Crop[], zone: SoilZon
                   { label: 'BE Price', value: zd.beP, red: true },
                 ].map(item => (
                   <div key={item.label} className="bg-white/[0.03] border border-white/[0.04] rounded-lg p-2 text-center">
-                    <div className="text-[10px] text-[#64748B]">{item.label}</div>
-                    <div className={`text-sm font-semibold ${item.red ? 'text-[#EF4444]' : 'text-[#F1F5F9]'}`}>{item.value}</div>
+                    <div className="text-[10px] text-ag-muted">{item.label}</div>
+                    <div className={`text-sm font-semibold ${item.red ? 'text-[#EF4444]' : 'text-ag-primary'}`}>{item.value}</div>
                   </div>
                 ))}
               </div>
 
-              <div className="flex items-center gap-2 text-[10px] text-[#64748B]">
+              <div className="flex items-center gap-2 text-[10px] text-ag-muted">
                 <Droplets size={11} className="text-[#38BDF8]" />
                 {zd.N > 0 && <span className="bg-[#38BDF8]/[0.08] text-[#38BDF8] px-1.5 py-0.5 rounded font-medium">N {zd.N}</span>}
                 {zd.P > 0 && <span className="bg-[#F59E0B]/[0.08] text-[#F59E0B] px-1.5 py-0.5 rounded font-medium">P {zd.P}</span>}
                 {zd.S > 0 && <span className="bg-[#FBBF24]/[0.08] text-[#FBBF24] px-1.5 py-0.5 rounded font-medium">S {zd.S}</span>}
                 {zd.K > 0 && <span className="bg-[#818CF8]/[0.08] text-[#818CF8] px-1.5 py-0.5 rounded font-medium">K {zd.K}</span>}
-                <span className="text-[#475569]">lb/ac</span>
+                <span className="text-ag-dim">lb/ac</span>
               </div>
             </div>
           )
@@ -284,7 +284,7 @@ function Playbook({ crops, zone, province }: { crops: Crop[], zone: SoilZone, pr
       <div className="lg:col-span-1">
         <div className="bg-[#111827] border border-white/[0.06] rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-white/[0.06]">
-            <h3 className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">Select Crop</h3>
+            <h3 className="font-mono text-[10px] font-semibold text-ag-secondary uppercase tracking-[2px]">Select Crop</h3>
           </div>
           <div className="divide-y divide-white/[0.04]">
             {crops.map(crop => (
@@ -294,11 +294,11 @@ function Playbook({ crops, zone, province }: { crops: Crop[], zone: SoilZone, pr
                 className={`w-full text-left px-4 py-2.5 flex items-center justify-between transition-all ${
                   selected.name === crop.name
                     ? 'bg-[#34D399]/[0.06] text-[#34D399] border-l-2 border-l-[#34D399]'
-                    : 'text-[#94A3B8] hover:bg-white/[0.03] hover:text-[#F1F5F9] border-l-2 border-l-transparent'
+                    : 'text-ag-secondary hover:bg-white/[0.03] hover:text-ag-primary border-l-2 border-l-transparent'
                 }`}
               >
                 <span className="text-sm font-medium">{crop.name}</span>
-                <ChevronRight size={14} className="text-[#475569]" />
+                <ChevronRight size={14} className="text-ag-dim" />
               </button>
             ))}
           </div>
@@ -313,17 +313,17 @@ function Playbook({ crops, zone, province }: { crops: Crop[], zone: SoilZone, pr
             <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-5">
               <div className="flex items-start justify-between flex-wrap gap-3">
                 <div>
-                  <h2 className="text-xl font-bold text-[#F1F5F9]">{selected.name}</h2>
+                  <h2 className="text-xl font-bold text-ag-primary">{selected.name}</h2>
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${CAT_COLORS[selected.cat]}`}>
                       {selected.cat}
                     </span>
-                    <span className="text-xs text-[#64748B]">{ZONE_LABELS[zone]} zone · {province}</span>
+                    <span className="text-xs text-ag-muted">{ZONE_LABELS[zone]} zone · {province}</span>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-[#34D399]">{zd.rev}</div>
-                  <div className="text-[10px] text-[#64748B]">gross revenue/ac</div>
+                  <div className="text-[10px] text-ag-muted">gross revenue/ac</div>
                 </div>
               </div>
 
@@ -335,8 +335,8 @@ function Playbook({ crops, zone, province }: { crops: Crop[], zone: SoilZone, pr
                   { label: 'Breakeven Price', value: zd.beP },
                 ].map(item => (
                   <div key={item.label} className="bg-white/[0.03] border border-white/[0.04] rounded-lg p-3 text-center">
-                    <div className="text-[10px] text-[#64748B] mb-1">{item.label}</div>
-                    <div className="font-bold text-[#F1F5F9]">{item.value}</div>
+                    <div className="text-[10px] text-ag-muted mb-1">{item.label}</div>
+                    <div className="font-bold text-ag-primary">{item.value}</div>
                   </div>
                 ))}
               </div>
@@ -344,7 +344,7 @@ function Playbook({ crops, zone, province }: { crops: Crop[], zone: SoilZone, pr
 
             {/* Fertility */}
             <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-5">
-              <h3 className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[2px] mb-3">Fertility Recommendations (lb/ac)</h3>
+              <h3 className="font-mono text-[10px] font-semibold text-ag-secondary uppercase tracking-[2px] mb-3">Fertility Recommendations (lb/ac)</h3>
               <div className="grid grid-cols-4 gap-3">
                 {[
                   { label: 'Nitrogen (N)', value: zd.N, color: '#38BDF8' },
@@ -364,12 +364,12 @@ function Playbook({ crops, zone, province }: { crops: Crop[], zone: SoilZone, pr
             {/* Rotation + Spray Timings */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-[#F1F5F9] mb-2">Rotation Notes</h3>
-                <p className="text-sm text-[#94A3B8] leading-relaxed">{selected.rot}</p>
+                <h3 className="text-sm font-semibold text-ag-primary mb-2">Rotation Notes</h3>
+                <p className="text-sm text-ag-secondary leading-relaxed">{selected.rot}</p>
               </div>
               <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-[#F1F5F9] mb-2">Spray Timings</h3>
-                <p className="text-sm text-[#94A3B8] leading-relaxed">{selected.timings}</p>
+                <h3 className="text-sm font-semibold text-ag-primary mb-2">Spray Timings</h3>
+                <p className="text-sm text-ag-secondary leading-relaxed">{selected.timings}</p>
               </div>
             </div>
 
@@ -378,26 +378,26 @@ function Playbook({ crops, zone, province }: { crops: Crop[], zone: SoilZone, pr
               <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Bug size={14} className="text-[#EF4444]" />
-                  <h3 className="text-sm font-semibold text-[#F1F5F9]">Key Insects</h3>
+                  <h3 className="text-sm font-semibold text-ag-primary">Key Insects</h3>
                 </div>
                 <div className="flex flex-wrap gap-1 mb-2">
                   {selected.insects.map(i => (
                     <span key={i} className="text-[10px] bg-[#EF4444]/[0.08] text-[#EF4444] border border-[#EF4444]/20 px-2 py-0.5 rounded-full font-medium">{i}</span>
                   ))}
                 </div>
-                <p className="text-xs text-[#64748B] leading-relaxed">{selected.wNotes}</p>
+                <p className="text-xs text-ag-muted leading-relaxed">{selected.wNotes}</p>
               </div>
               <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <AlertTriangle size={14} className="text-[#818CF8]" />
-                  <h3 className="text-sm font-semibold text-[#F1F5F9]">Key Diseases</h3>
+                  <h3 className="text-sm font-semibold text-ag-primary">Key Diseases</h3>
                 </div>
                 <div className="flex flex-wrap gap-1 mb-2">
                   {selected.diseases.map(d => (
                     <span key={d} className="text-[10px] bg-[#818CF8]/[0.08] text-[#818CF8] border border-[#818CF8]/20 px-2 py-0.5 rounded-full font-medium">{d}</span>
                   ))}
                 </div>
-                <p className="text-xs text-[#64748B] leading-relaxed">{selected.dNotes}</p>
+                <p className="text-xs text-ag-muted leading-relaxed">{selected.dNotes}</p>
               </div>
             </div>
 
@@ -406,19 +406,19 @@ function Playbook({ crops, zone, province }: { crops: Crop[], zone: SoilZone, pr
               <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <TrendingUp size={14} className="text-[#34D399]" />
-                  <h3 className="text-sm font-semibold text-[#F1F5F9]">5-Year Commodity Outlook</h3>
+                  <h3 className="text-sm font-semibold text-ag-primary">5-Year Commodity Outlook</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-white/[0.03] border border-white/[0.04] rounded-lg p-3">
-                    <div className="text-[10px] text-[#64748B]">10-Year Price Range</div>
-                    <div className="font-semibold text-[#F1F5F9] mt-1">{outlook.range10yr}</div>
+                    <div className="text-[10px] text-ag-muted">10-Year Price Range</div>
+                    <div className="font-semibold text-ag-primary mt-1">{outlook.range10yr}</div>
                   </div>
                   <div className="bg-white/[0.03] border border-white/[0.04] rounded-lg p-3">
-                    <div className="text-[10px] text-[#64748B]">5-Year Forecast</div>
-                    <div className="font-semibold text-[#F1F5F9] mt-1">{outlook.forecast5yr}</div>
+                    <div className="text-[10px] text-ag-muted">5-Year Forecast</div>
+                    <div className="font-semibold text-ag-primary mt-1">{outlook.forecast5yr}</div>
                   </div>
                   <div className="bg-white/[0.03] border border-white/[0.04] rounded-lg p-3 text-center">
-                    <div className="text-[10px] text-[#64748B]">Outlook</div>
+                    <div className="text-[10px] text-ag-muted">Outlook</div>
                     <div className="text-xl font-bold text-[#34D399] mt-1">{outlook.direction}</div>
                     <div className="text-xs text-[#34D399] font-medium">{outlook.rating}</div>
                   </div>
@@ -427,7 +427,7 @@ function Playbook({ crops, zone, province }: { crops: Crop[], zone: SoilZone, pr
             )}
 
             {/* Source */}
-            <div className="font-mono text-[10px] text-[#64748B] bg-white/[0.02] border border-white/[0.04] rounded-lg px-4 py-2">
+            <div className="font-mono text-[10px] text-ag-muted bg-white/[0.02] border border-white/[0.04] rounded-lg px-4 py-2">
               Source: {selected.src}
             </div>
           </>
@@ -473,24 +473,24 @@ function InputCostsTab({ crops, zone }: { crops: Crop[], zone: SoilZone }) {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
-          <div className="font-mono text-[10px] text-[#64748B] font-semibold uppercase tracking-[1.5px] mb-1">Total Cost/Ac</div>
-          <div className="text-2xl font-bold text-[#F1F5F9]">${total.toFixed(0)}</div>
-          <div className="text-[10px] text-[#475569] mt-0.5">Default prairie average</div>
+          <div className="font-mono text-[10px] text-ag-muted font-semibold uppercase tracking-[1.5px] mb-1">Total Cost/Ac</div>
+          <div className="text-2xl font-bold text-ag-primary">${total.toFixed(0)}</div>
+          <div className="text-[10px] text-ag-dim mt-0.5">Default prairie average</div>
         </div>
         <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
-          <div className="font-mono text-[10px] text-[#64748B] font-semibold uppercase tracking-[1.5px] mb-1">Profitable Crops</div>
+          <div className="font-mono text-[10px] text-ag-muted font-semibold uppercase tracking-[1.5px] mb-1">Profitable Crops</div>
           <div className="text-2xl font-bold text-[#34D399]">{profitableCount}</div>
-          <div className="text-[10px] text-[#475569] mt-0.5">Above breakeven at guide price</div>
+          <div className="text-[10px] text-ag-dim mt-0.5">Above breakeven at guide price</div>
         </div>
         <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
-          <div className="font-mono text-[10px] text-[#64748B] font-semibold uppercase tracking-[1.5px] mb-1">At Risk Crops</div>
+          <div className="font-mono text-[10px] text-ag-muted font-semibold uppercase tracking-[1.5px] mb-1">At Risk Crops</div>
           <div className="text-2xl font-bold text-[#EF4444]">{atRiskCount}</div>
-          <div className="text-[10px] text-[#475569] mt-0.5">Below breakeven at guide price</div>
+          <div className="text-[10px] text-ag-dim mt-0.5">Below breakeven at guide price</div>
         </div>
         <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
-          <div className="font-mono text-[10px] text-[#64748B] font-semibold uppercase tracking-[1.5px] mb-1">Best Gross Revenue</div>
+          <div className="font-mono text-[10px] text-ag-muted font-semibold uppercase tracking-[1.5px] mb-1">Best Gross Revenue</div>
           <div className="text-2xl font-bold text-[#34D399]">${bestMargin?.rev.toFixed(0)}/ac</div>
-          <div className="text-[10px] text-[#475569] mt-0.5">{bestMargin?.name}</div>
+          <div className="text-[10px] text-ag-dim mt-0.5">{bestMargin?.name}</div>
         </div>
       </div>
 
@@ -499,7 +499,7 @@ function InputCostsTab({ crops, zone }: { crops: Crop[], zone: SoilZone }) {
         <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <Trophy size={14} className="text-[#F59E0B]" />
-            <h3 className="text-sm font-semibold text-[#F1F5F9]">Top Crops by Gross Revenue — {ZONE_LABELS[zone]} Zone</h3>
+            <h3 className="text-sm font-semibold text-ag-primary">Top Crops by Gross Revenue — {ZONE_LABELS[zone]} Zone</h3>
           </div>
           <div className="space-y-3">
             {top3.map((crop, i) => (
@@ -511,7 +511,7 @@ function InputCostsTab({ crops, zone }: { crops: Crop[], zone: SoilZone }) {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-[#F1F5F9]">{crop.name}</span>
+                    <span className="text-sm font-medium text-ag-primary">{crop.name}</span>
                     <span className="text-sm font-bold text-[#34D399]">${crop.rev.toFixed(0)}/ac</span>
                   </div>
                   <div className="w-full bg-white/[0.04] rounded-full h-1.5">
@@ -527,12 +527,12 @@ function InputCostsTab({ crops, zone }: { crops: Crop[], zone: SoilZone }) {
         <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 size={14} className="text-[#38BDF8]" />
-            <h3 className="text-sm font-semibold text-[#F1F5F9]">Net Margin at Guide Price</h3>
+            <h3 className="text-sm font-semibold text-ag-primary">Net Margin at Guide Price</h3>
           </div>
           <div className="space-y-2">
             {cropEconomics.slice(0, 6).map(crop => (
               <div key={crop.name} className="flex items-center justify-between py-1.5 border-b border-white/[0.04] last:border-0">
-                <span className="text-sm text-[#94A3B8]">{crop.name}</span>
+                <span className="text-sm text-ag-secondary">{crop.name}</span>
                 <div className="flex items-center gap-2">
                   <span className={`text-sm font-bold ${crop.margin >= 0 ? 'text-[#34D399]' : 'text-[#EF4444]'}`}>
                     {crop.margin >= 0 ? '+' : ''}${crop.margin.toFixed(0)}/ac
@@ -551,27 +551,27 @@ function InputCostsTab({ crops, zone }: { crops: Crop[], zone: SoilZone }) {
         <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-5 lg:col-span-2">
           <div className="flex items-center gap-2 mb-4">
             <Target size={14} className="text-[#F59E0B]" />
-            <h3 className="text-sm font-semibold text-[#F1F5F9]">Breakeven Price Analysis — All Crops</h3>
+            <h3 className="text-sm font-semibold text-ag-primary">Breakeven Price Analysis — All Crops</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/[0.06]">
                   {['Crop', 'Category', 'Target Yield', 'Guide Price', 'Breakeven Price', 'Gross Revenue', 'Net Margin', 'Status'].map(h => (
-                    <th key={h} className={`font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1px] px-3 py-2 ${h === 'Status' ? 'text-center' : h === 'Crop' || h === 'Category' ? 'text-left' : 'text-right'}`}>{h}</th>
+                    <th key={h} className={`font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1px] px-3 py-2 ${h === 'Status' ? 'text-center' : h === 'Crop' || h === 'Category' ? 'text-left' : 'text-right'}`}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {cropEconomics.map(crop => (
                   <tr key={crop.name} className="border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02] transition-colors">
-                    <td className="px-3 py-2.5 font-medium text-[#F1F5F9]">{crop.name}</td>
+                    <td className="px-3 py-2.5 font-medium text-ag-primary">{crop.name}</td>
                     <td className="px-3 py-2.5">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${CAT_COLORS[crop.cat]}`}>{crop.cat}</span>
                     </td>
-                    <td className="px-3 py-2.5 text-right text-[#94A3B8]">{crop.yield}</td>
-                    <td className="px-3 py-2.5 text-right text-[#94A3B8]">{crop.price}</td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-[#F1F5F9]">${crop.bePrice.toFixed(2)}</td>
+                    <td className="px-3 py-2.5 text-right text-ag-secondary">{crop.yield}</td>
+                    <td className="px-3 py-2.5 text-right text-ag-secondary">{crop.price}</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-ag-primary">${crop.bePrice.toFixed(2)}</td>
                     <td className="px-3 py-2.5 text-right font-semibold text-[#34D399]">${crop.rev.toFixed(0)}/ac</td>
                     <td className={`px-3 py-2.5 text-right font-bold ${crop.margin >= 0 ? 'text-[#34D399]' : 'text-[#EF4444]'}`}>
                       {crop.margin >= 0 ? '+' : ''}${crop.margin.toFixed(0)}/ac
@@ -588,7 +588,7 @@ function InputCostsTab({ crops, zone }: { crops: Crop[], zone: SoilZone }) {
               </tbody>
             </table>
           </div>
-          <p className="text-[10px] text-[#475569] mt-3">
+          <p className="text-[10px] text-ag-dim mt-3">
             Based on default input costs of ${total.toFixed(0)}/ac. Update your actual costs in Farm Profile for precise breakeven calculations.
           </p>
         </div>
@@ -652,21 +652,21 @@ function ScoutTab({ crops }: { crops: Crop[] }) {
     <div className="space-y-6">
       <ScoutReports crops={crops} />
       <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-5">
-        <h2 className="text-sm font-semibold text-[#F1F5F9] mb-1">Pest & Disease Diagnosis</h2>
-        <p className="text-xs text-[#64748B] mb-5">Work through the steps below to get registered product recommendations with rates.</p>
+        <h2 className="text-sm font-semibold text-ag-primary mb-1">Pest & Disease Diagnosis</h2>
+        <p className="text-xs text-ag-muted mb-5">Work through the steps below to get registered product recommendations with rates.</p>
 
         {/* Step 1 */}
         <div className="mb-5">
           <div className="flex items-center gap-2 mb-2">
             <span className="w-5 h-5 rounded-full bg-[#34D399] text-[#080C15] text-xs font-bold flex items-center justify-center">1</span>
-            <label className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[1.5px]">Select Crop</label>
+            <label className="font-mono text-[10px] font-semibold text-ag-secondary uppercase tracking-[1.5px]">Select Crop</label>
           </div>
           <div className="flex flex-wrap gap-2">
             {crops.map(c => (
               <button key={c.name}
                 onClick={() => { setSelectedCrop(c.name); setSelectedType(''); setSelectedSymptom(''); setSelectedPest('') }}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  selectedCrop === c.name ? 'bg-[#34D399] text-[#080C15]' : 'bg-white/[0.03] border border-white/[0.06] text-[#64748B] hover:text-[#F1F5F9]'
+                  selectedCrop === c.name ? 'bg-[#34D399] text-[#080C15]' : 'bg-white/[0.03] border border-white/[0.06] text-ag-muted hover:text-ag-primary'
                 }`}>{c.name}</button>
             ))}
           </div>
@@ -677,18 +677,18 @@ function ScoutTab({ crops }: { crops: Crop[] }) {
           <div className="mb-5">
             <div className="flex items-center gap-2 mb-2">
               <span className="w-5 h-5 rounded-full bg-[#34D399] text-[#080C15] text-xs font-bold flex items-center justify-center">2</span>
-              <label className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[1.5px]">What Are You Seeing?</label>
+              <label className="font-mono text-[10px] font-semibold text-ag-secondary uppercase tracking-[1.5px]">What Are You Seeing?</label>
             </div>
             <div className="flex gap-2">
               <button onClick={() => { setSelectedType('insects'); setSelectedSymptom(''); setSelectedPest('') }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  selectedType === 'insects' ? 'bg-[#EF4444] text-white' : 'bg-white/[0.03] border border-white/[0.06] text-[#64748B] hover:text-[#F1F5F9]'
+                  selectedType === 'insects' ? 'bg-[#EF4444] text-white' : 'bg-white/[0.03] border border-white/[0.06] text-ag-muted hover:text-ag-primary'
                 }`}>
                 <Bug size={14} /> Insect Damage
               </button>
               <button onClick={() => { setSelectedType('diseases'); setSelectedSymptom(''); setSelectedPest('') }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  selectedType === 'diseases' ? 'bg-[#818CF8] text-white' : 'bg-white/[0.03] border border-white/[0.06] text-[#64748B] hover:text-[#F1F5F9]'
+                  selectedType === 'diseases' ? 'bg-[#818CF8] text-white' : 'bg-white/[0.03] border border-white/[0.06] text-ag-muted hover:text-ag-primary'
                 }`}>
                 <Leaf size={14} /> Disease Symptoms
               </button>
@@ -701,7 +701,7 @@ function ScoutTab({ crops }: { crops: Crop[] }) {
           <div className="mb-5">
             <div className="flex items-center gap-2 mb-2">
               <span className="w-5 h-5 rounded-full bg-[#34D399] text-[#080C15] text-xs font-bold flex items-center justify-center">3</span>
-              <label className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[1.5px]">Symptoms Observed</label>
+              <label className="font-mono text-[10px] font-semibold text-ag-secondary uppercase tracking-[1.5px]">Symptoms Observed</label>
             </div>
             <div className="flex flex-wrap gap-2">
               {symptomList.map(s => (
@@ -710,7 +710,7 @@ function ScoutTab({ crops }: { crops: Crop[] }) {
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                     selectedSymptom === s.label
                       ? selectedType === 'insects' ? 'bg-[#EF4444] text-white' : 'bg-[#818CF8] text-white'
-                      : 'bg-white/[0.03] border border-white/[0.06] text-[#64748B] hover:text-[#F1F5F9]'
+                      : 'bg-white/[0.03] border border-white/[0.06] text-ag-muted hover:text-ag-primary'
                   }`}>{s.label}</button>
               ))}
             </div>
@@ -722,7 +722,7 @@ function ScoutTab({ crops }: { crops: Crop[] }) {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="w-5 h-5 rounded-full bg-[#34D399] text-[#080C15] text-xs font-bold flex items-center justify-center">4</span>
-              <label className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[1.5px]">Identify the Problem</label>
+              <label className="font-mono text-[10px] font-semibold text-ag-secondary uppercase tracking-[1.5px]">Identify the Problem</label>
             </div>
             <div className="flex flex-wrap gap-2">
               {filteredPests.map(pest => (
@@ -730,7 +730,7 @@ function ScoutTab({ crops }: { crops: Crop[] }) {
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                     selectedPest === pest
                       ? selectedType === 'insects' ? 'bg-[#EF4444] text-white' : 'bg-[#818CF8] text-white'
-                      : 'bg-white/[0.03] border border-white/[0.06] text-[#64748B] hover:text-[#F1F5F9]'
+                      : 'bg-white/[0.03] border border-white/[0.06] text-ag-muted hover:text-ag-primary'
                   }`}>{pest}</button>
               ))}
             </div>
@@ -742,45 +742,45 @@ function ScoutTab({ crops }: { crops: Crop[] }) {
       {selectedPest && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-[#F1F5F9]">Recommended Products — {selectedPest}</h3>
-            <button onClick={reset} className="text-xs text-[#64748B] hover:text-[#F1F5F9] underline transition-colors">Start over</button>
+            <h3 className="font-semibold text-ag-primary">Recommended Products — {selectedPest}</h3>
+            <button onClick={reset} className="text-xs text-ag-muted hover:text-ag-primary underline transition-colors">Start over</button>
           </div>
 
           {sprayData.length > 0 ? sprayData.map(sr => (
             <div key={sr.pest} className="bg-[#111827] border border-white/[0.06] rounded-xl overflow-hidden">
               <div className="px-4 py-3 border-b border-white/[0.06]">
-                <span className="font-medium text-[#F1F5F9]">{sr.pest}</span>
-                <span className="text-xs text-[#64748B] ml-2">· {sr.crop}</span>
+                <span className="font-medium text-ag-primary">{sr.pest}</span>
+                <span className="text-xs text-ag-muted ml-2">· {sr.crop}</span>
               </div>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/[0.06]">
                     {['Product', 'Rate', 'Group', 'Notes'].map(h => (
-                      <th key={h} className="text-left px-4 py-2 font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1px]">{h}</th>
+                      <th key={h} className="text-left px-4 py-2 font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1px]">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {sr.products.map((p, i) => (
                     <tr key={i} className="border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02] transition-colors">
-                      <td className="px-4 py-2.5 font-medium text-[#F1F5F9]">{p.name}</td>
+                      <td className="px-4 py-2.5 font-medium text-ag-primary">{p.name}</td>
                       <td className="px-4 py-2.5 text-[#34D399] font-semibold">{p.rate}</td>
                       <td className="px-4 py-2.5">
-                        <span className="text-[10px] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded font-medium text-[#94A3B8]">{p.grp}</span>
+                        <span className="text-[10px] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded font-medium text-ag-secondary">{p.grp}</span>
                       </td>
-                      <td className="px-4 py-2.5 text-xs text-[#64748B]">{p.notes}</td>
+                      <td className="px-4 py-2.5 text-xs text-ag-muted">{p.notes}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               <div className="px-4 py-2 border-t border-white/[0.04] bg-white/[0.02]">
-                <p className="text-[10px] text-[#475569]">Source: {sr.src}</p>
+                <p className="text-[10px] text-ag-dim">Source: {sr.src}</p>
               </div>
             </div>
           )) : (
             <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-6 text-center">
-              <p className="text-[#64748B] text-sm">No specific product data found for {selectedPest}.</p>
-              <p className="text-xs text-[#475569] mt-1">Ask Lily for guidance on this pest.</p>
+              <p className="text-ag-muted text-sm">No specific product data found for {selectedPest}.</p>
+              <p className="text-xs text-ag-dim mt-1">Ask Lily for guidance on this pest.</p>
             </div>
           )}
         </div>
@@ -798,8 +798,8 @@ function ProtectionTab() {
     <div className="space-y-4">
       <div className="bg-[#111827] border border-white/[0.06] rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-white/[0.06]">
-          <h2 className="font-semibold text-[#F1F5F9]">5-Pass Herbicide Timing System</h2>
-          <p className="text-xs text-[#64748B] mt-0.5">Standard prairie spray program — apply each pass at the right timing window</p>
+          <h2 className="font-semibold text-ag-primary">5-Pass Herbicide Timing System</h2>
+          <p className="text-xs text-ag-muted mt-0.5">Standard prairie spray program — apply each pass at the right timing window</p>
         </div>
         <div className="divide-y divide-white/[0.04]">
           {HERBICIDE_PASSES.map((pass) => (
@@ -810,7 +810,7 @@ function ProtectionTab() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
-                    <h3 className="font-semibold text-[#F1F5F9]">{pass.label}</h3>
+                    <h3 className="font-semibold text-ag-primary">{pass.label}</h3>
                     <span className="text-[10px] bg-[#F59E0B]/[0.08] text-[#F59E0B] border border-[#F59E0B]/20 px-2 py-0.5 rounded-full font-semibold">
                       {pass.timing}
                     </span>
@@ -822,12 +822,12 @@ function ProtectionTab() {
                       { label: 'Crops', value: pass.crops },
                     ].map(item => (
                       <div key={item.label}>
-                        <span className="font-mono text-[9px] font-semibold text-[#64748B] uppercase tracking-[1.5px] block mb-1">{item.label}</span>
-                        <span className="text-[#94A3B8]">{item.value}</span>
+                        <span className="font-mono text-[9px] font-semibold text-ag-muted uppercase tracking-[1.5px] block mb-1">{item.label}</span>
+                        <span className="text-ag-secondary">{item.value}</span>
                       </div>
                     ))}
                   </div>
-                  <div className="mt-2 flex items-start gap-2 text-xs text-[#64748B] bg-white/[0.02] border border-white/[0.04] rounded-lg px-3 py-2">
+                  <div className="mt-2 flex items-start gap-2 text-xs text-ag-muted bg-white/[0.02] border border-white/[0.04] rounded-lg px-3 py-2">
                     <Lightbulb size={12} className="text-[#F59E0B] mt-0.5 flex-shrink-0" />
                     <span>{pass.notes}</span>
                   </div>
@@ -893,42 +893,42 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
     const seeded = new Date(seedingDate)
     const today = new Date()
     const daysIn = Math.floor((today.getTime() - seeded.getTime()) / (1000 * 60 * 60 * 24))
-    if (daysIn < 0) return { label: 'Not Yet Seeded', color: 'text-[#64748B]', bg: 'bg-white/[0.03]', urgent: false }
+    if (daysIn < 0) return { label: 'Not Yet Seeded', color: 'text-ag-muted', bg: 'bg-white/[0.03]', urgent: false }
     if (daysIn <= 7) return { label: 'Pre-Seed / Just Seeded', color: 'text-[#F59E0B]', bg: 'bg-[#F59E0B]/[0.06]', urgent: false }
     if (daysIn <= 21) return { label: 'Early Scout Window', color: 'text-[#38BDF8]', bg: 'bg-[#38BDF8]/[0.06]', urgent: true }
     if (daysIn <= 42) return { label: 'In-Crop Spray Window', color: 'text-[#34D399]', bg: 'bg-[#34D399]/[0.06]', urgent: true }
     if (daysIn <= 70) return { label: 'Fungicide Window', color: 'text-[#818CF8]', bg: 'bg-[#818CF8]/[0.06]', urgent: true }
     if (daysIn <= 100) return { label: 'Pre-Harvest Window', color: 'text-[#F97316]', bg: 'bg-[#F97316]/[0.06]', urgent: true }
     if (daysIn <= 120) return { label: 'Harvest Approaching', color: 'text-[#EF4444]', bg: 'bg-[#EF4444]/[0.06]', urgent: true }
-    return { label: 'Season Complete', color: 'text-[#64748B]', bg: 'bg-white/[0.03]', urgent: false }
+    return { label: 'Season Complete', color: 'text-ag-muted', bg: 'bg-white/[0.03]', urgent: false }
   }
 
   return (
     <div className="space-y-6">
       {/* Seeding Log Entry */}
       <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-5">
-        <h3 className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[2px] mb-4">Log Seeded Crop</h3>
+        <h3 className="font-mono text-[10px] font-semibold text-ag-secondary uppercase tracking-[2px] mb-4">Log Seeded Crop</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <div>
-            <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Crop</label>
+            <label className="text-[10px] text-ag-muted font-semibold block mb-1 uppercase tracking-[1px]">Crop</label>
             <select value={form.crop} onChange={e => setForm(p => ({ ...p, crop: e.target.value }))} className={inputClass + " bg-[#111827]"}>
               {crops.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Seeding Date</label>
+            <label className="text-[10px] text-ag-muted font-semibold block mb-1 uppercase tracking-[1px]">Seeding Date</label>
             <input type="date" value={form.seeding_date} onChange={e => setForm(p => ({ ...p, seeding_date: e.target.value }))} className={inputClass} />
           </div>
           <div>
-            <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Acres</label>
+            <label className="text-[10px] text-ag-muted font-semibold block mb-1 uppercase tracking-[1px]">Acres</label>
             <input type="number" placeholder="e.g. 320" value={form.acres} onChange={e => setForm(p => ({ ...p, acres: e.target.value }))} className={inputClass} />
           </div>
           <div>
-            <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Field Name</label>
+            <label className="text-[10px] text-ag-muted font-semibold block mb-1 uppercase tracking-[1px]">Field Name</label>
             <input type="text" placeholder="e.g. North Quarter" value={form.field_name} onChange={e => setForm(p => ({ ...p, field_name: e.target.value }))} className={inputClass} />
           </div>
           <div>
-            <label className="text-[10px] text-[#64748B] font-semibold block mb-1 uppercase tracking-[1px]">Notes</label>
+            <label className="text-[10px] text-ag-muted font-semibold block mb-1 uppercase tracking-[1px]">Notes</label>
             <input type="text" placeholder="Optional" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} className={inputClass} />
           </div>
           <div className="flex items-end">
@@ -944,8 +944,8 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
       {seedingLog.length > 0 && (
         <div className="bg-[#111827] border border-white/[0.06] rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-white/[0.06]">
-            <h3 className="font-mono text-[10px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">Active Crop Windows</h3>
-            <p className="text-[10px] text-[#475569] mt-0.5">Based on days since seeding — reminders appear on your Overview dashboard</p>
+            <h3 className="font-mono text-[10px] font-semibold text-ag-secondary uppercase tracking-[2px]">Active Crop Windows</h3>
+            <p className="text-[10px] text-ag-dim mt-0.5">Based on days since seeding — reminders appear on your Overview dashboard</p>
           </div>
           <div className="divide-y divide-white/[0.04]">
             {seedingLog.map(entry => {
@@ -955,8 +955,8 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
               return (
                 <div key={entry.id} className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap hover:bg-white/[0.02] transition-colors">
                   <div>
-                    <div className="font-medium text-[#F1F5F9]">{entry.crop}</div>
-                    <div className="text-[10px] text-[#64748B] mt-0.5">
+                    <div className="font-medium text-ag-primary">{entry.crop}</div>
+                    <div className="text-[10px] text-ag-muted mt-0.5">
                       Seeded {new Date(entry.seeding_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}
                       {entry.field_name && ` · ${entry.field_name}`}
                       {entry.acres && ` · ${entry.acres} ac`}
@@ -980,8 +980,8 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
       {/* Spray Calendar */}
       <div className="bg-[#111827] border border-white/[0.06] rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-white/[0.06]">
-          <h2 className="font-semibold text-[#F1F5F9]">Seasonal Spray Calendar</h2>
-          <p className="text-[10px] text-[#475569] mt-0.5">
+          <h2 className="font-semibold text-ag-primary">Seasonal Spray Calendar</h2>
+          <p className="text-[10px] text-ag-dim mt-0.5">
             {seedingLog.length > 0
               ? 'Showing actual spray windows based on your logged seeding dates'
               : 'Log a seeded crop above to see personalized windows — showing guide defaults below'}
@@ -999,7 +999,7 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
           ].map(item => (
             <div key={item.label} className="flex items-center gap-1.5">
               <div className={`w-2.5 h-2.5 rounded ${item.color}`} />
-              <span className="text-[10px] text-[#64748B]">{item.label}</span>
+              <span className="text-[10px] text-ag-muted">{item.label}</span>
             </div>
           ))}
         </div>
@@ -1010,7 +1010,7 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
               <thead>
                 <tr className="border-b border-white/[0.06]">
                   {['Crop / Field', 'Seeded', 'Pre-Seed Burnoff', 'Pre-Emergence', 'In-Crop Herbicide', 'Fungicide', 'Pre-Harvest'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1px]">{h}</th>
+                    <th key={h} className="text-left px-4 py-3 font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1px]">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -1040,10 +1040,10 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
                   return (
                     <tr key={entry.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
                       <td className="px-4 py-3">
-                        <div className="font-medium text-[#F1F5F9]">{entry.crop}</div>
-                        {entry.field_name && <div className="text-[10px] text-[#64748B]">{entry.field_name}</div>}
+                        <div className="font-medium text-ag-primary">{entry.crop}</div>
+                        {entry.field_name && <div className="text-[10px] text-ag-muted">{entry.field_name}</div>}
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#64748B]">
+                      <td className="px-4 py-3 text-xs text-ag-muted">
                         {seeded.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}
                       </td>
                       {windows.map((w, i) => (
@@ -1063,9 +1063,9 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/[0.06]">
-                  <th className="text-left px-5 py-3 font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1px] w-40">Crop</th>
+                  <th className="text-left px-5 py-3 font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1px] w-40">Crop</th>
                   {['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'].map(m => (
-                    <th key={m} className="text-center px-2 py-3 font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1px]">{m}</th>
+                    <th key={m} className="text-center px-2 py-3 font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1px]">{m}</th>
                   ))}
                 </tr>
               </thead>
@@ -1074,7 +1074,7 @@ function SprayCalendarTab({ crops }: { crops: Crop[] }) {
                   const timingStr = crop.timings
                   return (
                     <tr key={crop.name} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
-                      <td className="px-5 py-3 font-medium text-[#F1F5F9]">{crop.name}</td>
+                      <td className="px-5 py-3 font-medium text-ag-primary">{crop.name}</td>
                       {[0,1,2,3,4,5,6].map(mi => {
                         const bars: string[] = []
                         if (mi === 0 && timingStr.includes('Pre-seed')) bars.push('bg-[#F59E0B]')

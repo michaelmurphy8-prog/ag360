@@ -15,8 +15,8 @@ const T = {
   sky: "#38BDF8", purple: "#A78BFA",
 };
 
-const inputClass = "w-full bg-white/[0.04] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] placeholder-[#475569] focus:outline-none focus:border-[#34D399]/50 transition-colors";
-const labelClass = "block text-[10px] uppercase tracking-[2px] font-mono font-semibold text-[#64748B] mb-1.5";
+const inputClass = "w-full bg-white/[0.04] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-ag-primary placeholder-[#475569] focus:outline-none focus:border-[#34D399]/50 transition-colors";
+const labelClass = "block text-[10px] uppercase tracking-[2px] font-mono font-semibold text-ag-muted mb-1.5";
 
 const REPORT_TYPES = [
   { id: "general", label: "General", icon: Eye, color: "#38BDF8" },

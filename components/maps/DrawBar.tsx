@@ -18,21 +18,21 @@ export default function DrawBar({ selectedField, drawingAcres, drawingHectares, 
   const pct = ((diff / selectedField.acres) * 100).toFixed(1);
 
   return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 bg-[#0F1629]/95 border border-[#60A5FA]/40 rounded-xl px-5 py-3 shadow-xl flex items-center gap-4">
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 bg-ag-card/95 border border-[#60A5FA]/40 rounded-xl px-5 py-3 shadow-xl flex items-center gap-4">
       <div>
-        <p className="text-[10px] text-[#64748B] uppercase tracking-wide">Drawing boundary for</p>
-        <p className="text-sm font-semibold text-[#F1F5F9]">{selectedField.field_name}</p>
+        <p className="text-[10px] text-ag-muted uppercase tracking-wide">Drawing boundary for</p>
+        <p className="text-sm font-semibold text-ag-primary">{selectedField.field_name}</p>
       </div>
-      <div className="border-l border-[#1E293B] pl-4">
-        <p className="text-[10px] text-[#64748B] uppercase tracking-wide">Area</p>
+      <div className="border-l border-ag pl-4">
+        <p className="text-[10px] text-ag-muted uppercase tracking-wide">Area</p>
         <p className="text-base font-bold text-[#60A5FA]">
           {drawingAcres > 0 ? `${fmtD(drawingAcres)} ac` : "Click to draw..."}{" "}
-          {drawingHectares > 0 && <span className="text-xs text-[#64748B] font-normal">({fmtD(drawingHectares)} ha)</span>}
+          {drawingHectares > 0 && <span className="text-xs text-ag-muted font-normal">({fmtD(drawingHectares)} ha)</span>}
         </p>
       </div>
       {selectedField.acres && drawingAcres > 0 && (
-        <div className="border-l border-[#1E293B] pl-4">
-          <p className="text-[10px] text-[#64748B] uppercase tracking-wide">vs Declared</p>
+        <div className="border-l border-ag pl-4">
+          <p className="text-[10px] text-ag-muted uppercase tracking-wide">vs Declared</p>
           <p className={`text-sm font-semibold ${Math.abs(diff) < 5 ? "text-[#34D399]" : "text-[#FBBF24]"}`}>
             {diff > 0 ? "+" : ""}{fmtD(diff)} ac ({pct}%)
           </p>
@@ -44,7 +44,7 @@ export default function DrawBar({ selectedField, drawingAcres, drawingHectares, 
           <Save size={12} /> {savingBoundary ? "Saving..." : "Save"}
         </button>
         <button onClick={onCancel}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.06] text-[#94A3B8] rounded-lg text-xs font-semibold hover:text-white transition-colors">
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.06] text-ag-secondary rounded-lg text-xs font-semibold hover:text-white transition-colors">
           <X size={12} /> Cancel
         </button>
       </div>

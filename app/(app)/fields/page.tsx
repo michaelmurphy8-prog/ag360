@@ -56,7 +56,7 @@ interface KPIs {
 
 /* ───── Design Tokens ──────────────────────────────────── */
 const STATUS_COLORS: Record<string, string> = {
-  planned: "bg-[#334155] text-[#94A3B8]",
+  planned: "bg-[#334155] text-ag-secondary",
   seeded: "bg-[#1E3A5F] text-[#60A5FA]",
   growing: "bg-[#14532D] text-[#4ADE80]",
   harvested: "bg-[#78350F] text-[#FBBF24]",
@@ -118,16 +118,16 @@ function KpiCard({
   donut?: { value: number; max: number; color: string; showLabel?: boolean };
 }) {
   return (
-    <div className="bg-[#0F1629] border border-[#1E293B] rounded-xl p-5 flex items-start justify-between">
+    <div className="bg-ag-card border border-ag rounded-xl p-5 flex items-start justify-between">
       <div className="flex-1">
         <div className="flex items-center gap-2 mb-2">
           <Icon size={14} style={{ color: iconColor }} />
-          <span className="text-[11px] font-semibold tracking-[1.5px] uppercase text-[#64748B]">
+          <span className="text-[11px] font-semibold tracking-[1.5px] uppercase text-ag-muted">
             {label}
           </span>
         </div>
         <div className="text-2xl font-bold text-white leading-none">{value}</div>
-        {subtitle && <p className="text-[12px] text-[#64748B] mt-1.5">{subtitle}</p>}
+        {subtitle && <p className="text-[12px] text-ag-muted mt-1.5">{subtitle}</p>}
       </div>
       {donut && (
         <MiniDonut
@@ -215,8 +215,8 @@ export default function FieldsPage() {
       {/* ── Header ────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#F1F5F9]">Fields</h1>
-          <p className="text-[#64748B] text-sm mt-1">
+          <h1 className="text-2xl font-bold text-ag-primary">Fields</h1>
+          <p className="text-ag-muted text-sm mt-1">
             Field management &amp; profitability tracking — crop year {cropYear}
           </p>
         </div>
@@ -224,7 +224,7 @@ export default function FieldsPage() {
           <select
             value={cropYear}
             onChange={(e) => setCropYear(parseInt(e.target.value))}
-            className="bg-[#0F1629] border border-[#1E293B] rounded-lg px-3 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-[#34D399]"
+            className="bg-ag-card border border-ag rounded-lg px-3 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-[#34D399]"
           >
             {yearOptions.map((y) => (
               <option key={y} value={y}>{y}</option>
@@ -303,10 +303,10 @@ export default function FieldsPage() {
 
       {/* ── Crop Mix Bar ──────────────────────────────── */}
       {Object.keys(cropBreakdown).length > 0 && kpis && kpis.seededAcres > 0 && (
-        <div className="bg-[#0F1629] border border-[#1E293B] rounded-xl p-5 mb-6">
+        <div className="bg-ag-card border border-ag rounded-xl p-5 mb-6">
           <div className="flex items-center gap-2 mb-3">
             <Sprout size={14} className="text-[#34D399]" />
-            <span className="text-[11px] font-semibold tracking-[1.5px] uppercase text-[#64748B]">
+            <span className="text-[11px] font-semibold tracking-[1.5px] uppercase text-ag-muted">
               Crop Mix — {cropYear}
             </span>
           </div>
@@ -329,7 +329,7 @@ export default function FieldsPage() {
             {Object.entries(cropBreakdown)
               .sort((a, b) => b[1].acres - a[1].acres)
               .map(([crop, data]) => (
-                <div key={crop} className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
+                <div key={crop} className="flex items-center gap-1.5 text-xs text-ag-secondary">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CROP_COLORS[crop] || "#9ca3af" }} />
                   {crop}: {fmt(data.acres)} ac ({data.count})
                 </div>
@@ -342,22 +342,22 @@ export default function FieldsPage() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
-            <Filter size={14} className="text-[#64748B]" />
+            <Filter size={14} className="text-ag-muted" />
             <select
               value={filterCrop}
               onChange={(e) => setFilterCrop(e.target.value)}
-              className="bg-[#0F1629] border border-[#1E293B] rounded-lg px-2 py-1.5 text-xs text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#34D399]"
+              className="bg-ag-card border border-ag rounded-lg px-2 py-1.5 text-xs text-ag-secondary focus:outline-none focus:ring-2 focus:ring-[#34D399]"
             >
               <option value="all">All Crops</option>
               {cropTypes.map((ct) => (<option key={ct} value={ct}>{ct}</option>))}
             </select>
           </div>
           <div className="flex items-center gap-1.5">
-            <ArrowUpDown size={14} className="text-[#64748B]" />
+            <ArrowUpDown size={14} className="text-ag-muted" />
             <select
               value={sortKey}
               onChange={(e) => setSortKey(e.target.value as SortKey)}
-              className="bg-[#0F1629] border border-[#1E293B] rounded-lg px-2 py-1.5 text-xs text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#34D399]"
+              className="bg-ag-card border border-ag rounded-lg px-2 py-1.5 text-xs text-ag-secondary focus:outline-none focus:ring-2 focus:ring-[#34D399]"
             >
               <option value="name">Name</option>
               <option value="acres">Acres</option>
@@ -367,16 +367,16 @@ export default function FieldsPage() {
             </select>
           </div>
         </div>
-        <div className="flex rounded-lg border border-[#1E293B] overflow-hidden">
+        <div className="flex rounded-lg border border-ag overflow-hidden">
           <button
             onClick={() => setViewMode("card")}
-            className={`px-3 py-1.5 transition-colors ${viewMode === "card" ? "bg-[#34D399] text-[#0F1629]" : "bg-[#0F1629] text-[#64748B] hover:text-[#94A3B8]"}`}
+            className={`px-3 py-1.5 transition-colors ${viewMode === "card" ? "bg-[#34D399] text-[#0F1629]" : "bg-ag-card text-ag-muted hover:text-ag-secondary"}`}
           >
             <LayoutGrid size={15} />
           </button>
           <button
             onClick={() => setViewMode("table")}
-            className={`px-3 py-1.5 transition-colors ${viewMode === "table" ? "bg-[#34D399] text-[#0F1629]" : "bg-[#0F1629] text-[#64748B] hover:text-[#94A3B8]"}`}
+            className={`px-3 py-1.5 transition-colors ${viewMode === "table" ? "bg-[#34D399] text-[#0F1629]" : "bg-ag-card text-ag-muted hover:text-ag-secondary"}`}
           >
             <List size={15} />
           </button>
@@ -385,11 +385,11 @@ export default function FieldsPage() {
 
       {/* ── Content ───────────────────────────────────── */}
       {loading ? (
-        <p className="text-[#64748B]">Loading fields...</p>
+        <p className="text-ag-muted">Loading fields...</p>
       ) : fields.length === 0 ? (
-        <div className="border border-dashed border-[#1E293B] rounded-xl p-12 text-center">
-          <p className="text-[#94A3B8] text-lg">No fields yet</p>
-          <p className="text-[#64748B] text-sm mt-2">Click &quot;Add Field&quot; to get started</p>
+        <div className="border border-dashed border-ag rounded-xl p-12 text-center">
+          <p className="text-ag-secondary text-lg">No fields yet</p>
+          <p className="text-ag-muted text-sm mt-2">Click &quot;Add Field&quot; to get started</p>
         </div>
       ) : viewMode === "card" ? (
         /* ═══ CARD VIEW ═══ */
@@ -409,7 +409,7 @@ export default function FieldsPage() {
               <div
                 key={field.id}
                 onClick={() => router.push(`/fields/${field.id}`)}
-                className="bg-[#0F1629] border border-[#1E293B] rounded-xl overflow-hidden cursor-pointer hover:border-[#34D399]/40 transition-all group"
+                className="bg-ag-card border border-ag rounded-xl overflow-hidden cursor-pointer hover:border-[#34D399]/40 transition-all group"
               >
                 {/* Crop colour bar */}
                 <div className="h-1 w-full" style={{ backgroundColor: cropColor || "#1E293B" }} />
@@ -417,19 +417,19 @@ export default function FieldsPage() {
                 <div className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="text-[#F1F5F9] font-semibold text-base group-hover:text-[#34D399] transition-colors">
+                      <h3 className="text-ag-primary font-semibold text-base group-hover:text-[#34D399] transition-colors">
                         {field.field_name}
                       </h3>
-                      <p className="text-[#64748B] text-sm mt-0.5">{field.acres} acres</p>
+                      <p className="text-ag-muted text-sm mt-0.5">{field.acres} acres</p>
                       {field.lld_quarter && (
-                        <p className="text-[#475569] text-xs mt-0.5">
+                        <p className="text-ag-dim text-xs mt-0.5">
                           {field.lld_quarter}-{field.lld_section}-{field.lld_township}-{field.lld_range}-W{field.lld_meridian} ({field.lld_province})
                         </p>
                       )}
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditingField(field); }}
-                      className="text-[#475569] hover:text-[#34D399] transition-colors p-1"
+                      className="text-ag-dim hover:text-[#34D399] transition-colors p-1"
                     >
                       <Pencil size={14} />
                     </button>
@@ -440,8 +440,8 @@ export default function FieldsPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cropColor! }} />
-                          <span className="text-sm text-[#F1F5F9] font-medium">{field.crop_type}</span>
-                          {field.variety && <span className="text-xs text-[#64748B]">{field.variety}</span>}
+                          <span className="text-sm text-ag-primary font-medium">{field.crop_type}</span>
+                          {field.variety && <span className="text-xs text-ag-muted">{field.variety}</span>}
                         </div>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[field.crop_status || "planned"]}`}>
                           {(field.crop_status || "planned").charAt(0).toUpperCase() + (field.crop_status || "planned").slice(1)}
@@ -449,7 +449,7 @@ export default function FieldsPage() {
                       </div>
 
                       {field.expected_yield_bu_ac && (
-                        <p className="text-xs text-[#64748B] mt-2">
+                        <p className="text-xs text-ag-muted mt-2">
                           Est. {fmt(expectedProd)} bu ({field.expected_yield_bu_ac} bu/ac)
                         </p>
                       )}
@@ -457,9 +457,9 @@ export default function FieldsPage() {
                       {/* Budget utilization bar */}
                       {budget > 0 && (
                         <div className="mt-3">
-                          <div className="flex items-center justify-between text-[11px] text-[#64748B] mb-1">
+                          <div className="flex items-center justify-between text-[11px] text-ag-muted mb-1">
                             <span>Budget utilization</span>
-                            <span className={budgetPct > 100 ? "text-red-400" : "text-[#94A3B8]"}>
+                            <span className={budgetPct > 100 ? "text-red-400" : "text-ag-secondary"}>
                               {budgetPct.toFixed(0)}%
                             </span>
                           </div>
@@ -478,21 +478,21 @@ export default function FieldsPage() {
                       {/* Financials grid */}
                       <div className="mt-3 grid grid-cols-2 gap-2">
                         <div className="bg-white/[0.03] rounded-lg px-3 py-2">
-                          <p className="text-[10px] text-[#64748B]">Budget</p>
-                          <p className="text-sm font-semibold text-[#F1F5F9]">${fmtD(budget)}</p>
+                          <p className="text-[10px] text-ag-muted">Budget</p>
+                          <p className="text-sm font-semibold text-ag-primary">${fmtD(budget)}</p>
                         </div>
                         <div className="bg-white/[0.03] rounded-lg px-3 py-2">
-                          <p className="text-[10px] text-[#64748B]">Actual</p>
-                          <p className="text-sm font-semibold text-[#F1F5F9]">${fmtD(actual)}</p>
+                          <p className="text-[10px] text-ag-muted">Actual</p>
+                          <p className="text-sm font-semibold text-ag-primary">${fmtD(actual)}</p>
                         </div>
                         <div className="bg-white/[0.03] rounded-lg px-3 py-2">
-                          <p className="text-[10px] text-[#64748B]">Variance</p>
+                          <p className="text-[10px] text-ag-muted">Variance</p>
                           <p className={`text-sm font-semibold ${variance > 0 ? "text-red-400" : "text-emerald-400"}`}>
                             {variance > 0 ? "+" : ""}${fmtD(variance)}
                           </p>
                         </div>
                         <div className="bg-white/[0.03] rounded-lg px-3 py-2">
-                          <p className="text-[10px] text-[#64748B]">Net Margin</p>
+                          <p className="text-[10px] text-ag-muted">Net Margin</p>
                           <p className={`text-sm font-semibold ${margin >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                             ${fmtD(margin)}
                           </p>
@@ -528,13 +528,13 @@ export default function FieldsPage() {
         </div>
       ) : (
         /* ═══ TABLE VIEW ═══ */
-        <div className="bg-[#0F1629] border border-[#1E293B] rounded-xl overflow-hidden">
+        <div className="bg-ag-card border border-ag rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#1E293B]">
+                <tr className="border-b border-ag">
                   {["Field", "Acres", "Crop", "Status", "Budget", "Actual", "Variance", "$/Acre"].map((h, i) => (
-                    <th key={h} className={`px-4 py-3 text-[11px] font-semibold tracking-[1px] uppercase text-[#64748B] ${i === 0 || i === 2 ? "text-left" : i === 3 ? "text-center" : "text-right"}`}>
+                    <th key={h} className={`px-4 py-3 text-[11px] font-semibold tracking-[1px] uppercase text-ag-muted ${i === 0 || i === 2 ? "text-left" : i === 3 ? "text-center" : "text-right"}`}>
                       {h}
                     </th>
                   ))}
@@ -554,22 +554,22 @@ export default function FieldsPage() {
                       className="cursor-pointer hover:bg-white/[0.02] transition-colors"
                     >
                       <td className="px-4 py-3">
-                        <p className="font-medium text-[#F1F5F9]">{field.field_name}</p>
+                        <p className="font-medium text-ag-primary">{field.field_name}</p>
                         {field.lld_quarter && (
-                          <p className="text-[11px] text-[#475569]">
+                          <p className="text-[11px] text-ag-dim">
                             {field.lld_quarter}-{field.lld_section}-{field.lld_township}-{field.lld_range}-W{field.lld_meridian}
                           </p>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right text-[#94A3B8]">{field.acres}</td>
+                      <td className="px-4 py-3 text-right text-ag-secondary">{field.acres}</td>
                       <td className="px-4 py-3">
                         {field.crop_type ? (
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CROP_COLORS[field.crop_type] || "#9ca3af" }} />
-                            <span className="text-[#F1F5F9]">{field.crop_type}</span>
+                            <span className="text-ag-primary">{field.crop_type}</span>
                           </div>
                         ) : (
-                          <span className="text-[#475569]">—</span>
+                          <span className="text-ag-dim">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -577,14 +577,14 @@ export default function FieldsPage() {
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[field.crop_status]}`}>
                             {field.crop_status.charAt(0).toUpperCase() + field.crop_status.slice(1)}
                           </span>
-                        ) : <span className="text-[#475569]">—</span>}
+                        ) : <span className="text-ag-dim">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-right text-[#94A3B8]">{budget > 0 ? `$${fmtD(budget)}` : "—"}</td>
-                      <td className="px-4 py-3 text-right text-[#94A3B8]">{actual > 0 ? `$${fmtD(actual)}` : "—"}</td>
-                      <td className={`px-4 py-3 text-right font-medium ${variance > 0 ? "text-red-400" : variance < 0 ? "text-emerald-400" : "text-[#475569]"}`}>
+                      <td className="px-4 py-3 text-right text-ag-secondary">{budget > 0 ? `$${fmtD(budget)}` : "—"}</td>
+                      <td className="px-4 py-3 text-right text-ag-secondary">{actual > 0 ? `$${fmtD(actual)}` : "—"}</td>
+                      <td className={`px-4 py-3 text-right font-medium ${variance > 0 ? "text-red-400" : variance < 0 ? "text-emerald-400" : "text-ag-dim"}`}>
                         {budget > 0 || actual > 0 ? `${variance > 0 ? "+" : ""}$${fmtD(variance)}` : "—"}
                       </td>
-                      <td className="px-4 py-3 text-right text-[#94A3B8]">{actual > 0 ? `$${fmtD(cpa)}` : "—"}</td>
+                      <td className="px-4 py-3 text-right text-ag-secondary">{actual > 0 ? `$${fmtD(cpa)}` : "—"}</td>
                     </tr>
                   );
                 })}

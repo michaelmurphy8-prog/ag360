@@ -135,11 +135,11 @@ function fmt(n: number) {
 }
 
 const inputClass =
-  "w-full text-sm border border-white/[0.10] rounded-[10px] px-3 py-2 outline-none focus:border-[#34D399]/50 bg-white/[0.04] text-[#F1F5F9] placeholder:text-[#64748B]";
+  "w-full text-sm border border-white/[0.10] rounded-[10px] px-3 py-2 outline-none focus:border-[#34D399]/50 bg-white/[0.04] text-ag-primary placeholder:text-ag-muted";
 const selectClass =
-  "w-full text-sm border border-white/[0.10] rounded-[10px] px-3 py-2 outline-none focus:border-[#34D399]/50 bg-[#111827] text-[#F1F5F9]";
+  "w-full text-sm border border-white/[0.10] rounded-[10px] px-3 py-2 outline-none focus:border-[#34D399]/50 bg-[#111827] text-ag-primary";
 const costInputClass =
-  "w-24 text-sm text-right border border-white/[0.10] rounded-[8px] px-2 py-1.5 outline-none focus:border-[#34D399]/50 bg-white/[0.04] text-[#F1F5F9]";
+  "w-24 text-sm text-right border border-white/[0.10] rounded-[8px] px-2 py-1.5 outline-none focus:border-[#34D399]/50 bg-white/[0.04] text-ag-primary";
 
 // Generate crop year options (current year -2 to +1)
 const currentYear = new Date().getFullYear();
@@ -307,10 +307,10 @@ export default function FarmProfilePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[28px] font-bold text-[#F1F5F9] tracking-tight">
+          <h1 className="text-[28px] font-bold text-ag-primary tracking-tight">
             Farm Profile
           </h1>
-          <p className="text-[13px] text-[#64748B] mt-1">
+          <p className="text-[13px] text-ag-muted mt-1">
             Lily uses this to personalize every recommendation to your operation
           </p>
         </div>
@@ -359,27 +359,27 @@ export default function FarmProfilePage() {
       {/* Profit Summary Strip */}
       <div className="grid grid-cols-4 gap-4">
         <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
-          <p className="font-mono text-[11px] font-bold text-[#F1F5F9] uppercase tracking-[1.5px]">
+          <p className="font-mono text-[11px] font-bold text-ag-primary uppercase tracking-[1.5px]">
             Gross Revenue
           </p>
-          <p className="text-2xl font-bold text-[#F1F5F9] mt-1">
+          <p className="text-2xl font-bold text-ag-primary mt-1">
             {fmt(totalGross)}
           </p>
-          <p className="text-xs text-[#64748B] mt-1">CAD · all crops</p>
+          <p className="text-xs text-ag-muted mt-1">CAD · all crops</p>
         </div>
         <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
-          <p className="font-mono text-[11px] font-bold text-[#F1F5F9] uppercase tracking-[1.5px]">
+          <p className="font-mono text-[11px] font-bold text-ag-primary uppercase tracking-[1.5px]">
             Total Costs
           </p>
-          <p className="text-2xl font-bold text-[#F1F5F9] mt-1">
+          <p className="text-2xl font-bold text-ag-primary mt-1">
             {fmt(totalCost)}
           </p>
-          <p className="text-xs text-[#64748B] mt-1">CAD · fixed + variable</p>
+          <p className="text-xs text-ag-muted mt-1">CAD · fixed + variable</p>
         </div>
         <div
           className={`rounded-xl border p-5 ${totalNet >= 0 ? "bg-[#34D399]/[0.06] border-[#34D399]/20" : "bg-[#EF4444]/[0.06] border-[#EF4444]/20"}`}
         >
-          <p className="font-mono text-[11px] font-bold text-[#F1F5F9] uppercase tracking-[1.5px]">
+          <p className="font-mono text-[11px] font-bold text-ag-primary uppercase tracking-[1.5px]">
             Net Profit
           </p>
           <p
@@ -388,16 +388,16 @@ export default function FarmProfilePage() {
             {totalNet < 0 ? "-" : ""}
             {fmt(totalNet)}
           </p>
-          <p className="text-xs text-[#64748B] mt-1">CAD · estimated</p>
+          <p className="text-xs text-ag-muted mt-1">CAD · estimated</p>
         </div>
         <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
-          <p className="font-mono text-[11px] font-bold text-[#F1F5F9] uppercase tracking-[1.5px]">
+          <p className="font-mono text-[11px] font-bold text-ag-primary uppercase tracking-[1.5px]">
             Total Production
           </p>
-          <p className="text-2xl font-bold text-[#F1F5F9] mt-1">
+          <p className="text-2xl font-bold text-ag-primary mt-1">
             {totalProduction.toLocaleString()}
           </p>
-          <p className="text-xs text-[#64748B] mt-1">
+          <p className="text-xs text-ag-muted mt-1">
             bushels · {totalAcresPlanted.toLocaleString()} acres
           </p>
         </div>
@@ -405,7 +405,7 @@ export default function FarmProfilePage() {
 
       {/* Farm Details */}
       <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-6 space-y-5">
-        <h2 className="font-mono text-[11px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">
+        <h2 className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px]">
           Farm Details
         </h2>
         <div className="grid grid-cols-3 gap-4">
@@ -436,7 +436,7 @@ export default function FarmProfilePage() {
             },
           ].map((f) => (
             <div key={f.key} className="space-y-1">
-              <label className="text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">
+              <label className="text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">
                 {f.label}
               </label>
               <input
@@ -457,7 +457,7 @@ export default function FarmProfilePage() {
             </div>
           ))}
           <div className="space-y-1">
-            <label className="text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">
+            <label className="text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">
               Province
             </label>
             <select
@@ -473,7 +473,7 @@ export default function FarmProfilePage() {
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">
+            <label className="text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">
               Soil Zone
             </label>
             <select
@@ -490,7 +490,7 @@ export default function FarmProfilePage() {
           </div>
         </div>
         <div className="space-y-2">
-          <label className="text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">
+          <label className="text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">
             Risk Profile
           </label>
           <div className="flex gap-2">
@@ -501,7 +501,7 @@ export default function FarmProfilePage() {
                 className={`text-xs font-semibold px-4 py-2 rounded-full border transition-all duration-200 ${
                   profile.riskProfile === r
                     ? "bg-[#34D399] text-[#080C15] border-[#34D399]"
-                    : "bg-transparent text-[#64748B] border-white/[0.10] hover:text-[#94A3B8] hover:border-white/[0.15]"
+                    : "bg-transparent text-ag-muted border-white/[0.10] hover:text-ag-secondary hover:border-white/[0.15]"
                 }`}
               >
                 {r}
@@ -515,7 +515,7 @@ export default function FarmProfilePage() {
       <div className="bg-[#111827] rounded-xl border border-white/[0.06] overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
           <div className="flex items-center gap-4">
-            <h2 className="font-mono text-[11px] font-semibold text-[#94A3B8] uppercase tracking-[2px]">
+            <h2 className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px]">
               Crops, Inventory & Cost Calculator
             </h2>
             {/* Crop Year Selector */}
@@ -528,7 +528,7 @@ export default function FarmProfilePage() {
                     cropYear: Number(e.target.value),
                   })
                 }
-                className="appearance-none text-xs font-semibold bg-white/[0.04] border border-white/[0.10] rounded-full px-3 py-1.5 pr-7 text-[#F1F5F9] outline-none focus:border-[#34D399]/50 cursor-pointer"
+                className="appearance-none text-xs font-semibold bg-white/[0.04] border border-white/[0.10] rounded-full px-3 py-1.5 pr-7 text-ag-primary outline-none focus:border-[#34D399]/50 cursor-pointer"
               >
                 {CROP_YEARS.map((y) => (
                   <option key={y} value={y} className="bg-[#111827]">
@@ -538,7 +538,7 @@ export default function FarmProfilePage() {
               </select>
               <ChevronDown
                 size={10}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#64748B] pointer-events-none"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ag-muted pointer-events-none"
               />
             </div>
           </div>
@@ -559,7 +559,7 @@ export default function FarmProfilePage() {
               className={`text-xs font-semibold px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === i
                   ? "border-[#34D399] text-[#34D399]"
-                  : "border-transparent text-[#64748B] hover:text-[#94A3B8]"
+                  : "border-transparent text-ag-muted hover:text-ag-secondary"
               }`}
             >
               {c.crop || `Crop ${i + 1}`}
@@ -580,7 +580,7 @@ export default function FarmProfilePage() {
                     onChange={(e) =>
                       updateCrop(index, "crop", e.target.value)
                     }
-                    className="text-sm font-semibold border border-white/[0.10] rounded-[10px] px-3 py-2 outline-none focus:border-[#34D399]/50 bg-[#111827] text-[#F1F5F9]"
+                    className="text-sm font-semibold border border-white/[0.10] rounded-[10px] px-3 py-2 outline-none focus:border-[#34D399]/50 bg-[#111827] text-ag-primary"
                   >
                     <option value="">Select crop</option>
                     {CROPS.map((c) => (
@@ -596,7 +596,7 @@ export default function FarmProfilePage() {
                           className={`text-xs font-semibold px-4 py-1.5 transition-colors ${
                             crop.mode === mode
                               ? "bg-[#34D399] text-[#080C15]"
-                              : "text-[#64748B] hover:bg-white/[0.04]"
+                              : "text-ag-muted hover:bg-white/[0.04]"
                           }`}
                         >
                           {mode === "on_hand" ? "On Hand" : "Forecast"}
@@ -617,7 +617,7 @@ export default function FarmProfilePage() {
               <div className="grid grid-cols-4 gap-4 p-4 bg-white/[0.02] border border-white/[0.04] rounded-xl">
                 {crop.mode === "on_hand" ? (
                   <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">
+                    <label className="text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">
                       Bushels On Hand
                     </label>
                     <input
@@ -633,7 +633,7 @@ export default function FarmProfilePage() {
                 ) : (
                   <>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">
+                      <label className="text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">
                         Acres
                       </label>
                       <input
@@ -647,7 +647,7 @@ export default function FarmProfilePage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">
+                      <label className="text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">
                         APH (bu/ac)
                       </label>
                       <input
@@ -661,7 +661,7 @@ export default function FarmProfilePage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">
+                      <label className="text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">
                         Forecast (bu)
                       </label>
                       <div className="text-sm font-bold text-[#34D399] px-3 py-2">
@@ -669,7 +669,7 @@ export default function FarmProfilePage() {
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">
+                      <label className="text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">
                         Actual Yield (bu/ac)
                       </label>
                       <input
@@ -685,7 +685,7 @@ export default function FarmProfilePage() {
                   </>
                 )}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">
+                  <label className="text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">
                     Target Price ($/bu)
                   </label>
                   <input
@@ -709,7 +709,7 @@ export default function FarmProfilePage() {
               <div className="grid grid-cols-2 gap-6">
                 {/* Fixed Costs */}
                 <div className="space-y-3">
-                  <h3 className="font-mono text-[10px] font-bold text-[#94A3B8] uppercase tracking-[1.5px]">
+                  <h3 className="font-mono text-[10px] font-bold text-ag-secondary uppercase tracking-[1.5px]">
                     Fixed Costs ($/acre)
                   </h3>
                   {[
@@ -726,11 +726,11 @@ export default function FarmProfilePage() {
                       key={f.key}
                       className="flex items-center justify-between gap-4"
                     >
-                      <label className="text-xs text-[#64748B] flex-1">
+                      <label className="text-xs text-ag-muted flex-1">
                         {f.label}
                       </label>
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-[#64748B]">$</span>
+                        <span className="text-xs text-ag-muted">$</span>
                         <input
                           type="number"
                           value={(crop as never)[f.key] || ""}
@@ -744,10 +744,10 @@ export default function FarmProfilePage() {
                     </div>
                   ))}
                   <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
-                    <span className="text-xs font-bold text-[#F1F5F9]">
+                    <span className="text-xs font-bold text-ag-primary">
                       Total Fixed
                     </span>
-                    <span className="text-sm font-bold text-[#F1F5F9]">
+                    <span className="text-sm font-bold text-ag-primary">
                       {fmt(calc.fixedPerAcre)}/ac
                     </span>
                   </div>
@@ -755,7 +755,7 @@ export default function FarmProfilePage() {
 
                 {/* Variable Costs */}
                 <div className="space-y-3">
-                  <h3 className="font-mono text-[10px] font-bold text-[#94A3B8] uppercase tracking-[1.5px]">
+                  <h3 className="font-mono text-[10px] font-bold text-ag-secondary uppercase tracking-[1.5px]">
                     Variable Costs ($/acre)
                   </h3>
                   {[
@@ -777,11 +777,11 @@ export default function FarmProfilePage() {
                       key={f.key}
                       className="flex items-center justify-between gap-4"
                     >
-                      <label className="text-xs text-[#64748B] flex-1">
+                      <label className="text-xs text-ag-muted flex-1">
                         {f.label}
                       </label>
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-[#64748B]">$</span>
+                        <span className="text-xs text-ag-muted">$</span>
                         <input
                           type="number"
                           value={(crop as never)[f.key] || ""}
@@ -795,10 +795,10 @@ export default function FarmProfilePage() {
                     </div>
                   ))}
                   <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
-                    <span className="text-xs font-bold text-[#F1F5F9]">
+                    <span className="text-xs font-bold text-ag-primary">
                       Total Variable
                     </span>
-                    <span className="text-sm font-bold text-[#F1F5F9]">
+                    <span className="text-sm font-bold text-ag-primary">
                       {fmt(calc.variablePerAcre)}/ac
                     </span>
                   </div>
@@ -808,31 +808,31 @@ export default function FarmProfilePage() {
               {/* Crop Profit Summary */}
               <div className="grid grid-cols-4 gap-4 p-4 bg-white/[0.02] border border-white/[0.04] rounded-xl">
                 <div>
-                  <p className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">
+                  <p className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">
                     Total Cost/Acre
                   </p>
-                  <p className="text-lg font-bold text-[#F1F5F9] mt-1">
+                  <p className="text-lg font-bold text-ag-primary mt-1">
                     {fmt(calc.totalCostPerAcre)}
                   </p>
                 </div>
                 <div>
-                  <p className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">
+                  <p className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">
                     Break-Even ($/bu)
                   </p>
-                  <p className="text-lg font-bold text-[#F1F5F9] mt-1">
+                  <p className="text-lg font-bold text-ag-primary mt-1">
                     {fmt(calc.breakEven)}
                   </p>
                 </div>
                 <div>
-                  <p className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">
+                  <p className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">
                     Gross Revenue
                   </p>
-                  <p className="text-lg font-bold text-[#F1F5F9] mt-1">
+                  <p className="text-lg font-bold text-ag-primary mt-1">
                     {fmt(calc.grossRevenue)}
                   </p>
                 </div>
                 <div>
-                  <p className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">
+                  <p className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">
                     Net Profit
                   </p>
                   <p

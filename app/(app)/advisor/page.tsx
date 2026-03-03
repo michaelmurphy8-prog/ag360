@@ -124,7 +124,7 @@ function LilyMessage({ content }: { content: string }) {
     const boldMatch = line.match(/^\*\*(.+?)\*\*$/);
     if (boldMatch) {
       elements.push(
-        <p key={key++} className="text-[13px] font-semibold text-[#F1F5F9] mt-3 mb-1 tracking-tight">
+        <p key={key++} className="text-[13px] font-semibold text-ag-primary mt-3 mb-1 tracking-tight">
           {boldMatch[1]}
         </p>
       );
@@ -134,7 +134,7 @@ function LilyMessage({ content }: { content: string }) {
 
     const numMatch = line.match(/^(\d+)\.\s*\*?\*?(.+?)(?:\*\*)?$/);
     if (numMatch) {
-      const text = numMatch[2].replace(/\*\*(.+?)\*\*/g, '<strong class="text-[#F1F5F9] font-medium">$1</strong>');
+      const text = numMatch[2].replace(/\*\*(.+?)\*\*/g, '<strong class="text-ag-primary font-medium">$1</strong>');
       elements.push(
         <div key={key++} className="flex gap-3 mt-1.5">
           <span className="font-mono text-[11px] text-[#34D399] font-semibold mt-[2px] w-4 flex-shrink-0 text-right">{numMatch[1]}.</span>
@@ -147,7 +147,7 @@ function LilyMessage({ content }: { content: string }) {
 
     const bulletMatch = line.match(/^[-•]\s+(.+)$/);
     if (bulletMatch) {
-      const text = bulletMatch[1].replace(/\*\*(.+?)\*\*/g, '<strong class="text-[#F1F5F9] font-medium">$1</strong>');
+      const text = bulletMatch[1].replace(/\*\*(.+?)\*\*/g, '<strong class="text-ag-primary font-medium">$1</strong>');
       elements.push(
         <div key={key++} className="flex gap-3 mt-1">
           <span className="w-1 h-1 rounded-full bg-[#34D399] mt-[8px] flex-shrink-0" />
@@ -158,7 +158,7 @@ function LilyMessage({ content }: { content: string }) {
       continue;
     }
 
-    const text = line.replace(/\*\*(.+?)\*\*/g, '<strong class="text-[#F1F5F9] font-medium">$1</strong>');
+    const text = line.replace(/\*\*(.+?)\*\*/g, '<strong class="text-ag-primary font-medium">$1</strong>');
     elements.push(
       <p key={key++} className="text-[13px] text-[#CBD5E1] leading-[1.7]" dangerouslySetInnerHTML={{ __html: text }} />
     );
@@ -308,7 +308,7 @@ export default function AdvisorPage() {
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="text-[24px] font-bold text-[#F1F5F9] tracking-tight">Lily</h1>
+                <h1 className="text-[24px] font-bold text-ag-primary tracking-tight">Lily</h1>
                 <span className="flex items-center gap-1 font-mono text-[9px] font-semibold text-[#34D399] bg-[#34D399]/[0.06] border border-[#34D399]/15 px-2 py-0.5 rounded-full uppercase tracking-[1.5px]">
                   <Sparkles size={9} /> AG360 Advisor
                 </span>
@@ -317,10 +317,10 @@ export default function AdvisorPage() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34D399] opacity-40" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-[#34D399]" />
                   </span>
-                  <span className="font-mono text-[9px] text-[#64748B] uppercase tracking-[1px]">Online</span>
+                  <span className="font-mono text-[9px] text-ag-muted uppercase tracking-[1px]">Online</span>
                 </span>
               </div>
-              <p className="text-[12px] text-[#64748B] mt-0.5">
+              <p className="text-[12px] text-ag-muted mt-0.5">
                 {profileLoaded && profile
                   ? `Connected to ${profile.farmName} · ${profile.province} · ${profile.riskProfile} risk`
                   : "Grain marketing · Agronomy · Farm business"}
@@ -341,7 +341,7 @@ export default function AdvisorPage() {
 
         <div className="mt-3 px-3 py-2 rounded-lg flex items-center gap-2" style={{ background: "rgba(245,158,11,0.04)", border: "1px solid rgba(245,158,11,0.08)" }}>
           <AlertTriangle size={11} className="text-[#F59E0B]/60 flex-shrink-0" />
-          <p className="text-[10px] text-[#64748B]">Operational guidance only — not legal, financial, or medical advice. Verify crop protection rates against registered labels.</p>
+          <p className="text-[10px] text-ag-muted">Operational guidance only — not legal, financial, or medical advice. Verify crop protection rates against registered labels.</p>
         </div>
       </div>
 
@@ -359,10 +359,10 @@ export default function AdvisorPage() {
               </div>
             </div>
 
-            <h2 className="text-[20px] font-semibold text-[#F1F5F9] tracking-tight mb-1">
+            <h2 className="text-[20px] font-semibold text-ag-primary tracking-tight mb-1">
               What do you need to win today?
             </h2>
-            <p className="text-[13px] text-[#64748B] mb-8 max-w-md text-center">
+            <p className="text-[13px] text-ag-muted mb-8 max-w-md text-center">
               {profile
                 ? `Every answer is tailored to ${profile.farmName} — your acres, costs, and risk profile.`
                 : "Your agronomist and grain marketer — combined into one advisor, available 24/7."}
@@ -381,8 +381,8 @@ export default function AdvisorPage() {
                     e.currentTarget.style.background = "rgba(255,255,255,0.02)";
                     e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
                   }}>
-                  <Icon size={14} className="text-[#64748B] group-hover:text-[#34D399] mt-0.5 flex-shrink-0 transition-colors" />
-                  <span className="text-[12px] text-[#94A3B8] group-hover:text-[#F1F5F9] leading-snug transition-colors">{text}</span>
+                  <Icon size={14} className="text-ag-muted group-hover:text-[#34D399] mt-0.5 flex-shrink-0 transition-colors" />
+                  <span className="text-[12px] text-ag-secondary group-hover:text-ag-primary leading-snug transition-colors">{text}</span>
                 </button>
               ))}
             </div>
@@ -430,7 +430,7 @@ export default function AdvisorPage() {
                 </div>
                 {msg.role === "user" && (
                   <div className="w-7 h-7 rounded-full bg-white/[0.06] border border-white/[0.08] flex items-center justify-center shrink-0 mt-1">
-                    <User size={12} className="text-[#94A3B8]" />
+                    <User size={12} className="text-ag-secondary" />
                   </div>
                 )}
               </div>
@@ -464,7 +464,7 @@ export default function AdvisorPage() {
                         <div key={d} className="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-bounce" style={{ animationDelay: `${d}ms` }} />
                       ))}
                     </div>
-                    <span className="text-[11px] text-[#475569] font-mono">thinking</span>
+                    <span className="text-[11px] text-ag-dim font-mono">thinking</span>
                   </div>
                 </div>
               </div>
@@ -516,7 +516,7 @@ export default function AdvisorPage() {
             className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 hover:bg-white/[0.06]"
             style={{ background: "rgba(255,255,255,0.04)" }}
             title="Attach file">
-            <Paperclip size={14} className="text-[#64748B]" />
+            <Paperclip size={14} className="text-ag-muted" />
           </button>
           <input
             type="text"
@@ -526,7 +526,7 @@ export default function AdvisorPage() {
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
             placeholder="Ask Lily anything about your farm operation..."
-            className="flex-1 text-[13px] text-[#F1F5F9] placeholder:text-[#475569] outline-none bg-transparent"
+            className="flex-1 text-[13px] text-ag-primary placeholder:text-ag-dim outline-none bg-transparent"
           />
           <button onClick={() => sendMessage(input)} disabled={loading || (!input.trim() && attachments.length === 0)}
             className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 disabled:opacity-30"
@@ -534,7 +534,7 @@ export default function AdvisorPage() {
               background: (!input.trim() && attachments.length === 0) || loading ? "rgba(255,255,255,0.04)" : "linear-gradient(135deg, #34D399, #2DD4A8)",
               boxShadow: (input.trim() || attachments.length > 0) && !loading ? "0 2px 8px rgba(52,211,153,0.25)" : "none",
             }}>
-            <Send size={14} className={(input.trim() || attachments.length > 0) && !loading ? "text-[#080C15]" : "text-[#475569]"} />
+            <Send size={14} className={(input.trim() || attachments.length > 0) && !loading ? "text-[#080C15]" : "text-ag-dim"} />
           </button>
         </div>
       </div>

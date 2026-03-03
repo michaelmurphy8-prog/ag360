@@ -623,21 +623,21 @@ export default function MapsPage() {
           <button
             onClick={() => setScoutMode(!scoutMode)}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-lg transition-colors ${
-              scoutMode ? "bg-[#34D399] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white border border-black/20"
+              scoutMode ? "bg-[#34D399] text-[#0F1629]" : "bg-ag-card/90 text-ag-secondary hover:text-white border border-black/20"
             }`}>
             {scoutMode ? <><X size={12} /> Cancel Scout</> : <><MapPin size={12} /> Scout Pin</>}
           </button>
           <button
             onClick={() => setShowScoutPins(!showScoutPins)}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-lg transition-colors ${
-              showScoutPins ? "bg-[#F59E0B] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white border border-black/20"
+              showScoutPins ? "bg-[#F59E0B] text-[#0F1629]" : "bg-ag-card/90 text-ag-secondary hover:text-white border border-black/20"
             }`}>
             <Eye size={12} /> Pins {scoutReports.length > 0 ? `(${scoutReports.length})` : ""}
           </button>
           <button
             onClick={() => setShowNDVI(!showNDVI)}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-lg transition-colors ${
-              showNDVI ? "bg-[#22C55E] text-[#0F1629]" : "bg-[#0F1629]/90 text-[#94A3B8] hover:text-white border border-black/20"
+              showNDVI ? "bg-[#22C55E] text-[#0F1629]" : "bg-ag-card/90 text-ag-secondary hover:text-white border border-black/20"
             }`}>
             <Leaf size={12} /> Vegetation
           </button>
@@ -665,7 +665,7 @@ export default function MapsPage() {
         />
 
         <button onClick={() => setPanelCollapsed(!panelCollapsed)}
-          className="absolute top-4 right-4 z-10 bg-[#0F1629]/90 border border-[#1E293B] rounded-lg p-2 shadow-lg text-[#94A3B8] hover:text-white transition-colors">
+          className="absolute top-4 right-4 z-10 bg-ag-card/90 border border-ag rounded-lg p-2 shadow-lg text-ag-secondary hover:text-white transition-colors">
           {panelCollapsed ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
         </button>
       </div>

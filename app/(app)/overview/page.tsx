@@ -129,11 +129,11 @@ const [payables, setPayables] = useState<any[]>([])
 
       {/* ── Page Header ───────────────────────────────────── */}
       <div>
-        <h1 className="text-[28px] font-bold text-[#F1F5F9] tracking-tight">
+        <h1 className="text-[28px] font-bold text-ag-primary tracking-tight">
           Farm Overview
         </h1>
-        <p className="text-[13px] text-[#64748B] mt-1">
-          Murphy Farms · Saskatchewan, CA · <span className="text-[#94A3B8]">Updated just now</span>
+        <p className="text-[13px] text-ag-muted mt-1">
+          Murphy Farms · Saskatchewan, CA · <span className="text-ag-secondary">Updated just now</span>
         </p>
       </div>
 
@@ -144,13 +144,13 @@ const [payables, setPayables] = useState<any[]>([])
             key={kpi.label}
             className="bg-[#111827] border border-white/[0.06] rounded-xl px-5 py-5 flex-1 min-w-[160px]"
           >
-            <p className="font-mono text-[11px] font-bold text-[#F1F5F9] tracking-[1.5px] uppercase mb-2">
+            <p className="font-mono text-[11px] font-bold text-ag-primary tracking-[1.5px] uppercase mb-2">
               {kpi.label}
             </p>
-            <p className="text-[28px] font-bold text-[#F1F5F9] leading-none mb-1">
+            <p className="text-[28px] font-bold text-ag-primary leading-none mb-1">
               {kpi.value}
             </p>
-            <p className={`font-mono text-[11px] ${kpi.accent ? 'text-[#34D399]' : 'text-[#94A3B8]'}`}>
+            <p className={`font-mono text-[11px] ${kpi.accent ? 'text-[#34D399]' : 'text-ag-secondary'}`}>
               {kpi.sub}
             </p>
           </div>
@@ -163,7 +163,7 @@ const [payables, setPayables] = useState<any[]>([])
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sprout size={16} className="text-[#34D399]" />
-              <h2 className="font-mono text-[11px] font-semibold text-[#94A3B8] tracking-[2px] uppercase">
+              <h2 className="font-mono text-[11px] font-semibold text-ag-secondary tracking-[2px] uppercase">
                 Agronomy Reminders
               </h2>
             </div>
@@ -182,13 +182,13 @@ const [payables, setPayables] = useState<any[]>([])
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-[#34D399]">{entry.crop}</span>
-                      {entry.field_name && <span className="text-xs text-[#64748B]">· {entry.field_name}</span>}
-                      {entry.acres && <span className="text-xs text-[#64748B]">· {entry.acres} ac</span>}
+                      {entry.field_name && <span className="text-xs text-ag-muted">· {entry.field_name}</span>}
+                      {entry.acres && <span className="text-xs text-ag-muted">· {entry.acres} ac</span>}
                       <span className="text-xs font-medium px-2 py-0.5 rounded-full border border-[#34D399]/20 bg-[#34D399]/[0.08] text-[#34D399]">
                         Day {daysIn} — {status.label}
                       </span>
                     </div>
-                    <p className="text-xs text-[#94A3B8] mt-1 leading-relaxed">{status.advice}</p>
+                    <p className="text-xs text-ag-secondary mt-1 leading-relaxed">{status.advice}</p>
                   </div>
                 </div>
               </div>
@@ -203,7 +203,7 @@ const [payables, setPayables] = useState<any[]>([])
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <DollarSign size={16} className="text-[#F59E0B]" />
-              <h2 className="font-mono text-[11px] font-semibold text-[#94A3B8] tracking-[2px] uppercase">
+              <h2 className="font-mono text-[11px] font-semibold text-ag-secondary tracking-[2px] uppercase">
                 Bills Due
               </h2>
             </div>
@@ -227,8 +227,8 @@ const [payables, setPayables] = useState<any[]>([])
               </div>
             )}
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-              <FileText size={13} className="text-[#94A3B8]" />
-              <span className="text-xs text-[#94A3B8]">{payables.length} unpaid · <span className="font-semibold text-[#F1F5F9]">${totalOwing.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span> total</span>
+              <FileText size={13} className="text-ag-secondary" />
+              <span className="text-xs text-ag-secondary">{payables.length} unpaid · <span className="font-semibold text-ag-primary">${totalOwing.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</span> total</span>
             </div>
           </div>
 
@@ -258,17 +258,17 @@ const [payables, setPayables] = useState<any[]>([])
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-[#F1F5F9] truncate">{e.description}</span>
+                        <span className="text-sm font-medium text-ag-primary truncate">{e.description}</span>
                         {e.vendor && (
-                          <span className="text-[10px] font-mono text-[#64748B] px-1.5 py-0.5 rounded bg-white/[0.04]">{e.vendor}</span>
+                          <span className="text-[10px] font-mono text-ag-muted px-1.5 py-0.5 rounded bg-white/[0.04]">{e.vendor}</span>
                         )}
                       </div>
-                      <p className="text-[11px] text-[#64748B] mt-0.5">
+                      <p className="text-[11px] text-ag-muted mt-0.5">
                         {e.due_date ? (daysUntil !== null && daysUntil < 0 ? `${Math.abs(daysUntil)} days overdue` : daysUntil === 0 ? 'Due today' : `Due in ${daysUntil} days`) : 'No due date'}
                         {e.payment_terms && e.payment_terms !== 'paid' && ` · ${e.payment_terms.replace('_', ' ')}`}
                       </p>
                     </div>
-                    <span className="text-sm font-mono font-semibold text-[#F1F5F9]">
+                    <span className="text-sm font-mono font-semibold text-ag-primary">
                       ${total.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -282,7 +282,7 @@ const [payables, setPayables] = useState<any[]>([])
 
         {/* Modules — left 2/3 */}
         <div className="col-span-2 space-y-4">
-          <h2 className="font-mono text-[11px] font-semibold text-[#94A3B8] tracking-[2px] uppercase">
+          <h2 className="font-mono text-[11px] font-semibold text-ag-secondary tracking-[2px] uppercase">
             MODULES
           </h2>
           <div className="grid grid-cols-2 gap-4">
@@ -305,8 +305,8 @@ const [payables, setPayables] = useState<any[]>([])
                       {mod.status}
                     </span>
                   </div>
-                  <p className="text-[15px] font-semibold text-[#F1F5F9] mt-4">{mod.label}</p>
-                  <p className="text-xs text-[#64748B] mt-1">{mod.stats}</p>
+                  <p className="text-[15px] font-semibold text-ag-primary mt-4">{mod.label}</p>
+                  <p className="text-xs text-ag-muted mt-1">{mod.stats}</p>
                 </Link>
               )
             })}
@@ -315,7 +315,7 @@ const [payables, setPayables] = useState<any[]>([])
 
         {/* Alerts — right 1/3 */}
         <div className="space-y-4">
-          <h2 className="font-mono text-[11px] font-semibold text-[#94A3B8] tracking-[2px] uppercase">
+          <h2 className="font-mono text-[11px] font-semibold text-ag-secondary tracking-[2px] uppercase">
             ALERTS & ACTIONS
           </h2>
           <div className="space-y-3">
@@ -331,7 +331,7 @@ const [payables, setPayables] = useState<any[]>([])
                     className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                     style={{ background: c.dot }}
                   />
-                  <p className="text-[12px] text-[#94A3B8] leading-relaxed">{alert.message}</p>
+                  <p className="text-[12px] text-ag-secondary leading-relaxed">{alert.message}</p>
                 </div>
               )
             })}
@@ -347,7 +347,7 @@ const [payables, setPayables] = useState<any[]>([])
             }}
           >
             <p className="text-[14px] font-semibold text-[#34D399]">Ask Lily</p>
-            <p className="text-[12px] text-[#94A3B8] mt-1">Get AI-powered advice for your farm right now.</p>
+            <p className="text-[12px] text-ag-secondary mt-1">Get AI-powered advice for your farm right now.</p>
           </Link>
         </div>
       </div>

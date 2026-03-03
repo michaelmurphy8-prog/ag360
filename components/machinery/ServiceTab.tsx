@@ -50,14 +50,14 @@ function priorityColor(p: string) {
   if (p === "critical") return "text-[#EF4444]";
   if (p === "high") return "text-[#F59E0B]";
   if (p === "normal") return "text-[#60A5FA]";
-  return "text-[#64748B]";
+  return "text-ag-muted";
 }
 
 function categoryBadge(cat: string) {
   const colors: Record<string, string> = {
     preventive: "bg-[#34D399]/10 text-[#34D399]", repair: "bg-[#F59E0B]/10 text-[#F59E0B]",
     inspection: "bg-[#60A5FA]/10 text-[#60A5FA]", warranty: "bg-[#8B5CF6]/10 text-[#8B5CF6]",
-    general: "bg-white/[0.04] text-[#94A3B8]",
+    general: "bg-white/[0.04] text-ag-secondary",
   };
   return colors[cat] || colors.general;
 }
@@ -177,7 +177,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
   const kpis = stats ? [
     { label: "Overdue", value: String(stats.schedule.overdue), color: stats.schedule.overdue > 0 ? "text-[#EF4444]" : "text-[#34D399]", icon: AlertTriangle },
     { label: "Due Soon", value: String(stats.schedule.due_soon), color: "text-[#F59E0B]", icon: Clock },
-    { label: "Service Spend (YTD)", value: `$${Math.round(stats.service.total_cost).toLocaleString()}`, color: "text-[#F1F5F9]", icon: DollarSign },
+    { label: "Service Spend (YTD)", value: `$${Math.round(stats.service.total_cost).toLocaleString()}`, color: "text-ag-primary", icon: DollarSign },
     { label: "Services (30d)", value: String(stats.service.last_30_days), color: "text-[#60A5FA]", icon: Wrench },
     { label: "Active Downtime", value: String(stats.downtime.active_downtime), color: stats.downtime.active_downtime > 0 ? "text-[#EF4444]" : "text-[#34D399]", icon: TrendingUp },
   ] : [];
@@ -191,7 +191,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
             <div key={k.label} className="bg-[#111827] rounded-xl border border-white/[0.06] p-4">
               <div className="flex items-center gap-1.5 mb-1">
                 <k.icon size={12} className={k.color} />
-                <p className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px]">{k.label}</p>
+                <p className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">{k.label}</p>
               </div>
               <p className={`text-xl font-bold ${k.color}`}>{k.value}</p>
             </div>
@@ -208,8 +208,8 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
           {activeDowntime.map(d => (
             <div key={d.id} className="flex items-center justify-between py-2 border-b border-[#EF4444]/10 last:border-0">
               <div>
-                <p className="text-sm font-semibold text-[#F1F5F9]">{d.asset_name}</p>
-                <p className="text-xs text-[#64748B]">{d.reason || "No reason"} · Down {timeAgo(d.startTime)}</p>
+                <p className="text-sm font-semibold text-ag-primary">{d.asset_name}</p>
+                <p className="text-xs text-ag-muted">{d.reason || "No reason"} · Down {timeAgo(d.startTime)}</p>
               </div>
               <button onClick={() => handleResolveDowntime(d.id)}
                 className="flex items-center gap-1.5 text-xs font-semibold text-[#34D399] border border-[#34D399]/30 px-3 py-1.5 rounded-full hover:bg-[#34D399]/10 transition-colors">
@@ -231,7 +231,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
             ]).map(t => (
               <button key={t.key} onClick={() => setSubTab(t.key)}
                 className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                  subTab === t.key ? "bg-white/[0.06] text-[#F1F5F9]" : "text-[#64748B] hover:text-[#94A3B8]"
+                  subTab === t.key ? "bg-white/[0.06] text-ag-primary" : "text-ag-muted hover:text-ag-secondary"
                 }`}>
                 {t.label} {t.count > 0 && <span className="ml-1 text-[10px] opacity-60">({t.count})</span>}
               </button>
@@ -259,14 +259,14 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
         </div>
 
         {loading ? (
-          <div className="px-6 py-12 text-center text-sm text-[#64748B]">Loading service data...</div>
+          <div className="px-6 py-12 text-center text-sm text-ag-muted">Loading service data...</div>
         ) : (
           <>
             {/* SCHEDULE TAB */}
             {subTab === "schedule" && (
               <div className="divide-y divide-white/[0.04]">
                 {schedules.length === 0 ? (
-                  <div className="px-6 py-12 text-center text-sm text-[#64748B]">No scheduled services yet. Click &quot;Schedule&quot; to add one.</div>
+                  <div className="px-6 py-12 text-center text-sm text-ag-muted">No scheduled services yet. Click &quot;Schedule&quot; to add one.</div>
                 ) : schedules.map(s => {
                   const hoursUntil = s.dueAtHours && s.current_hours ? s.dueAtHours - s.current_hours : null;
                   return (
@@ -274,23 +274,23 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
                       <div className="flex items-center gap-4 flex-1">
                         <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${statusBadge(s.status)}`}>{s.status.replace("_", " ")}</span>
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-[#F1F5F9]">{s.serviceType}</p>
-                          <p className="text-xs text-[#64748B]">{s.asset_name} — {s.make} {s.model}</p>
+                          <p className="text-sm font-semibold text-ag-primary">{s.serviceType}</p>
+                          <p className="text-xs text-ag-muted">{s.asset_name} — {s.make} {s.model}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-6">
                         {hoursUntil !== null && (
                           <div className="text-right">
-                            <p className="text-xs text-[#64748B]">Hours Until Due</p>
-                            <p className={`text-sm font-semibold ${hoursUntil <= 0 ? "text-[#EF4444]" : hoursUntil <= 50 ? "text-[#F59E0B]" : "text-[#F1F5F9]"}`}>
+                            <p className="text-xs text-ag-muted">Hours Until Due</p>
+                            <p className={`text-sm font-semibold ${hoursUntil <= 0 ? "text-[#EF4444]" : hoursUntil <= 50 ? "text-[#F59E0B]" : "text-ag-primary"}`}>
                               {hoursUntil <= 0 ? `${Math.abs(hoursUntil)} OVERDUE` : hoursUntil.toLocaleString()}
                             </p>
                           </div>
                         )}
                         {s.dueAtDate && (
                           <div className="text-right">
-                            <p className="text-xs text-[#64748B]">Due Date</p>
-                            <p className="text-sm font-semibold text-[#F1F5F9]">{new Date(s.dueAtDate).toLocaleDateString("en-CA")}</p>
+                            <p className="text-xs text-ag-muted">Due Date</p>
+                            <p className="text-sm font-semibold text-ag-primary">{new Date(s.dueAtDate).toLocaleDateString("en-CA")}</p>
                           </div>
                         )}
                         <span className={`text-[10px] font-bold uppercase ${priorityColor(s.priority)}`}>{s.priority}</span>
@@ -309,7 +309,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
             {subTab === "logs" && (
               <div className="divide-y divide-white/[0.04]">
                 {logs.length === 0 ? (
-                  <div className="px-6 py-12 text-center text-sm text-[#64748B]">No service history yet. Click &quot;Log Service&quot; to record one.</div>
+                  <div className="px-6 py-12 text-center text-sm text-ag-muted">No service history yet. Click &quot;Log Service&quot; to record one.</div>
                 ) : logs.map(l => (
                   <div key={l.id} className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
                     <div className="flex items-center gap-4 flex-1">
@@ -317,30 +317,30 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
                         {l.serviceCategory}
                       </span>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-[#F1F5F9]">{l.type}</p>
-                        <p className="text-xs text-[#64748B]">{l.asset_name} — {l.make} {l.model}</p>
-                        {l.partsUsed && <p className="text-[10px] text-[#475569] mt-0.5">Parts: {l.partsUsed}</p>}
+                        <p className="text-sm font-semibold text-ag-primary">{l.type}</p>
+                        <p className="text-xs text-ag-muted">{l.asset_name} — {l.make} {l.model}</p>
+                        {l.partsUsed && <p className="text-[10px] text-ag-dim mt-0.5">Parts: {l.partsUsed}</p>}
                       </div>
                     </div>
                     <div className="flex items-center gap-6">
                       <div className="text-right">
-                        <p className="text-xs text-[#64748B]">Date</p>
-                        <p className="text-sm font-semibold text-[#F1F5F9]">{new Date(l.date).toLocaleDateString("en-CA")}</p>
+                        <p className="text-xs text-ag-muted">Date</p>
+                        <p className="text-sm font-semibold text-ag-primary">{new Date(l.date).toLocaleDateString("en-CA")}</p>
                       </div>
                       {l.hoursAtService && (
                         <div className="text-right">
-                          <p className="text-xs text-[#64748B]">At Hours</p>
-                          <p className="text-sm font-semibold text-[#F1F5F9]">{l.hoursAtService.toLocaleString()}</p>
+                          <p className="text-xs text-ag-muted">At Hours</p>
+                          <p className="text-sm font-semibold text-ag-primary">{l.hoursAtService.toLocaleString()}</p>
                         </div>
                       )}
                       <div className="text-right">
-                        <p className="text-xs text-[#64748B]">Cost</p>
-                        <p className="text-sm font-semibold text-[#F1F5F9]">{l.cost ? `$${Number(l.cost).toLocaleString()}` : "—"}</p>
+                        <p className="text-xs text-ag-muted">Cost</p>
+                        <p className="text-sm font-semibold text-ag-primary">{l.cost ? `$${Number(l.cost).toLocaleString()}` : "—"}</p>
                       </div>
                       {l.performedBy && (
                         <div className="text-right">
-                          <p className="text-xs text-[#64748B]">By</p>
-                          <p className="text-sm text-[#94A3B8]">{l.performedBy}</p>
+                          <p className="text-xs text-ag-muted">By</p>
+                          <p className="text-sm text-ag-secondary">{l.performedBy}</p>
                         </div>
                       )}
                     </div>
@@ -353,7 +353,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
             {subTab === "downtime" && (
               <div className="divide-y divide-white/[0.04]">
                 {downtimeLogs.length === 0 ? (
-                  <div className="px-6 py-12 text-center text-sm text-[#64748B]">No downtime incidents recorded.</div>
+                  <div className="px-6 py-12 text-center text-sm text-ag-muted">No downtime incidents recorded.</div>
                 ) : downtimeLogs.map(d => {
                   const isActive = !d.endTime;
                   const duration = d.endTime
@@ -363,29 +363,29 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
                     <div key={d.id} className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
                       <div className="flex items-center gap-4 flex-1">
                         <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
-                          isActive ? "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/20" : "bg-white/[0.04] text-[#64748B] border-white/[0.08]"
+                          isActive ? "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/20" : "bg-white/[0.04] text-ag-muted border-white/[0.08]"
                         }`}>
                           {isActive ? "ACTIVE" : "RESOLVED"}
                         </span>
                         <div>
-                          <p className="text-sm font-semibold text-[#F1F5F9]">{d.asset_name}</p>
-                          <p className="text-xs text-[#64748B]">{d.reason || "No reason"}</p>
-                          {d.notes && <p className="text-[10px] text-[#475569] mt-0.5">{d.notes}</p>}
+                          <p className="text-sm font-semibold text-ag-primary">{d.asset_name}</p>
+                          <p className="text-xs text-ag-muted">{d.reason || "No reason"}</p>
+                          {d.notes && <p className="text-[10px] text-ag-dim mt-0.5">{d.notes}</p>}
                         </div>
                       </div>
                       <div className="flex items-center gap-6">
                         <div className="text-right">
-                          <p className="text-xs text-[#64748B]">Started</p>
-                          <p className="text-sm text-[#F1F5F9]">{new Date(d.startTime).toLocaleDateString("en-CA")}</p>
+                          <p className="text-xs text-ag-muted">Started</p>
+                          <p className="text-sm text-ag-primary">{new Date(d.startTime).toLocaleDateString("en-CA")}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs text-[#64748B]">Duration</p>
-                          <p className={`text-sm font-semibold ${isActive ? "text-[#EF4444]" : "text-[#F1F5F9]"}`}>{duration}h</p>
+                          <p className="text-xs text-ag-muted">Duration</p>
+                          <p className={`text-sm font-semibold ${isActive ? "text-[#EF4444]" : "text-ag-primary"}`}>{duration}h</p>
                         </div>
                         {d.costImpact && (
                           <div className="text-right">
-                            <p className="text-xs text-[#64748B]">Cost</p>
-                            <p className="text-sm font-semibold text-[#F1F5F9]">${Number(d.costImpact).toLocaleString()}</p>
+                            <p className="text-xs text-ag-muted">Cost</p>
+                            <p className="text-sm font-semibold text-ag-primary">${Number(d.costImpact).toLocaleString()}</p>
                           </div>
                         )}
                         {isActive && (
@@ -407,7 +407,7 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
       {/* Service Cost Trend */}
       {costChartData.length > 1 && (
         <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
-          <p className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px] mb-4">Service Cost Trend</p>
+          <p className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px] mb-4">Service Cost Trend</p>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={costChartData}>
@@ -429,15 +429,15 @@ export default function ServiceTab({ assets }: { assets: Asset[] }) {
       {/* Top Cost Units */}
       {stats && stats.topCostUnits.length > 0 && (
         <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-5">
-          <p className="font-mono text-[10px] font-semibold text-[#64748B] uppercase tracking-[1.5px] mb-3">Top Cost Units (YTD)</p>
+          <p className="font-mono text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px] mb-3">Top Cost Units (YTD)</p>
           <div className="space-y-2">
             {stats.topCostUnits.map((u, i) => (
               <div key={i} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold text-[#475569] w-4">{i + 1}</span>
+                  <span className="text-xs font-bold text-ag-dim w-4">{i + 1}</span>
                   <div>
-                    <p className="text-sm font-medium text-[#F1F5F9]">{u.name}</p>
-                    <p className="text-[10px] text-[#64748B]">{u.service_count} services</p>
+                    <p className="text-sm font-medium text-ag-primary">{u.name}</p>
+                    <p className="text-[10px] text-ag-muted">{u.service_count} services</p>
                   </div>
                 </div>
                 <p className="text-sm font-semibold text-[#F59E0B]">${Math.round(u.total_cost).toLocaleString()}</p>

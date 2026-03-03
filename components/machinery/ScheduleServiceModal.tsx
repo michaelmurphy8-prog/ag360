@@ -71,32 +71,32 @@ export default function ScheduleServiceModal({ assets, preselectedAssetId, onClo
               <Calendar size={16} className="text-[#60A5FA]" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-[#F1F5F9]">Schedule Service</h2>
-              <p className="text-xs text-[#64748B]">Set up upcoming or recurring maintenance</p>
+              <h2 className="text-base font-semibold text-ag-primary">Schedule Service</h2>
+              <p className="text-xs text-ag-muted">Set up upcoming or recurring maintenance</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-[#64748B] hover:text-white"><X size={18} /></button>
+          <button onClick={onClose} className="text-ag-muted hover:text-white"><X size={18} /></button>
         </div>
 
         <div className="p-6 space-y-4">
           {/* Unit */}
           <div>
-            <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Unit *</label>
+            <label className="text-xs font-semibold text-ag-secondary uppercase tracking-wide">Unit *</label>
             <select value={form.assetId} onChange={e => update("assetId", e.target.value)}
-              className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9] focus:border-[#60A5FA]/40 focus:outline-none">
+              className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[#60A5FA]/40 focus:outline-none">
               <option value="">Select unit...</option>
               {assets.map(a => <option key={a.id} value={a.id}>{a.name} — {a.make} {a.model}</option>)}
             </select>
             {selectedAsset?.hoursTotal && (
-              <p className="text-[10px] text-[#64748B] mt-1">Current hours: {selectedAsset.hoursTotal.toLocaleString()}</p>
+              <p className="text-[10px] text-ag-muted mt-1">Current hours: {selectedAsset.hoursTotal.toLocaleString()}</p>
             )}
           </div>
 
           {/* Service Type */}
           <div>
-            <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Service Type *</label>
+            <label className="text-xs font-semibold text-ag-secondary uppercase tracking-wide">Service Type *</label>
             <select value={form.serviceType} onChange={e => update("serviceType", e.target.value)}
-              className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9] focus:border-[#60A5FA]/40 focus:outline-none">
+              className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[#60A5FA]/40 focus:outline-none">
               <option value="">Select type...</option>
               {SERVICE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
@@ -104,51 +104,51 @@ export default function ScheduleServiceModal({ assets, preselectedAssetId, onClo
 
           {/* Due triggers */}
           <div className="bg-white/[0.02] rounded-lg p-4 border border-white/[0.04]">
-            <p className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide mb-3">Due When (set one or both)</p>
+            <p className="text-xs font-semibold text-ag-secondary uppercase tracking-wide mb-3">Due When (set one or both)</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-[11px] text-[#64748B]">At Hours</label>
+                <label className="text-[11px] text-ag-muted">At Hours</label>
                 <input type="number" value={form.dueAtHours} onChange={e => update("dueAtHours", e.target.value)} placeholder="e.g., 750"
-                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] focus:border-[#60A5FA]/40 focus:outline-none" />
+                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-ag-primary focus:border-[#60A5FA]/40 focus:outline-none" />
               </div>
               <div>
-                <label className="text-[11px] text-[#64748B]">By Date</label>
+                <label className="text-[11px] text-ag-muted">By Date</label>
                 <input type="date" value={form.dueAtDate} onChange={e => update("dueAtDate", e.target.value)}
-                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] focus:border-[#60A5FA]/40 focus:outline-none" />
+                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-ag-primary focus:border-[#60A5FA]/40 focus:outline-none" />
               </div>
             </div>
           </div>
 
           {/* Recurrence */}
           <div className="bg-white/[0.02] rounded-lg p-4 border border-white/[0.04]">
-            <p className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide mb-3">Repeat Every (optional)</p>
+            <p className="text-xs font-semibold text-ag-secondary uppercase tracking-wide mb-3">Repeat Every (optional)</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-[11px] text-[#64748B]">Hours Interval</label>
+                <label className="text-[11px] text-ag-muted">Hours Interval</label>
                 <input type="number" value={form.intervalHours} onChange={e => update("intervalHours", e.target.value)} placeholder="e.g., 250"
-                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] focus:border-[#60A5FA]/40 focus:outline-none" />
+                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-ag-primary focus:border-[#60A5FA]/40 focus:outline-none" />
               </div>
               <div>
-                <label className="text-[11px] text-[#64748B]">Days Interval</label>
+                <label className="text-[11px] text-ag-muted">Days Interval</label>
                 <input type="number" value={form.intervalDays} onChange={e => update("intervalDays", e.target.value)} placeholder="e.g., 365"
-                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] focus:border-[#60A5FA]/40 focus:outline-none" />
+                  className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-ag-primary focus:border-[#60A5FA]/40 focus:outline-none" />
               </div>
             </div>
           </div>
 
           {/* Priority */}
           <div>
-            <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Priority</label>
+            <label className="text-xs font-semibold text-ag-secondary uppercase tracking-wide">Priority</label>
             <div className="flex gap-2 mt-1">
               {[
-                { value: "low", label: "Low", color: "text-[#94A3B8] border-white/[0.08]" },
+                { value: "low", label: "Low", color: "text-ag-secondary border-white/[0.08]" },
                 { value: "normal", label: "Normal", color: "text-[#60A5FA] border-[#60A5FA]/30" },
                 { value: "high", label: "High", color: "text-[#F59E0B] border-[#F59E0B]/30" },
                 { value: "critical", label: "Critical", color: "text-[#EF4444] border-[#EF4444]/30" },
               ].map(p => (
                 <button key={p.value} onClick={() => update("priority", p.value)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                    form.priority === p.value ? `${p.color} bg-white/[0.04]` : "text-[#64748B] border-white/[0.04]"
+                    form.priority === p.value ? `${p.color} bg-white/[0.04]` : "text-ag-muted border-white/[0.04]"
                   }`}>
                   {p.label}
                 </button>
@@ -158,14 +158,14 @@ export default function ScheduleServiceModal({ assets, preselectedAssetId, onClo
 
           {/* Notes */}
           <div>
-            <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wide">Notes</label>
+            <label className="text-xs font-semibold text-ag-secondary uppercase tracking-wide">Notes</label>
             <textarea rows={2} value={form.notes} onChange={e => update("notes", e.target.value)} placeholder="Additional details..."
-              className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9] focus:border-[#60A5FA]/40 focus:outline-none resize-none" />
+              className="w-full mt-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-ag-primary focus:border-[#60A5FA]/40 focus:outline-none resize-none" />
           </div>
         </div>
 
         <div className="px-6 py-4 border-t border-white/[0.06] flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-[#94A3B8] hover:text-white transition-colors">Cancel</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm text-ag-secondary hover:text-white transition-colors">Cancel</button>
           <button onClick={handleSave} disabled={!form.assetId || !form.serviceType || saving}
             className="px-5 py-2 text-sm font-semibold bg-[#60A5FA] text-white rounded-full hover:bg-[#3B82F6] transition-colors disabled:opacity-50">
             {saving ? "Saving..." : "Schedule Service"}

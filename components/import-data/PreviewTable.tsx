@@ -69,8 +69,8 @@ export default function PreviewTable({
     <div className="space-y-3">
       {/* Summary Bar */}
       <div className="flex items-center gap-4 text-sm">
-        <span className="text-[#94A3B8]">{summary.total} rows parsed</span>
-        <span className="text-[#475569]">|</span>
+        <span className="text-ag-secondary">{summary.total} rows parsed</span>
+        <span className="text-ag-dim">|</span>
         <button
           onClick={() => {
             setFilter("all");
@@ -79,8 +79,8 @@ export default function PreviewTable({
           className={
             "px-2 py-0.5 rounded text-xs font-medium transition-colors " +
             (filter === "all"
-              ? "bg-[#1E293B] text-[#E2E8F0]"
-              : "text-[#94A3B8] hover:text-[#E2E8F0]")
+              ? "bg-[#1E293B] text-ag-primary"
+              : "text-ag-secondary hover:text-ag-primary")
           }
         >
           All ({summary.total})
@@ -134,21 +134,21 @@ export default function PreviewTable({
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border border-[#1E293B] overflow-hidden">
+      <div className="rounded-lg border border-ag overflow-hidden">
         <div className="overflow-x-auto max-h-[480px] overflow-y-auto">
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10">
-              <tr className="bg-[#0F1629] border-b border-[#1E293B]">
-                <th className="px-3 py-2.5 text-left text-xs font-medium text-[#94A3B8] w-10">
+              <tr className="bg-ag-card border-b border-ag">
+                <th className="px-3 py-2.5 text-left text-xs font-medium text-ag-secondary w-10">
                   <span className="sr-only">Status</span>
                 </th>
-                <th className="px-3 py-2.5 text-left text-xs font-medium text-[#94A3B8] w-8">
+                <th className="px-3 py-2.5 text-left text-xs font-medium text-ag-secondary w-8">
                   Row
                 </th>
                 {columns.map((col) => (
                   <th
                     key={col.key}
-                    className="px-3 py-2.5 text-left text-xs font-medium text-[#94A3B8] whitespace-nowrap"
+                    className="px-3 py-2.5 text-left text-xs font-medium text-ag-secondary whitespace-nowrap"
                   >
                     {col.header}
                     {col.required && (
@@ -178,7 +178,7 @@ export default function PreviewTable({
                   <React.Fragment key={row.rowIndex}>
                     <tr
                       className={
-                        "border-b border-[#1E293B]/50 transition-colors hover:bg-[#1E293B]/30 " +
+                        "border-b border-ag/50 transition-colors hover:bg-[#1E293B]/30 " +
                         statusConf.bg +
                         (isExcluded ? " opacity-40" : "")
                       }
@@ -189,7 +189,7 @@ export default function PreviewTable({
                           className={"w-4 h-4 " + statusConf.color}
                         />
                       </td>
-                      <td className="px-3 py-2 text-xs text-[#64748B] font-mono">
+                      <td className="px-3 py-2 text-xs text-ag-muted font-mono">
                         {row.rowIndex}
                       </td>
                       {columns.map((col) => {
@@ -197,7 +197,7 @@ export default function PreviewTable({
                         const hasError = errorFields.has(col.key);
                         const hasWarn = warnFields.has(col.key);
 
-                        let cellColor = "text-[#E2E8F0]";
+                        let cellColor = "text-ag-primary";
                         if (hasError) cellColor = "text-[#EF4444] bg-[#EF4444]/5";
                         else if (hasWarn) cellColor = "text-[#F59E0B]";
 
@@ -212,7 +212,7 @@ export default function PreviewTable({
                             {val !== null && val !== undefined ? (
                               String(val)
                             ) : (
-                              <span className="text-[#475569]">—</span>
+                              <span className="text-ag-dim">—</span>
                             )}
                           </td>
                         );
@@ -223,7 +223,7 @@ export default function PreviewTable({
                       <tr
                         className={
                           statusConf.bg +
-                          " border-b border-[#1E293B]/50"
+                          " border-b border-ag/50"
                         }
                       >
                         <td />
@@ -254,7 +254,7 @@ export default function PreviewTable({
                 <tr>
                   <td
                     colSpan={columns.length + 2}
-                    className="px-3 py-8 text-center text-[#94A3B8]"
+                    className="px-3 py-8 text-center text-ag-secondary"
                   >
                     No rows match this filter
                   </td>
@@ -267,7 +267,7 @@ export default function PreviewTable({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between text-xs text-[#94A3B8]">
+        <div className="flex items-center justify-between text-xs text-ag-secondary">
           <span>
             Showing {page * PAGE_SIZE + 1}–
             {Math.min((page + 1) * PAGE_SIZE, filteredRows.length)} of{" "}
