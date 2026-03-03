@@ -168,7 +168,26 @@ function TempTrend({ hourly, ni }: { hourly: Hourly; ni: number }) {
           <stop offset="0%" stopColor="var(--ag-accent)" stopOpacity="0.20" />
           <stop offset="100%" stopColor="var(--ag-accent)" stopOpacity="0.01" />
         </linearGradient>
+      <clipPath id="areaClip"><path d={area} /></clipPath>
       </defs>
+      <g clipPath="url(#areaClip)">
+      {/* Spray window shading */}
+      {slice.map((_: number, i: number) => {
+        const idx = s + i;
+        if (idx >= hourly.time.length) return null;
+        const hr = new Date(hourly.time[idx]).getHours();
+        const { overall } = sprayCheck(
+          hourly.wind_speed_10m[idx], hourly.temperature_2m[idx],
+          hourly.relative_humidity_2m[idx], hourly.precipitation_probability[idx], hr
+        );
+        const color = overall === "good" ? "var(--ag-green)" : overall === "marginal" ? "var(--ag-yellow)" : "var(--ag-red)";
+        const barW = (W - PX * 2) / n;
+        return (
+          <rect key={`spray-${i}`} x={PX + i * barW} y={PY} width={barW} height={H - PY * 2 - 6}
+            fill={color} opacity="0.20" />
+        );
+      })}
+      </g>
       {/* Grid */}
       {[0.25, 0.5, 0.75].map(p => (
         <line key={p} x1={PX} x2={W - PX} y1={PY + p * (H - PY * 2 - 6)} y2={PY + p * (H - PY * 2 - 6)}
