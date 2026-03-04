@@ -6,6 +6,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 import { LILY_TOOLS, executeTool } from "@/lib/lily-tools";
+import { neon } from "@neondatabase/serverless";
+const sql = neon(process.env.DATABASE_URL!);
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -96,9 +98,55 @@ export async function POST(req: NextRequest) {
     userId = req.headers.get("x-user-id") || "";
   }
 
-  // —— Build system prompt with farm profile context
+  // —— Fetch HR data for Lily context
+  let hrContext = '';
+  try {
+    if (userId) {
+      const hrWorkers = await sql`
+        SELECT w.name, w.role, w.worker_type, w.status, w.hourly_rate, w.daily_rate,
+               w.start_date, w.emergency_contact, w.emergency_phone
+        FROM workers w WHERE w.user_id = ${userId} ORDER BY w.name
+      `;
+      const hrCerts = await sql`
+        SELECT c.cert_type, c.expiry_date, c.cert_number, w.name as worker_name
+        FROM certifications c JOIN workers w ON c.worker_id = w.id
+        WHERE w.user_id = ${userId} ORDER BY c.expiry_date ASC
+      `;
+      const now = new Date();
+      const monthKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+      const hrTime = await sql`
+        SELECT w.name, SUM(t.hours) as total_hours, COUNT(DISTINCT t.entry_date) as days_worked,
+               COALESCE(w.hourly_rate, 0) as hourly_rate
+        FROM time_entries t JOIN workers w ON t.worker_id = w.id
+        WHERE w.user_id = ${userId} AND to_char(t.entry_date, 'YYYY-MM') = ${monthKey}
+        GROUP BY w.name, w.hourly_rate
+      `;
+      if (hrWorkers.length > 0) {
+        const wLines = hrWorkers.map((w: any) =>
+          `  - ${w.name} | ${w.role || 'No role'} | ${w.worker_type} | ${w.status} | Rate: ${w.hourly_rate ? '$' + w.hourly_rate + '/hr' : w.daily_rate ? '$' + w.daily_rate + '/day' : 'N/A'}${w.start_date ? ' | Started: ' + String(w.start_date).slice(0, 10) : ''}${w.emergency_contact ? ' | Emergency: ' + w.emergency_contact + (w.emergency_phone ? ' ' + w.emergency_phone : '') : ''}`
+        ).join('\n');
+        const cLines = hrCerts.length > 0 ? hrCerts.map((c: any) => {
+          const exp = c.expiry_date ? String(c.expiry_date).slice(0, 10) : 'No expiry';
+          const diff = c.expiry_date ? (new Date(String(c.expiry_date).slice(0, 10)).getTime() - Date.now()) / (1000 * 60 * 60 * 24) : Infinity;
+          const flag = diff < 0 ? ' EXPIRED' : diff < 30 ? ' EXPIRING SOON' : '';
+          return `  - ${c.worker_name}: ${c.cert_type}${c.cert_number ? ' #' + c.cert_number : ''} | Exp: ${exp}${flag}`;
+        }).join('\n') : '  None tracked';
+        const tLines = hrTime.length > 0 ? hrTime.map((t: any) => {
+          const hrs = Number(t.total_hours); const cost = hrs * Number(t.hourly_rate);
+          return `  - ${t.name}: ${hrs.toFixed(1)} hrs / ${t.days_worked} days${cost > 0 ? ' | Cost: $' + cost.toFixed(2) : ''}`;
+        }).join('\n') : '  No time entries this month';
+        const totalCost = hrTime.reduce((s: number, t: any) => s + Number(t.total_hours) * Number(t.hourly_rate), 0);
+        hrContext = `---\nLABOUR & HR DATA:\n\nTEAM (${hrWorkers.length} workers, ${hrWorkers.filter((w: any) => w.status === 'active').length} active):\n${wLines}\n\nCERTIFICATIONS:\n${cLines}\n\nTHIS MONTH (${monthKey}):\n${tLines}\nTotal Monthly Labour Cost: $${totalCost.toFixed(2)}\n\nYou can answer questions about workers, certs, expiry alerts, labour costs, and time tracking.\n---`;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch HR data for Lily:', err);
+  }
+
+  // —— Build system prompt with farm profile + HR context
   const systemWithContext = [
     LILY_SYSTEM_PROMPT,
+    hrContext,
     farmContext
       ? `---\nFARMER CONTEXT (from Farm Profile):\n${farmContext}\n\nUse this data in every response. Reference the farm by name. Use their actual numbers.\n---`
       : "",
