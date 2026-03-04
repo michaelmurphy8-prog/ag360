@@ -233,7 +233,19 @@ export default function LabourPage() {
   }, []);
 
   useEffect(() => {
-    Promise.all([fetchWorkers(), fetchCerts(), fetchTimeEntries(weekOf), fetchPrevWeek(weekOf), fetchIncidents()]).then(() => setLoading(false));
+    const fetchAcres = async () => {
+        try {
+          const r = await fetch("/api/farm-profile", {
+            headers: { "x-user-id": user?.id || "" },
+          });
+          const d = await r.json();
+          if (d.profile) {
+            const acres = parseFloat(d.profile.totalAcres || d.profile.total_acres || d.profile.acres || "0");
+            if (acres > 0) setTotalAcres(acres);
+          }
+        } catch {}
+      };
+    Promise.all([fetchWorkers(), fetchCerts(), fetchTimeEntries(weekOf), fetchPrevWeek(weekOf), fetchIncidents(), fetchAcres()]).then(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -345,7 +357,7 @@ export default function LabourPage() {
 
   // Labour cost per acre — uses total monthly cost / total acres from farm profile
   // For now we'll use a hardcoded total acres that can be replaced with Farm Profile API later
-  const totalAcres = 5000; // TODO: pull from Farm Profile
+  const [totalAcres, setTotalAcres] = useState(0);
   const costPerAcre = totalAcres > 0 && monthlyLabourCost > 0 ? monthlyLabourCost / totalAcres : 0;
 
   // Season info
