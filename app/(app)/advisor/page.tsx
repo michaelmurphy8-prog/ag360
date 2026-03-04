@@ -138,7 +138,7 @@ function LilyMessage({ content }: { content: string }) {
       elements.push(
         <div key={key++} className="flex gap-3 mt-1.5">
           <span className="font-mono text-[11px] text-[var(--ag-green)] font-semibold mt-[2px] w-4 flex-shrink-0 text-right">{numMatch[1]}.</span>
-          <p className="text-[13px] text-[#CBD5E1] leading-[1.7]" dangerouslySetInnerHTML={{ __html: text }} />
+          <p className="text-[13px] text-[var(--ag-text-secondary)] leading-[1.7]" dangerouslySetInnerHTML={{ __html: text }} />
         </div>
       );
       i++;
@@ -151,7 +151,7 @@ function LilyMessage({ content }: { content: string }) {
       elements.push(
         <div key={key++} className="flex gap-3 mt-1">
           <span className="w-1 h-1 rounded-full bg-[var(--ag-accent)] mt-[8px] flex-shrink-0" />
-          <p className="text-[13px] text-[#CBD5E1] leading-[1.7]" dangerouslySetInnerHTML={{ __html: text }} />
+          <p className="text-[13px] text-[var(--ag-text-secondary)] leading-[1.7]" dangerouslySetInnerHTML={{ __html: text }} />
         </div>
       );
       i++;
@@ -160,7 +160,7 @@ function LilyMessage({ content }: { content: string }) {
 
     const text = line.replace(/\*\*(.+?)\*\*/g, '<strong class="text-ag-primary font-medium">$1</strong>');
     elements.push(
-      <p key={key++} className="text-[13px] text-[#CBD5E1] leading-[1.7]" dangerouslySetInnerHTML={{ __html: text }} />
+      <p key={key++} className="text-[13px] text-[var(--ag-text-secondary)] leading-[1.7]" dangerouslySetInnerHTML={{ __html: text }} />
     );
     i++;
   }
