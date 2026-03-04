@@ -7,6 +7,7 @@ import {
   Trash2, Edit2, Phone, Mail, Shield, Clock, Calendar,
   ChevronDown, ChevronLeft, ChevronRight, UserPlus, Award,
   AlertCircle, DollarSign, Briefcase, Heart, Copy, FileSpreadsheet,
+  Sprout, Sun, Snowflake, Wheat, ShieldAlert, MapPin, Zap,
 } from "lucide-react";
 import WorkerSlideOut from "@/components/hr/WorkerSlideOut";
 import LabourCostChart from "@/components/hr/LabourCostChart";
@@ -41,6 +42,13 @@ type MonthlySummary = {
   total_hours: number; total_cost: number; days_worked: number;
 };
 
+type Incident = {
+  id: string; worker_id: string | null; incident_date: string;
+  incident_type: string; severity: string; field: string | null;
+  description: string | null; corrective_action: string | null;
+  worker_name: string | null; worker_role: string | null;
+};
+
 // ─── Constants ───────────────────────────────────────────────
 
 const WORKER_TYPES = [
@@ -57,7 +65,23 @@ const CERT_TYPES = [
   "Pesticide Applicator", "H2S Alive", "Other",
 ];
 
-const TABS = ["Team Roster", "Certifications", "Time & Cost"] as const;
+const INCIDENT_TYPES = [
+  { value: "near_miss", label: "Near Miss" },
+  { value: "injury", label: "Injury" },
+  { value: "equipment", label: "Equipment Damage" },
+  { value: "chemical", label: "Chemical Exposure" },
+  { value: "environmental", label: "Environmental" },
+  { value: "other", label: "Other" },
+];
+
+const SEVERITY_LEVELS = [
+  { value: "low", label: "Low", color: "var(--ag-green)", bg: "var(--ag-green-dim, rgba(74,124,89,0.08))" },
+  { value: "medium", label: "Medium", color: "var(--ag-yellow)", bg: "rgba(251,191,36,0.08)" },
+  { value: "high", label: "High", color: "#F97316", bg: "rgba(249,115,22,0.08)" },
+  { value: "critical", label: "Critical", color: "var(--ag-red)", bg: "var(--ag-red-dim, rgba(239,68,68,0.08))" },
+];
+
+const TABS = ["Team Roster", "Certifications", "Time & Cost", "Safety"] as const;
 type Tab = typeof TABS[number];
 
 // ─── Helpers ─────────────────────────────────────────────────
@@ -103,12 +127,19 @@ const getMonday = (d: Date) => {
 };
 
 const addDays = (d: Date, n: number) => {
-  const r = new Date(d);
-  r.setDate(r.getDate() + n);
-  return r;
+  const r = new Date(d); r.setDate(r.getDate() + n); return r;
 };
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+// Determine current farm season
+const getSeason = (): { label: string; icon: any; color: string } => {
+  const m = new Date().getMonth() + 1;
+  if (m >= 4 && m <= 5) return { label: "Seeding Season", icon: Sprout, color: "var(--ag-green)" };
+  if (m >= 6 && m <= 7) return { label: "Spray Season", icon: Sun, color: "var(--ag-blue, #38BDF8)" };
+  if (m >= 8 && m <= 10) return { label: "Harvest Season", icon: Wheat, color: "var(--ag-yellow)" };
+  return { label: "Off-Season", icon: Snowflake, color: "var(--ag-text-muted)" };
+};
 
 // ─── Styles ──────────────────────────────────────────────────
 
@@ -131,6 +162,7 @@ export default function LabourPage() {
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [timeWorkers, setTimeWorkers] = useState<{ id: string; name: string; role: string; hourly_rate: number | null; daily_rate: number | null }[]>([]);
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummary[]>([]);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -138,13 +170,14 @@ export default function LabourPage() {
 
   const [showWorkerModal, setShowWorkerModal] = useState(false);
   const [showCertModal, setShowCertModal] = useState(false);
+  const [showIncidentModal, setShowIncidentModal] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [editWorker, setEditWorker] = useState<Worker | null>(null);
   const [editCert, setEditCert] = useState<Certification | null>(null);
+  const [editIncident, setEditIncident] = useState<Incident | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
-  const [showBulkUpload, setShowBulkUpload] = useState(false);
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const [weekOf, setWeekOf] = useState(() => getMonday(new Date()));
   const [prevWeekGrid, setPrevWeekGrid] = useState<Record<string, Record<string, number>>>({});
@@ -159,15 +192,18 @@ export default function LabourPage() {
   // ─── Fetchers ────────────────────────────────────────────
 
   const fetchWorkers = useCallback(async () => {
-    const r = await fetch("/api/hr/workers");
-    const d = await r.json();
+    const r = await fetch("/api/hr/workers"); const d = await r.json();
     if (d.workers) setWorkers(d.workers);
   }, []);
 
   const fetchCerts = useCallback(async () => {
-    const r = await fetch("/api/hr/certifications");
-    const d = await r.json();
+    const r = await fetch("/api/hr/certifications"); const d = await r.json();
     if (d.certifications) setCerts(d.certifications);
+  }, []);
+
+  const fetchIncidents = useCallback(async () => {
+    const r = await fetch("/api/hr/safety"); const d = await r.json();
+    if (d.incidents) setIncidents(d.incidents);
   }, []);
 
   const fetchTimeEntries = useCallback(async (monday: Date) => {
@@ -177,31 +213,16 @@ export default function LabourPage() {
     if (d.entries) setTimeEntries(d.entries);
     if (d.workers) setTimeWorkers(d.workers);
     const grid: Record<string, Record<string, number>> = {};
-    if (d.workers) {
-      for (const w of d.workers) {
-        grid[w.id] = {};
-        for (let i = 0; i < 7; i++) grid[w.id][addDays(monday, i).toISOString().slice(0, 10)] = 0;
-      }
-    }
-    if (d.entries) {
-      for (const e of d.entries) {
-        if (grid[e.worker_id]) grid[e.worker_id][e.entry_date.slice(0, 10)] = Number(e.hours);
-      }
-    }
+    if (d.workers) { for (const w of d.workers) { grid[w.id] = {}; for (let i = 0; i < 7; i++) grid[w.id][addDays(monday, i).toISOString().slice(0, 10)] = 0; } }
+    if (d.entries) { for (const e of d.entries) { if (grid[e.worker_id]) grid[e.worker_id][e.entry_date.slice(0, 10)] = Number(e.hours); } }
     setTimeGrid(grid);
   }, []);
 
   const fetchPrevWeek = useCallback(async (monday: Date) => {
-    const prevMon = addDays(monday, -7);
-    const r = await fetch(`/api/hr/time-entries?week_of=${prevMon.toISOString().slice(0, 10)}`);
+    const r = await fetch(`/api/hr/time-entries?week_of=${addDays(monday, -7).toISOString().slice(0, 10)}`);
     const d = await r.json();
     const grid: Record<string, Record<string, number>> = {};
-    if (d.entries) {
-      for (const e of d.entries) {
-        if (!grid[e.worker_id]) grid[e.worker_id] = {};
-        grid[e.worker_id][String((new Date(e.entry_date.slice(0, 10) + "T00:00:00").getDay() + 6) % 7)] = Number(e.hours);
-      }
-    }
+    if (d.entries) { for (const e of d.entries) { if (!grid[e.worker_id]) grid[e.worker_id] = {}; grid[e.worker_id][String((new Date(e.entry_date.slice(0, 10) + "T00:00:00").getDay() + 6) % 7)] = Number(e.hours); } }
     setPrevWeekGrid(grid);
   }, []);
 
@@ -212,7 +233,7 @@ export default function LabourPage() {
   }, []);
 
   useEffect(() => {
-    Promise.all([fetchWorkers(), fetchCerts(), fetchTimeEntries(weekOf), fetchPrevWeek(weekOf)]).then(() => setLoading(false));
+    Promise.all([fetchWorkers(), fetchCerts(), fetchTimeEntries(weekOf), fetchPrevWeek(weekOf), fetchIncidents()]).then(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -222,7 +243,7 @@ export default function LabourPage() {
     }
   }, [tab, timeView, monthOf, weekOf]);
 
-  // ─── CRUD ────────────────────────────────────────────────
+  // ─── Worker CRUD ─────────────────────────────────────────
 
   const saveWorker = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setSaving(true);
@@ -239,6 +260,8 @@ export default function LabourPage() {
     await fetchWorkers(); await fetchCerts(); setDeleteConfirm(null);
   };
 
+  // ─── Cert CRUD ───────────────────────────────────────────
+
   const saveCert = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setSaving(true);
     const fd = new FormData(e.currentTarget);
@@ -254,14 +277,29 @@ export default function LabourPage() {
     await fetchCerts(); setDeleteConfirm(null);
   };
 
+  // ─── Incident CRUD ───────────────────────────────────────
+
+  const saveIncident = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); setSaving(true);
+    const fd = new FormData(e.currentTarget);
+    const body: Record<string, string | null> = {};
+    fd.forEach((v, k) => { body[k] = v.toString() || null; });
+    if (editIncident) body.id = editIncident.id;
+    await fetch("/api/hr/safety", { method: editIncident ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    await fetchIncidents(); setShowIncidentModal(false); setEditIncident(null); setSaving(false);
+  };
+
+  const deleteIncident = async (id: string) => {
+    await fetch("/api/hr/safety", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    await fetchIncidents(); setDeleteConfirm(null);
+  };
+
   // ─── Time Helpers ────────────────────────────────────────
 
   const saveTimeGrid = async () => {
     setTimeSaving(true);
     const entries: { worker_id: string; entry_date: string; hours: number }[] = [];
-    for (const [wId, days] of Object.entries(timeGrid)) {
-      for (const [date, hours] of Object.entries(days)) entries.push({ worker_id: wId, entry_date: date, hours });
-    }
+    for (const [wId, days] of Object.entries(timeGrid)) { for (const [date, hours] of Object.entries(days)) entries.push({ worker_id: wId, entry_date: date, hours }); }
     await fetch("/api/hr/time-entries", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ entries }) });
     await fetchTimeEntries(weekOf); setTimeSaving(false);
   };
@@ -269,36 +307,20 @@ export default function LabourPage() {
   const copyPreviousWeek = () => {
     setTimeGrid(prev => {
       const next: Record<string, Record<string, number>> = {};
-      for (const wId of Object.keys(prev)) {
-        next[wId] = { ...prev[wId] };
-        const p = prevWeekGrid[wId]; if (!p) continue;
-        Object.keys(next[wId]).sort().forEach((d, i) => { if (p[String(i)] > 0) next[wId][d] = p[String(i)]; });
-      }
+      for (const wId of Object.keys(prev)) { next[wId] = { ...prev[wId] }; const p = prevWeekGrid[wId]; if (!p) continue; Object.keys(next[wId]).sort().forEach((d, i) => { if (p[String(i)] > 0) next[wId][d] = p[String(i)]; }); }
       return next;
     });
   };
 
   const fillFullDay = (wId: string, hrs: number) => {
-    setTimeGrid(prev => {
-      const next = { ...prev, [wId]: { ...prev[wId] } };
-      Object.keys(next[wId]).sort().slice(0, 5).forEach(d => { next[wId][d] = hrs; });
-      return next;
-    });
+    setTimeGrid(prev => { const next = { ...prev, [wId]: { ...prev[wId] } }; Object.keys(next[wId]).sort().slice(0, 5).forEach(d => { next[wId][d] = hrs; }); return next; });
   };
 
   const clearWorkerWeek = (wId: string) => {
-    setTimeGrid(prev => {
-      const next = { ...prev, [wId]: { ...prev[wId] } };
-      for (const d of Object.keys(next[wId])) next[wId][d] = 0;
-      return next;
-    });
+    setTimeGrid(prev => { const next = { ...prev, [wId]: { ...prev[wId] } }; for (const d of Object.keys(next[wId])) next[wId][d] = 0; return next; });
   };
 
-  const toggleRow = (id: string) => {
-    setExpandedRows(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-  };
-
-  // ─── Filtered Data ───────────────────────────────────────
+  // ─── Computed Data ───────────────────────────────────────
 
   const filteredWorkers = useMemo(() => workers.filter(w => {
     if (search && !w.name.toLowerCase().includes(search.toLowerCase()) && !w.role.toLowerCase().includes(search.toLowerCase())) return false;
@@ -320,6 +342,36 @@ export default function LabourPage() {
   const activeWorkers = workers.filter(w => w.status === "active").length;
   const seasonalWorkers = workers.filter(w => w.worker_type === "seasonal" && w.status === "active").length;
   const monthlyLabourCost = workers.reduce((s, w) => { const h = Number(w.monthly_hours) || 0; return w.hourly_rate ? s + h * Number(w.hourly_rate) : s; }, 0);
+
+  // Labour cost per acre — uses total monthly cost / total acres from farm profile
+  // For now we'll use a hardcoded total acres that can be replaced with Farm Profile API later
+  const totalAcres = 5000; // TODO: pull from Farm Profile
+  const costPerAcre = totalAcres > 0 && monthlyLabourCost > 0 ? monthlyLabourCost / totalAcres : 0;
+
+  // Season info
+  const season = getSeason();
+  const SeasonIcon = season.icon;
+
+  // Safety stats
+  const ytdIncidents = incidents.filter(i => new Date(i.incident_date.slice(0, 10)).getFullYear() === new Date().getFullYear()).length;
+  const daysSinceLastIncident = incidents.length > 0
+    ? Math.floor((Date.now() - new Date(incidents[0].incident_date.slice(0, 10) + "T00:00:00").getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  // Seasonal summary — hours and cost for current season window
+  const seasonalSummary = useMemo(() => {
+    const now = new Date();
+    const m = now.getMonth() + 1;
+    let startMonth: number, endMonth: number;
+    if (m >= 4 && m <= 5) { startMonth = 4; endMonth = 5; }
+    else if (m >= 6 && m <= 7) { startMonth = 6; endMonth = 7; }
+    else if (m >= 8 && m <= 10) { startMonth = 8; endMonth = 10; }
+    else { startMonth = 11; endMonth = 3; }
+
+    const totalHours = workers.reduce((s, w) => s + (Number(w.monthly_hours) || 0), 0);
+    const totalCost = monthlyLabourCost;
+    return { workers: activeWorkers, hours: totalHours, cost: totalCost };
+  }, [workers, monthlyLabourCost, activeWorkers]);
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -370,13 +422,14 @@ export default function LabourPage() {
         </div>
       )}
 
-      {/* KPI Ribbon */}
-      <div className="grid grid-cols-4 gap-3">
+      {/* KPI Ribbon — 5 cards including Cost/Acre */}
+      <div className="grid grid-cols-5 gap-3">
         {[
           { icon: Users, label: "Active Workers", value: String(activeWorkers), color: "var(--ag-accent)" },
-          { icon: Briefcase, label: "Seasonal", value: String(seasonalWorkers), color: "var(--ag-blue, #3B82F6)" },
-          { icon: AlertCircle, label: "Certs Expiring/Expired", value: String(alertCerts.length), color: alertCerts.length > 0 ? "var(--ag-red)" : "var(--ag-green)" },
           { icon: DollarSign, label: "Monthly Labour Cost", value: fmtMoney(monthlyLabourCost), color: "var(--ag-yellow)" },
+          { icon: Wheat, label: "Labour Cost / Acre", value: costPerAcre > 0 ? `$${costPerAcre.toFixed(2)}` : "—", color: "var(--ag-green)" },
+          { icon: AlertCircle, label: "Certs Expiring/Expired", value: String(alertCerts.length), color: alertCerts.length > 0 ? "var(--ag-red)" : "var(--ag-green)" },
+          { icon: ShieldAlert, label: "Safety Incidents YTD", value: String(ytdIncidents), color: ytdIncidents > 0 ? "#F97316" : "var(--ag-green)" },
         ].map(kpi => (
           <div key={kpi.label} className="rounded-xl p-4 border border-[var(--ag-border)]" style={{ backgroundColor: "var(--ag-bg-card)" }}>
             <div className="flex items-center gap-2 mb-2">
@@ -388,6 +441,45 @@ export default function LabourPage() {
         ))}
       </div>
 
+      {/* Seasonal Summary + Quick Actions row */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Seasonal Summary Card */}
+        <div className="rounded-xl p-4 border border-[var(--ag-border)] flex items-center gap-4" style={{ backgroundColor: "var(--ag-bg-card)" }}>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${season.color}15` }}>
+            <SeasonIcon size={18} style={{ color: season.color }} />
+          </div>
+          <div className="flex-1">
+            <p className="text-[13px] font-bold text-[var(--ag-text-primary)]">{season.label}</p>
+            <p className="text-[11px] text-[var(--ag-text-muted)] mt-0.5">
+              {seasonalSummary.workers} active workers · {seasonalSummary.hours.toFixed(0)} hrs logged · {fmtMoney(seasonalSummary.cost)} cost
+            </p>
+          </div>
+          {daysSinceLastIncident !== null && (
+            <div className="text-right flex-shrink-0">
+              <p className="text-[18px] font-bold" style={{ color: daysSinceLastIncident > 30 ? "var(--ag-green)" : "var(--ag-yellow)" }}>{daysSinceLastIncident}</p>
+              <p className="text-[9px] font-mono uppercase tracking-[1px] text-[var(--ag-text-dim)]">Days Safe</p>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="rounded-xl p-4 border border-[var(--ag-border)] flex items-center gap-2 flex-wrap" style={{ backgroundColor: "var(--ag-bg-card)" }}>
+          <p className="text-[9px] font-mono uppercase tracking-[2px] font-semibold text-[var(--ag-text-muted)] mr-2">Quick Actions</p>
+          {[
+            { label: "Add Worker", icon: UserPlus, action: () => { setEditWorker(null); setShowWorkerModal(true); } },
+            { label: "Log Incident", icon: ShieldAlert, action: () => { setEditIncident(null); setShowIncidentModal(true); } },
+            { label: "Upload Certs", icon: Award, action: () => { setEditCert(null); setShowCertModal(true); } },
+            { label: "Connect360", icon: Users, action: null },
+          ].map(a => (
+            <button key={a.label} onClick={a.action || undefined} disabled={!a.action}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold rounded-lg border border-[var(--ag-border)] transition-colors"
+              style={{ color: a.action ? "var(--ag-text-secondary)" : "var(--ag-text-dim)", opacity: a.action ? 1 : 0.5 }}>
+              <a.icon size={11} /> {a.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Labour Cost Chart */}
       <LabourCostChart />
 
@@ -395,7 +487,9 @@ export default function LabourPage() {
       <div className="flex items-center gap-1 border-b border-[var(--ag-border)]">
         {TABS.map(t => (
           <button key={t} onClick={() => setTab(t)} className="px-4 py-2.5 text-[12px] font-semibold relative" style={{ color: tab === t ? "var(--ag-accent)" : "var(--ag-text-muted)" }}>
-            {t}{tab === t && <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ backgroundColor: "var(--ag-accent)" }} />}
+            {t}
+            {t === "Safety" && ytdIncidents > 0 && <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "rgba(249,115,22,0.1)", color: "#F97316" }}>{ytdIncidents}</span>}
+            {tab === t && <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ backgroundColor: "var(--ag-accent)" }} />}
           </button>
         ))}
         <div className="flex-1" />
@@ -434,35 +528,28 @@ export default function LabourPage() {
               </thead>
               <tbody>
                 {filteredWorkers.length === 0 && (
-                  <tr><td colSpan={8} className="py-12 text-center text-[var(--ag-text-muted)]">
-                    {workers.length === 0 ? "No workers yet — click Add Worker to get started." : "No workers match your filters."}
-                  </td></tr>
+                  <tr><td colSpan={8} className="py-12 text-center text-[var(--ag-text-muted)]">{workers.length === 0 ? "No workers yet — click Add Worker to get started." : "No workers match your filters."}</td></tr>
                 )}
                 {filteredWorkers.map(w => {
                   const tb = typeBadge(w.worker_type);
                   return (
                     <tr key={w.id} className="border-b border-[var(--ag-border)] hover:bg-[var(--ag-bg-hover)]">
                       <td className="py-3 px-4">
-                        <p className="font-semibold text-[var(--ag-text-primary)] cursor-pointer hover:text-[var(--ag-accent)] transition-colors"
-                          onClick={() => setSelectedWorker(w)}>{w.name}</p>
+                        <p className="font-semibold text-[var(--ag-text-primary)] cursor-pointer hover:text-[var(--ag-accent)] transition-colors" onClick={() => setSelectedWorker(w)}>{w.name}</p>
                         <div className="flex items-center gap-3 mt-0.5">
                           {w.phone && <span className="text-[10px] text-[var(--ag-text-dim)] flex items-center gap-1"><Phone size={8} /> {w.phone}</span>}
                           {w.email && <span className="text-[10px] text-[var(--ag-text-dim)] flex items-center gap-1"><Mail size={8} /> {w.email}</span>}
                         </div>
                       </td>
                       <td className="py-3 px-4 text-[var(--ag-text-secondary)]">{w.role}</td>
-                      <td className="py-3 px-4">
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: tb.bg, color: tb.color }}>{typeLabel(w.worker_type)}</span>
-                      </td>
+                      <td className="py-3 px-4"><span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: tb.bg, color: tb.color }}>{typeLabel(w.worker_type)}</span></td>
                       <td className="py-3 px-4 text-center">
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                           style={{ backgroundColor: w.status === "active" ? "var(--ag-green-dim, rgba(74,124,89,0.08))" : "var(--ag-red-dim, rgba(239,68,68,0.08))", color: w.status === "active" ? "var(--ag-green)" : "var(--ag-red)" }}>
                           {w.status === "active" ? "Active" : "Inactive"}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right text-[var(--ag-text-primary)] font-medium">
-                        {w.hourly_rate ? `${fmtMoney(w.hourly_rate)}/hr` : w.daily_rate ? `${fmtMoney(w.daily_rate)}/day` : "—"}
-                      </td>
+                      <td className="py-3 px-4 text-right text-[var(--ag-text-primary)] font-medium">{w.hourly_rate ? `${fmtMoney(w.hourly_rate)}/hr` : w.daily_rate ? `${fmtMoney(w.daily_rate)}/day` : "—"}</td>
                       <td className="py-3 px-4 text-center">
                         <span className="font-semibold" style={{ color: Number(w.expired_certs) > 0 ? "var(--ag-red)" : "var(--ag-text-primary)" }}>{w.cert_count}</span>
                         {Number(w.expired_certs) > 0 && <AlertTriangle size={10} className="inline ml-1" style={{ color: "var(--ag-red)" }} />}
@@ -496,35 +583,21 @@ export default function LabourPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex gap-2">
               {[{ value: "all", label: "All" }, { value: "valid", label: "Valid" }, { value: "expiring", label: "Expiring" }, { value: "expired", label: "Expired" }].map(f => (
-                <button key={f.value} onClick={() => setCertFilter(f.value)}
-                  className="text-[11px] font-semibold px-3 py-1.5 rounded-full"
-                  style={certFilter === f.value ? { backgroundColor: "var(--ag-accent)", color: "var(--ag-bg-base)" } : { color: "var(--ag-text-muted)", border: "1px solid var(--ag-border)" }}>
-                  {f.label}
-                </button>
+                <button key={f.value} onClick={() => setCertFilter(f.value)} className="text-[11px] font-semibold px-3 py-1.5 rounded-full"
+                  style={certFilter === f.value ? { backgroundColor: "var(--ag-accent)", color: "var(--ag-bg-base)" } : { color: "var(--ag-text-muted)", border: "1px solid var(--ag-border)" }}>{f.label}</button>
               ))}
             </div>
-            <button onClick={() => { setEditCert(null); setShowCertModal(true); }}
-              className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-[var(--ag-border)] text-[var(--ag-text-secondary)] hover:text-[var(--ag-text-primary)] hover:border-[var(--ag-accent)]">
-              <Award size={12} /> Add Certification
-            </button>
+            <button onClick={() => { setEditCert(null); setShowCertModal(true); }} className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-[var(--ag-border)] text-[var(--ag-text-secondary)] hover:text-[var(--ag-text-primary)] hover:border-[var(--ag-accent)]"><Award size={12} /> Add Certification</button>
           </div>
           <div className="rounded-2xl border border-[var(--ag-border)] overflow-hidden" style={{ backgroundColor: "var(--ag-bg-card)" }}>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--ag-border)]" style={{ backgroundColor: "var(--ag-bg-secondary)" }}>
-                  <th className={`${thClass} text-left`}>Worker</th>
-                  <th className={`${thClass} text-left`}>Certification</th>
-                  <th className={`${thClass} text-left`}>Number</th>
-                  <th className={`${thClass} text-left`}>Issued</th>
-                  <th className={`${thClass} text-left`}>Expiry</th>
-                  <th className={`${thClass} text-center`}>Status</th>
-                  <th className={`${thClass} text-right`}>Actions</th>
+                  <th className={`${thClass} text-left`}>Worker</th><th className={`${thClass} text-left`}>Certification</th><th className={`${thClass} text-left`}>Number</th><th className={`${thClass} text-left`}>Issued</th><th className={`${thClass} text-left`}>Expiry</th><th className={`${thClass} text-center`}>Status</th><th className={`${thClass} text-right`}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredCerts.length === 0 && (
-                  <tr><td colSpan={7} className="py-12 text-center text-[var(--ag-text-muted)]">{certs.length === 0 ? "No certifications tracked yet." : "No certifications match your filters."}</td></tr>
-                )}
+                {filteredCerts.length === 0 && <tr><td colSpan={7} className="py-12 text-center text-[var(--ag-text-muted)]">{certs.length === 0 ? "No certifications tracked yet." : "No certifications match your filters."}</td></tr>}
                 {filteredCerts.map(c => {
                   const st = certStatus(c.expiry_date);
                   return (
@@ -564,18 +637,12 @@ export default function LabourPage() {
             <div className="flex items-center gap-3">
               <div className="flex gap-2">
                 {(["weekly", "monthly"] as const).map(v => (
-                  <button key={v} onClick={() => setTimeView(v)}
-                    className="text-[11px] font-semibold px-3 py-1.5 rounded-full capitalize"
-                    style={timeView === v ? { backgroundColor: "var(--ag-accent)", color: "var(--ag-bg-base)" } : { color: "var(--ag-text-muted)", border: "1px solid var(--ag-border)" }}>
-                    {v}
-                  </button>
+                  <button key={v} onClick={() => setTimeView(v)} className="text-[11px] font-semibold px-3 py-1.5 rounded-full capitalize"
+                    style={timeView === v ? { backgroundColor: "var(--ag-accent)", color: "var(--ag-bg-base)" } : { color: "var(--ag-text-muted)", border: "1px solid var(--ag-border)" }}>{v}</button>
                 ))}
               </div>
               {timeView === "weekly" && timeWorkers.length > 0 && (
-                <button onClick={copyPreviousWeek}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold rounded-lg border border-[var(--ag-border)] text-[var(--ag-text-muted)] hover:text-[var(--ag-text-primary)] hover:border-[var(--ag-accent)] ml-2">
-                  <Copy size={10} /> Copy Prev Week
-                </button>
+                <button onClick={copyPreviousWeek} className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold rounded-lg border border-[var(--ag-border)] text-[var(--ag-text-muted)] hover:text-[var(--ag-text-primary)] hover:border-[var(--ag-accent)] ml-2"><Copy size={10} /> Copy Prev Week</button>
               )}
             </div>
             {timeView === "weekly" ? (
@@ -601,8 +668,7 @@ export default function LabourPage() {
                     <tr className="border-b border-[var(--ag-border)]" style={{ backgroundColor: "var(--ag-bg-secondary)" }}>
                       <th className={`${thClass} text-left`} style={{ width: 160 }}>Worker</th>
                       {DAY_LABELS.map((d, i) => {
-                        const dd = addDays(weekOf, i);
-                        const isToday = dd.toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10);
+                        const dd = addDays(weekOf, i); const isToday = dd.toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10);
                         return <th key={d} className="text-center py-3 px-2 font-mono text-[9px] uppercase tracking-[1.5px]" style={{ color: isToday ? "var(--ag-accent)" : "var(--ag-text-muted)", width: 72 }}>{d}<br /><span className="text-[8px] font-normal">{dd.getDate()}</span></th>;
                       })}
                       <th className={`${thClass} text-center`} style={{ width: 80 }}>Quick</th>
@@ -694,6 +760,85 @@ export default function LabourPage() {
         </div>
       )}
 
+      {/* ══ SAFETY ════════════════════════════════ */}
+      {tab === "Safety" && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <ShieldAlert size={16} style={{ color: "#F97316" }} />
+              <p className="text-[13px] font-semibold text-[var(--ag-text-primary)]">Safety & Incident Log</p>
+              {daysSinceLastIncident !== null && (
+                <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full" style={{ backgroundColor: daysSinceLastIncident > 30 ? "var(--ag-green-dim, rgba(74,124,89,0.08))" : "rgba(251,191,36,0.08)", color: daysSinceLastIncident > 30 ? "var(--ag-green)" : "var(--ag-yellow)" }}>
+                  {daysSinceLastIncident} days since last incident
+                </span>
+              )}
+            </div>
+            <button onClick={() => { setEditIncident(null); setShowIncidentModal(true); }}
+              className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-[var(--ag-border)] text-[var(--ag-text-secondary)] hover:text-[var(--ag-text-primary)] hover:border-[var(--ag-accent)]">
+              <Plus size={12} /> Log Incident
+            </button>
+          </div>
+
+          <div className="rounded-2xl border border-[var(--ag-border)] overflow-hidden" style={{ backgroundColor: "var(--ag-bg-card)" }}>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[var(--ag-border)]" style={{ backgroundColor: "var(--ag-bg-secondary)" }}>
+                  <th className={`${thClass} text-left`}>Date</th>
+                  <th className={`${thClass} text-left`}>Type</th>
+                  <th className={`${thClass} text-left`}>Worker</th>
+                  <th className={`${thClass} text-left`}>Field</th>
+                  <th className={`${thClass} text-center`}>Severity</th>
+                  <th className={`${thClass} text-left`}>Description</th>
+                  <th className={`${thClass} text-right`}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {incidents.length === 0 && (
+                  <tr><td colSpan={7} className="py-12 text-center text-[var(--ag-text-muted)]">
+                    <ShieldAlert size={24} className="mx-auto mb-2" style={{ color: "var(--ag-green)", opacity: 0.4 }} />
+                    <p className="text-[14px] font-semibold text-[var(--ag-text-primary)]">No incidents recorded</p>
+                    <p className="text-[12px] mt-0.5">Great safety record! Log incidents here when they occur.</p>
+                  </td></tr>
+                )}
+                {incidents.map(inc => {
+                  const sev = SEVERITY_LEVELS.find(s => s.value === inc.severity) || SEVERITY_LEVELS[0];
+                  const typeInfo = INCIDENT_TYPES.find(t => t.value === inc.incident_type);
+                  return (
+                    <tr key={inc.id} className="border-b border-[var(--ag-border)] hover:bg-[var(--ag-bg-hover)]">
+                      <td className="py-3 px-4 text-[var(--ag-text-primary)] font-medium">{fmtDate(inc.incident_date)}</td>
+                      <td className="py-3 px-4 text-[var(--ag-text-primary)]">{typeInfo?.label || inc.incident_type}</td>
+                      <td className="py-3 px-4">
+                        {inc.worker_name ? (
+                          <><p className="font-semibold text-[var(--ag-text-primary)]">{inc.worker_name}</p><p className="text-[10px] text-[var(--ag-text-dim)]">{inc.worker_role}</p></>
+                        ) : <span className="text-[var(--ag-text-dim)]">—</span>}
+                      </td>
+                      <td className="py-3 px-4 text-[var(--ag-text-secondary)]">{inc.field || "—"}</td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: sev.bg, color: sev.color }}>{sev.label}</span>
+                      </td>
+                      <td className="py-3 px-4 text-[var(--ag-text-secondary)] text-[12px] max-w-[200px] truncate">{inc.description || "—"}</td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => { setEditIncident(inc); setShowIncidentModal(true); }} className="p-1.5 rounded-lg hover:bg-[var(--ag-bg-active)]"><Edit2 size={12} className="text-[var(--ag-text-muted)]" /></button>
+                          {deleteConfirm === inc.id ? (
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => deleteIncident(inc.id)} className="text-[9px] font-bold px-2 py-1 rounded" style={{ backgroundColor: "var(--ag-red-dim, rgba(239,68,68,0.08))", color: "var(--ag-red)" }}>Yes</button>
+                              <button onClick={() => setDeleteConfirm(null)} className="text-[9px] font-bold px-2 py-1 rounded text-[var(--ag-text-muted)]">No</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setDeleteConfirm(inc.id)} className="p-1.5 rounded-lg hover:bg-[var(--ag-bg-active)]"><Trash2 size={12} className="text-[var(--ag-text-dim)]" /></button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* ══ WORKER MODAL ══════════════════════════ */}
       {showWorkerModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => { setShowWorkerModal(false); setEditWorker(null); }}>
@@ -770,13 +915,58 @@ export default function LabourPage() {
         </div>
       )}
 
-{/* ══ BULK UPLOAD ══════════════════════════ */}
-      {showBulkUpload && (
-        <WorkerBulkUpload
-          onClose={() => setShowBulkUpload(false)}
-          onComplete={() => fetchWorkers()}
-        />
+      {/* ══ INCIDENT MODAL ════════════════════════ */}
+      {showIncidentModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => { setShowIncidentModal(false); setEditIncident(null); }}>
+          <div className="w-full max-w-md rounded-2xl border border-[var(--ag-border)] p-6" style={{ backgroundColor: "var(--ag-bg-card)" }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <ShieldAlert size={16} style={{ color: "#F97316" }} />
+                <h2 className="text-lg font-bold text-[var(--ag-text-primary)]">{editIncident ? "Edit Incident" : "Log Safety Incident"}</h2>
+              </div>
+              <button onClick={() => { setShowIncidentModal(false); setEditIncident(null); }} className="p-1.5 rounded-lg hover:bg-[var(--ag-bg-active)]"><X size={16} className="text-[var(--ag-text-muted)]" /></button>
+            </div>
+            <form onSubmit={saveIncident} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className={labelClass}>Date *</label><input name="incident_date" type="date" defaultValue={editIncident?.incident_date?.slice(0, 10) || new Date().toISOString().slice(0, 10)} required className={inputClass} /></div>
+                <div><label className={labelClass}>Incident Type *</label>
+                  <select name="incident_type" defaultValue={editIncident?.incident_type || "near_miss"} required className={`${selectClass} w-full`}>
+                    {INCIDENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className={labelClass}>Worker</label>
+                  <select name="worker_id" defaultValue={editIncident?.worker_id || ""} className={`${selectClass} w-full`}>
+                    <option value="">No specific worker</option>
+                    {workers.filter(w => w.status === "active").map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                  </select>
+                </div>
+                <div><label className={labelClass}>Severity</label>
+                  <select name="severity" defaultValue={editIncident?.severity || "low"} className={`${selectClass} w-full`}>
+                    {SEVERITY_LEVELS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div><label className={labelClass}>Field / Location</label><input name="field" defaultValue={editIncident?.field || ""} className={inputClass} placeholder="e.g. NW Quarter, Shop, Yard" /></div>
+              <div><label className={labelClass}>Description</label><textarea name="description" defaultValue={editIncident?.description || ""} rows={3} className={inputClass} placeholder="What happened..." /></div>
+              <div><label className={labelClass}>Corrective Action</label><textarea name="corrective_action" defaultValue={editIncident?.corrective_action || ""} rows={2} className={inputClass} placeholder="Steps taken to prevent recurrence..." /></div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => { setShowIncidentModal(false); setEditIncident(null); }} className="px-4 py-2 text-sm font-medium rounded-xl border border-[var(--ag-border)] text-[var(--ag-text-muted)]">Cancel</button>
+                <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2 text-sm font-semibold rounded-xl" style={{ backgroundColor: "var(--ag-accent)", color: "var(--ag-bg-base)", opacity: saving ? 0.6 : 1 }}>
+                  {saving ? <Loader2 size={14} className="animate-spin" /> : <ShieldAlert size={14} />}{saving ? "Saving..." : editIncident ? "Update" : "Log Incident"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
+
+      {/* ══ BULK UPLOAD ══════════════════════════ */}
+      {showBulkUpload && (
+        <WorkerBulkUpload onClose={() => setShowBulkUpload(false)} onComplete={() => fetchWorkers()} />
+      )}
+
       {/* ══ WORKER SLIDE-OUT ═════════════════════ */}
       {selectedWorker && (
         <WorkerSlideOut worker={selectedWorker} allCerts={certs} onClose={() => setSelectedWorker(null)}
