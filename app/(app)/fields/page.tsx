@@ -11,6 +11,7 @@ import EditFieldModal from "@/components/fields/EditFieldModal";
 import AddCropModal from "@/components/fields/AddCropModal";
 import AddCostModal from "@/components/fields/AddCostModal";
 import { useRouter } from "next/navigation";
+import FieldPnL from "@/components/fields/FieldPnL";
 
 /* ───── Types ──────────────────────────────────────────── */
 interface FieldRow {
@@ -155,6 +156,7 @@ export default function FieldsPage() {
   const [addingCostToCrop, setAddingCostToCrop] = useState<{
     fieldCropId: string; fieldName: string; cropType: string;
   } | null>(null);
+  const [activeTab, setActiveTab] = useState<"fields" | "pnl">("fields");
   const router = useRouter();
 
   async function fetchFields() {
@@ -240,7 +242,33 @@ export default function FieldsPage() {
         </div>
       </div>
 
-      {/* ── KPI Strip ─────────────────────────────────── */}
+      {/* ── Tabs ─────────────────────────────────────── */}
+      <div className="flex gap-1 mb-6 border-b border-ag">
+        {([
+          { id: "fields", label: "Fields" },
+          { id: "pnl",    label: "Field P&L" },
+        ] as const).map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              activeTab === tab.id
+                ? "border-[var(--ag-accent)] text-[var(--ag-green)]"
+                : "border-transparent text-ag-muted hover:text-ag-secondary"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Field P&L Tab ─────────────────────────────── */}
+      {activeTab === "pnl" && <FieldPnL cropYear={cropYear} />}
+
+      {/* ── Fields Tab ────────────────────────────────── */}
+      {activeTab === "fields" && <>
+
+      {/* ── KPI Strip */}
       {kpis && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           <KpiCard
@@ -599,6 +627,7 @@ export default function FieldsPage() {
       {editingField && <EditFieldModal field={editingField} onClose={() => setEditingField(null)} onFieldUpdated={fetchFields} />}
       {addingCropToField && <AddCropModal fieldId={addingCropToField.id} fieldName={addingCropToField.field_name} onClose={() => setAddingCropToField(null)} onCropAdded={fetchFields} />}
       {addingCostToCrop && <AddCostModal fieldCropId={addingCostToCrop.fieldCropId} fieldName={addingCostToCrop.fieldName} cropType={addingCostToCrop.cropType} onClose={() => setAddingCostToCrop(null)} onCostAdded={fetchFields} />}
+      </>}
     </div>
   );
 }
