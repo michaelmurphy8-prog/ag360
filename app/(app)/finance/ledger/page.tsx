@@ -505,6 +505,7 @@ export default function LedgerPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"journal" | "coa" | "payables">("journal");
   const [showScan, setShowScan] = useState(false);
+  const [exportYear, setExportYear] = useState(String(new Date().getFullYear()));
 
   // Filters
   const [searchQ, setSearchQ] = useState("");
@@ -680,6 +681,25 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
             {isBalanced ? <CheckCircle size={12} /> : <AlertTriangle size={12} />}
             {isBalanced ? "Balanced" : "Out of Balance"}
           </div>
+          <select
+            value={exportYear}
+            onChange={e => setExportYear(e.target.value)}
+            className={selectClass}
+            style={{ padding: "6px 10px", fontSize: 12 }}
+          >
+            {[2024, 2025, 2026].map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => {
+              window.open(`/api/finance/export?cropYear=${exportYear}`, "_blank");
+            }}
+            className={btnSecondary}
+          >
+            <FileText size={14} />
+            Export for Accountant
+          </button>
           <button
             onClick={() => setShowScan(true)}
             className={btnPrimary}
