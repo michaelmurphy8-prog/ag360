@@ -6,10 +6,11 @@ import {
   Users, Plus, X, CheckCircle, AlertTriangle, Loader2, Search,
   Trash2, Edit2, Phone, Mail, Shield, Clock, Calendar,
   ChevronDown, ChevronLeft, ChevronRight, UserPlus, Award,
-  AlertCircle, DollarSign, Briefcase, Heart, Copy,
+  AlertCircle, DollarSign, Briefcase, Heart, Copy, FileSpreadsheet,
 } from "lucide-react";
 import WorkerSlideOut from "@/components/hr/WorkerSlideOut";
 import LabourCostChart from "@/components/hr/LabourCostChart";
+import WorkerBulkUpload from "@/components/hr/WorkerBulkUpload";
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -142,6 +143,7 @@ export default function LabourPage() {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const [weekOf, setWeekOf] = useState(() => getMonday(new Date()));
@@ -338,11 +340,17 @@ export default function LabourPage() {
           <h1 className="text-[28px] font-bold text-[var(--ag-text-primary)] tracking-tight">Labour & HR</h1>
           <p className="text-[13px] text-[var(--ag-text-muted)] mt-0.5">Manage your workforce, certifications, and labour costs</p>
         </div>
-        <button onClick={() => { setEditWorker(null); setShowWorkerModal(true); }}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl"
-          style={{ backgroundColor: "var(--ag-accent)", color: "var(--ag-bg-base)" }}>
-          <UserPlus size={14} /> Add Worker
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowBulkUpload(true)}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-xl border border-[var(--ag-border)] text-[var(--ag-text-secondary)] hover:text-[var(--ag-text-primary)] hover:border-[var(--ag-accent)] transition-colors">
+            <FileSpreadsheet size={14} /> Bulk Upload
+          </button>
+          <button onClick={() => { setEditWorker(null); setShowWorkerModal(true); }}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl"
+            style={{ backgroundColor: "var(--ag-accent)", color: "var(--ag-bg-base)" }}>
+            <UserPlus size={14} /> Add Worker
+          </button>
+        </div>
       </div>
 
       {/* Cert Alert Banner */}
@@ -762,6 +770,13 @@ export default function LabourPage() {
         </div>
       )}
 
+{/* ══ BULK UPLOAD ══════════════════════════ */}
+      {showBulkUpload && (
+        <WorkerBulkUpload
+          onClose={() => setShowBulkUpload(false)}
+          onComplete={() => fetchWorkers()}
+        />
+      )}
       {/* ══ WORKER SLIDE-OUT ═════════════════════ */}
       {selectedWorker && (
         <WorkerSlideOut worker={selectedWorker} allCerts={certs} onClose={() => setSelectedWorker(null)}
