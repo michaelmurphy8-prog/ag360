@@ -87,58 +87,118 @@ export default function MapsPage() {
   useEffect(() => { fetchScoutReports(); }, [fetchScoutReports]);
   /* ── Weather trigger ───────────────────────────── */
   useEffect(() => { if (showWeather && weather.length === 0) fetchWeather(); }, [showWeather, weather.length, fetchWeather]);
-/* ── NDVI satellite overlay ────────────────────── */
+/* ── NDVI satellite overlay (real Sentinel Hub) ── */
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    const addNDVI = () => {
-      const safeRemove = () => {
-        try {
-          if (map.style && map.isStyleLoaded()) {
-            if (map.getLayer("ndvi-layer")) map.removeLayer("ndvi-layer");
-            if (map.getSource("ndvi-source")) map.removeSource("ndvi-source");
-          }
-        } catch { /* */ }
-      };
+    // Remove all existing NDVI layers/sources
+    const cleanupNDVI = () => {
+      try {
+        if (!map.style || !map.isStyleLoaded()) return;
+        // Remove any field-specific layers
+        const style = map.getStyle();
+        if (style?.layers) {
+          style.layers.forEach(l => {
+            if (l.id.startsWith("ndvi-layer-")) {
+              try { map.removeLayer(l.id); } catch {}
+            }
+          });
+        }
+        if (style?.sources) {
+          Object.keys(style.sources).forEach(s => {
+            if (s.startsWith("ndvi-source-")) {
+              try { map.removeSource(s); } catch {}
+            }
+          });
+        }
+        // Legacy cleanup
+        if (map.getLayer("ndvi-layer")) map.removeLayer("ndvi-layer");
+        if (map.getSource("ndvi-source")) map.removeSource("ndvi-source");
+      } catch {}
+    };
 
-      safeRemove();
-      if (!showNDVI) return;
+    cleanupNDVI();
+    if (!showNDVI || fields.length === 0) return;
 
-      // NASA GIBS MODIS Terra NDVI 8-day composite
-      // Sentinel-2 cloudless 2023 — high-res satellite showing vegetation health
-      map.addSource("ndvi-source", {
-        type: "raster",
-        tiles: [
-          "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg"
-        ],
-        tileSize: 256,
-        maxzoom: 14,
+    const addNDVI = async () => {
+      cleanupNDVI();
+
+      // Compute bounding box across all fields that have coordinates
+      let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+      let hasCoords = false;
+
+      fields.forEach(f => {
+        if (f.boundary?.geometry?.coordinates) {
+          const coords = f.boundary.geometry.coordinates[0] as [number, number][];
+          coords.forEach(([lon, lat]) => {
+            minLon = Math.min(minLon, lon); maxLon = Math.max(maxLon, lon);
+            minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat);
+            hasCoords = true;
+          });
+        } else if (f.longitude && f.latitude) {
+          // No boundary — use field center with ~1km buffer
+          const buf = 0.005;
+          minLon = Math.min(minLon, f.longitude - buf); maxLon = Math.max(maxLon, f.longitude + buf);
+          minLat = Math.min(minLat, f.latitude - buf); maxLat = Math.max(maxLat, f.latitude + buf);
+          hasCoords = true;
+        }
       });
-      map.addLayer({
-        id: "ndvi-layer",
-        type: "raster",
-        source: "ndvi-source",
-        paint: {
-          "raster-opacity": 0.7,
-          "raster-saturation": 0.6,
-          "raster-contrast": 0.2,
-        },
-      });
+
+      if (!hasCoords) return;
+
+      // Add small buffer around the farm extent
+      const bufLon = (maxLon - minLon) * 0.05;
+      const bufLat = (maxLat - minLat) * 0.05;
+      minLon -= bufLon; maxLon += bufLon;
+      minLat -= bufLat; maxLat += bufLat;
+
+      const bbox = `${minLon},${minLat},${maxLon},${maxLat}`;
+
+      try {
+        // Fetch NDVI image from our API
+        const res = await fetch(`/api/ndvi?bbox=${bbox}`);
+        if (!res.ok) {
+          console.error("NDVI fetch failed:", res.status);
+          return;
+        }
+
+        // Convert to blob URL for Mapbox image source
+        const blob = await res.blob();
+        const imageUrl = URL.createObjectURL(blob);
+
+        // Re-check map is still loaded after async fetch
+        if (!map.style || !map.isStyleLoaded()) return;
+
+        // Add as image source with exact bbox coordinates
+        map.addSource("ndvi-source-farm", {
+          type: "image",
+          url: imageUrl,
+          coordinates: [
+            [minLon, maxLat], // top-left
+            [maxLon, maxLat], // top-right
+            [maxLon, minLat], // bottom-right
+            [minLon, minLat], // bottom-left
+          ],
+        });
+
+        map.addLayer({
+          id: "ndvi-layer-farm",
+          type: "raster",
+          source: "ndvi-source-farm",
+          paint: { "raster-opacity": 0.75 },
+        });
+
+      } catch (err) {
+        console.error("NDVI overlay error:", err);
+      }
     };
 
     if (map.isStyleLoaded()) addNDVI();
     else map.once("style.load", addNDVI);
 
-    return () => {
-      try {
-        if (map.style && map.isStyleLoaded()) {
-          if (map.getLayer("ndvi-layer")) map.removeLayer("ndvi-layer");
-          if (map.getSource("ndvi-source")) map.removeSource("ndvi-source");
-        }
-      } catch { /* */ }
-    };
-  }, [showNDVI]);
+    return () => { cleanupNDVI(); };
+  }, [showNDVI, fields]);
   /* ── Wind particles toggle ─────────────────────── */
   useEffect(() => {
     const map = mapRef.current;
@@ -619,27 +679,25 @@ export default function MapsPage() {
           showWind={showWind} setShowWind={setShowWind}
         />
         {/* Scout + NDVI buttons */}
-        <div style={{ position: "absolute", top: 56, left: 60, zIndex: 10, display: "flex", gap: 8 }}>
-          <button
-            onClick={() => setScoutMode(!scoutMode)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-lg transition-colors ${
-              scoutMode ? "bg-[var(--ag-accent)] text-[var(--ag-accent-text)]" : "bg-ag-card/90 text-ag-secondary hover:text-white border border-black/20"
+       <div style={{ position: "absolute", top: 56, left: 60, zIndex: 10 }}
+          className="flex rounded-lg border border-black/20 overflow-hidden shadow-lg">
+          <button onClick={() => setScoutMode(!scoutMode)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
+              scoutMode ? "bg-[var(--ag-accent)] text-[var(--ag-accent-text)]" : "bg-black/70 text-ag-secondary hover:text-white"
             }`}>
             {scoutMode ? <><X size={12} /> Cancel Scout</> : <><MapPin size={12} /> Scout Pin</>}
           </button>
-          <button
-            onClick={() => setShowScoutPins(!showScoutPins)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-lg transition-colors ${
-              showScoutPins ? "bg-[#F59E0B] text-[var(--ag-accent-text)]" : "bg-ag-card/90 text-ag-secondary hover:text-white border border-black/20"
+          <button onClick={() => setShowScoutPins(!showScoutPins)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
+              showScoutPins ? "bg-[#F59E0B] text-[var(--ag-accent-text)]" : "bg-black/70 text-ag-secondary hover:text-white"
             }`}>
             <Eye size={12} /> Pins {scoutReports.length > 0 ? `(${scoutReports.length})` : ""}
           </button>
-          <button
-            onClick={() => setShowNDVI(!showNDVI)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-lg transition-colors ${
-              showNDVI ? "bg-[var(--ag-accent)] text-[var(--ag-accent-text)]" : "bg-ag-card/90 text-ag-secondary hover:text-white border border-black/20"
+          <button onClick={() => setShowNDVI(!showNDVI)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
+              showNDVI ? "bg-[#22C55E] text-black" : "bg-black/70 text-ag-secondary hover:text-white"
             }`}>
-            <Leaf size={12} /> Vegetation
+            <Leaf size={12} /> NDVI
           </button>
         </div>
         {scoutMode && (
