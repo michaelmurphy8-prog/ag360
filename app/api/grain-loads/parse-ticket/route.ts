@@ -9,75 +9,66 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const { image, mimeType } = await req.json();
+    // Support both { image, mimeType } (existing page) and { file, mediaType } (future)
+    const body = await req.json();
+    const base64 = body.image || body.file;
+    const mediaType = body.mimeType || body.mediaType || "image/jpeg";
 
-    if (!image) {
-      return NextResponse.json({ error: "No image provided" }, { status: 400 });
-    }
+    if (!base64) return NextResponse.json({ error: "No file provided" }, { status: 400 });
+
+    const isImage = mediaType.startsWith("image/");
+
+    const contentBlock = isImage
+      ? { type: "image" as const, source: { type: "base64" as const, media_type: mediaType as "image/jpeg" | "image/png" | "image/webp", data: base64 } }
+      : { type: "document" as const, source: { type: "base64" as const, media_type: "application/pdf" as const, data: base64 } };
 
     const response = await anthropic.messages.create({
       model: "claude-opus-4-6",
-      max_tokens: 1024,
+      max_tokens: 2048,
       messages: [
         {
           role: "user",
           content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: mimeType || "image/jpeg",
-                data: image,
-              },
-            },
+            contentBlock,
             {
               type: "text",
-              text: `You are parsing a Canadian grain elevator scale ticket. These come in many formats — Bunge Combined Primary Elevator Receipts, Cargill Truck Grain Receipts, Louis Dreyfus (LDC) thermal receipts, Viterra/Richardson tickets, and others. The image may be rotated, photographed at an angle, or thermal-printed. Extract data carefully.
+              text: `You are parsing a Canadian grain scale ticket. Extract the data and return ONLY valid JSON — no markdown, no backticks, no explanation.
 
-CRITICAL WEIGHT RULES:
-- For Cargill tickets: "Gross Weight" is the VEHICLE full weight. Use "Unloaded Gross Weight" as the accountable gross_weight_kg. Net Weight = Unloaded Gross - Dockage.
-- For Bunge tickets: Use "Accountable Gross" or "Gross Weight" (after waste loss) as gross_weight_kg.
-- For LDC/thermal receipts: "UNLOADWT" or "UNLOAD WT" is the accountable gross. "GROSS WT" is vehicle full weight.
-- For all tickets: gross_weight_kg should be the GRAIN weight (after tare/vehicle deduction), NOT the vehicle full weight. If both are shown, use the smaller number that represents grain only.
-
-CROP MAPPING:
-- "Amber Durum" or "CWAD" → "Durum"
-- "Generic Canola" or "CANOLA" or "Can" → "Canola"  
-- "CWRS" or "Hard Red Spring" → "HRS Wheat"
-- "CWRW" → "HRW Wheat"
-- Map all grains to one of: Canola, HRS Wheat, HRW Wheat, Durum, Barley, Oats, Peas, Lentils, Flax, Soybeans
-
-Return ONLY valid JSON — no markdown, no backticks, no explanation:
-
+Return this exact structure:
 {
-  "date": "YYYY-MM-DD format (convert M/D/YYYY or DD/Mon/YYYY to this format)",
-  "receipt_number": "Receipt No, Grain receipt number, Job #, or Ticket Number",
-  "delivery_number": "Delivery No if shown, or null",
-  "ticket_number": "use receipt_number as ticket_number",
-  "elevator_name": "company name (Bunge, Cargill, Louis Dreyfus, Viterra, Richardson, etc.)",
-  "station_name": "station/location name (e.g. Swift Current, Clavet, Moose Jaw, Yorkton)",
-  "shipper_name": "the producer/customer/shipper name",
-  "crop": "mapped crop name from list above",
-  "grade": "e.g. 3 CWAD, 1 Canada, No. 1 Can",
-  "vehicle_full_weight_kg": "number — the total vehicle weight before unloading",
-  "vehicle_empty_weight_kg": "number — tare weight",
-  "gross_weight_kg": "number — the GRAIN weight after tare (Unloaded Gross, Accountable Gross, or UNLOADWT). NOT the vehicle full weight.",
-  "dockage_percent": "number (just the number, not the % sign)",
-  "dockage_kg": "number or null",
-  "net_weight_kg": "number — after dockage",
-  "net_bushels": "number if shown (Net Imperial Bushels), or null",
-  "moisture_percent": "number or null (MST, MOIS, or Moisture field)",
-  "protein_percent": "number or null (PROT field)",
-  "oil_percent": "number or null (OIL field, common on canola tickets)",
-  "shipment_number": "Shipment # if shown, or null",
-  "vehicle_id": "Vehicle Id, Trailer ID if shown, or null",
-  "contract_reference": "Purchase Contract #, Contract #, or null",
-  "remarks": "full remarks/comments section text, or null",
-  "confidence": "high if text is clear and all key fields found, medium if some fields uncertain, low if image quality is poor or significant data unclear",
-  "uncertain_fields": ["list field names where you are less than 90% confident in the extracted value, e.g. ['date', 'dockage_percent']. Empty array if all fields are high confidence."]
+  "ticket_number": "string or null",
+  "date": "YYYY-MM-DD or null",
+  "crop": "map to: Canola, Wheat, Durum, Barley, Oats, Peas, Lentils, Flax, Soybeans, Corn or null",
+  "grade": "string or null",
+  "field_name": "field or farm name if shown, or null",
+  "from": "source farm/location if shown, or null",
+  "shipper_name": "shipper name if shown, or null",
+  "elevator_name": "buyer/elevator company name or null",
+  "station_name": "elevator location/station or null",
+  "contract_reference": "contract number if shown, or null",
+  "delivery_number": "delivery number if shown, or null",
+  "receipt_number": "receipt number if shown, or null",
+  "gross_weight_kg": number (convert to kg: if lbs multiply by 0.453592, if MT multiply by 1000),
+  "dockage_percent": number or null,
+  "dockage_kg": number or null,
+  "net_weight_kg": number,
+  "net_bushels": number or null,
+  "moisture_percent": number or null,
+  "protein_percent": number or null,
+  "price_per_bushel": number or null,
+  "crop_year": number or null,
+  "remarks": "any other notes on ticket or null",
+  "confidence": "high | medium | low",
+  "uncertain_fields": ["list of field names you are uncertain about"]
 }
 
-If a field is not visible or not applicable, use null. Parse all numbers without commas.`,
+RULES:
+- All weights in kilograms. Convert if needed.
+- net_weight_kg = gross_weight_kg - dockage_kg if not explicitly shown.
+- If dockage_kg not shown but dockage_percent and gross_weight_kg known, calculate it.
+- Return null for any field not on the ticket.
+- Set confidence based on image clarity and completeness.
+- List any fields you are guessing or uncertain about in uncertain_fields.`,
             },
           ],
         },
@@ -85,17 +76,12 @@ If a field is not visible or not applicable, use null. Parse all numbers without
     });
 
     const text = response.content[0].type === "text" ? response.content[0].text : "";
-    
-    // Clean and parse the JSON response
     const cleaned = text.replace(/```json\s?/g, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(cleaned);
 
     return NextResponse.json({ success: true, data: parsed });
   } catch (error: any) {
     console.error("Scale ticket parse error:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to parse scale ticket" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || "Failed to parse ticket" }, { status: 500 });
   }
 }

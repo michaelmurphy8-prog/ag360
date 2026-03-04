@@ -224,6 +224,7 @@ export default function InventoryPage() {
   const [settlements, setSettlements] = useState<any[]>([]);
   const [selectedSettlement, setSelectedSettlement] = useState<any | null>(null);
   const [settlementLines, setSettlementLines] = useState<any[]>([]);
+  const [settledMap, setSettledMap] = useState<Map<string, { matched: boolean; discrepancy: string | null; terminal: string; date: string }>>(new Map());
   const [settlementParsing, setSettlementParsing] = useState(false);
   const [settlementError, setSettlementError] = useState<string | null>(null);
   const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
@@ -266,16 +267,34 @@ export default function InventoryPage() {
   }, []);
 
   const loadGrainData = useCallback(async () => {
-    const [loadsRes, driversRes, trucksRes, customersRes] = await Promise.all([
+    const [loadsRes, driversRes, trucksRes, customersRes, statusRes] = await Promise.all([
       fetch("/api/grain-loads").then(r => r.json()),
       fetch("/api/drivers").then(r => r.json()),
       fetch("/api/trucks").then(r => r.json()),
       fetch("/api/customers").then(r => r.json()),
+      fetch("/api/grain-loads/settlement-status").then(r => r.json()),
     ]);
     setGrainLoads(loadsRes.loads || []);
     setDrivers(driversRes.drivers || []);
     setTrucks(trucksRes.trucks || []);
     setCustomers(customersRes.customers || []);
+
+    // Build lookup map: identifier → settlement line info
+    const lines: any[] = statusRes.lines || [];
+    const map = new Map<string, { matched: boolean; discrepancy: string | null; terminal: string; date: string }>();
+    lines.forEach(line => {
+      const keys = [line.delivery_number, line.receipt_number, line.cper_number].filter(Boolean);
+      keys.forEach(key => {
+        map.set(String(key), {
+          matched: true,
+          discrepancy: null,
+          terminal: line.terminal_name || "",
+          date: line.issue_date?.split("T")[0] || "",
+        });
+      });
+    });
+    setSettledMap(map);
+    setSettlementLines(lines);
   }, []);
 
   useEffect(() => {
@@ -1232,7 +1251,8 @@ export default function InventoryPage() {
                       <th className="text-right pb-3 pr-3">Gross ({unitLabel})</th>
                       <th className="text-right pb-3 pr-3">Dockage</th>
                       <th className="text-right pb-3 pr-3">Net ({unitLabel})</th>
-                      <th className="text-left pb-3 pr-3">Settlement</th>
+                      <th className="text-left pb-3 pr-3">Ticket #</th>
+<th className="text-center pb-3 pr-3">Settled?</th>
                       <th className="pb-3 w-16"></th>
                     </tr>
                   </thead>
@@ -1250,7 +1270,49 @@ export default function InventoryPage() {
                         <td className="py-3 pr-3 text-right font-mono font-medium text-ag-primary">{load.gross_weight_kg ? toDisplay(Number(load.gross_weight_kg)).toLocaleString("en-CA", { maximumFractionDigits: 0 }) : "—"}</td>
                         <td className="py-3 pr-3 text-right text-ag-muted">{load.dockage_percent ? `${load.dockage_percent}%` : "—"}</td>
                         <td className="py-3 pr-3 text-right font-mono font-semibold text-[var(--ag-green)]">{load.net_weight_kg ? toDisplay(Number(load.net_weight_kg)).toLocaleString("en-CA", { maximumFractionDigits: 0 }) : "—"}</td>
-                        <td className="py-3 pr-3 text-ag-muted">{load.settlement_id || "—"}</td>
+                        <td className="py-3 pr-3 text-ag-muted font-mono text-[11px]">{load.settlement_id || "—"}</td>
+<td className="py-3 pr-3 text-center">
+  {(() => {
+    const key = load.settlement_id ? String(load.settlement_id) : null;
+    const ticketKey = load.ticket_number ? String(load.ticket_number) : null;
+    const matchKey = (key && settledMap.has(key)) ? key : (ticketKey && settledMap.has(ticketKey)) ? ticketKey : null;
+
+    if (!matchKey) return <span className="text-ag-dim text-xs">—</span>;
+
+    const info = settledMap.get(matchKey)!;
+
+    // Find matching line for discrepancy check
+    const matchedLine = settlementLines.find(l =>
+      [l.delivery_number, l.receipt_number, l.cper_number].includes(matchKey)
+    );
+
+    let discrepancy: string | null = null;
+    if (matchedLine && load.net_weight_kg) {
+      const settledKg = Number(matchedLine.net_weight_mt) * 1000;
+      const diff = Math.abs(Number(load.net_weight_kg) - settledKg);
+      if (diff > 50) {
+        discrepancy = `Wt diff: ${diff.toFixed(0)} kg`;
+      }
+    }
+
+    return (
+      <div className="flex flex-col items-center gap-0.5">
+        {discrepancy ? (
+          <span title={`${info.terminal} · ${info.date} · ${discrepancy}`}
+            className="flex items-center gap-1 text-[10px] font-semibold text-[var(--ag-yellow)]">
+            ⚠ <span className="hidden lg:inline">Check</span>
+          </span>
+        ) : (
+          <span title={`Settled · ${info.terminal} · ${info.date}`}
+            className="text-[var(--ag-green)] text-base leading-none">✓</span>
+        )}
+        {discrepancy && (
+          <span className="text-[9px] text-[var(--ag-yellow)] hidden lg:block">{discrepancy}</span>
+        )}
+      </div>
+    );
+  })()}
+</td>
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <button onClick={() => setEditingLoad(load)} className="text-ag-dim hover:text-[var(--ag-green)] transition-colors"><Pencil size={13} /></button>
