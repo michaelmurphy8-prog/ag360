@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Send, User, Sparkles, AlertTriangle, CheckCircle, Wheat, Tractor, DollarSign, Sprout, Bug, Users, TrendingUp, Scale, Paperclip, X, FileText, Image } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import LilyIcon from "@/components/LilyIcon";
+import LilyExportButtons from "@/components/lily/LilyExportButtons";
 
 // ─── Prompt Chips with Icons ──────────────────────────────────
 
@@ -414,18 +415,24 @@ export default function AdvisorPage() {
                     : <p className="text-[13px] text-[var(--ag-accent-text)] font-medium leading-relaxed">{msg.content}</p>
                   }
                   {msg.role === "assistant" && (
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(typeof msg.content === "string" ? msg.content : msg.content.map((b: any) => b.text || "").join("\n"))
-                        const btn = document.getElementById(`copy-${i}`);
-                        if (btn) { btn.textContent = "Copied!"; setTimeout(() => { btn.textContent = "Copy"; }, 1500); }
-                      }}
-                      id={`copy-${i}`}
-                      className="absolute -bottom-6 right-0 opacity-0 group-hover/msg:opacity-100 transition-opacity text-[10px] font-medium px-2.5 py-1 rounded-md"
-                      style={{ background: "var(--ag-border)", border: "1px solid rgba(255,255,255,0.08)", color: "var(--ag-text-secondary)" }}
-                    >
-                      Copy
-                    </button>
+                    <div className="absolute -bottom-6 right-0 opacity-0 group-hover/msg:opacity-100 transition-opacity flex items-center gap-1.5">
+                      <LilyExportButtons
+                        content={typeof msg.content === "string" ? msg.content : msg.content.map((b: any) => b.text || "").join("\n")}
+                        farmName={profile?.farmName || "My Farm"}
+                      />
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(typeof msg.content === "string" ? msg.content : msg.content.map((b: any) => b.text || "").join("\n"))
+                          const btn = document.getElementById(`copy-${i}`);
+                          if (btn) { btn.textContent = "Copied!"; setTimeout(() => { btn.textContent = "Copy"; }, 1500); }
+                        }}
+                        id={`copy-${i}`}
+                        className="text-[10px] font-medium px-2.5 py-1 rounded-md"
+                        style={{ background: "var(--ag-border)", border: "1px solid rgba(255,255,255,0.08)", color: "var(--ag-text-secondary)" }}
+                      >
+                        Copy
+                      </button>
+                    </div>
                   )}
                 </div>
                 {msg.role === "user" && (
