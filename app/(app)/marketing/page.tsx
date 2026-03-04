@@ -165,6 +165,32 @@ const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
       .catch(() => {})
       .finally(() => setPricesLoading(false));
   }, [tab]);
+  // ── Fetch prices ──────────────────────────────────────
+  useEffect(() => {
+    if (tab !== "price") return;
+    setPricesLoading(true);
+    fetch("/api/grain360/prices")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) {
+          setFutures(d.futures || []);
+          setCashBids(d.cashBids || []);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setPricesLoading(false));
+  }, [tab]);
+
+  // ── Fetch hedge positions ─────────────────────────────  
+  useEffect(() => {
+    if (tab !== "hedge") return;
+    setHedgeLoading(true);
+    fetch("/api/marketing/hedge")
+      .then(r => r.json())
+      .then(d => setHedgePositions(d.positions || []))
+      .catch(() => setHedgePositions([]))
+      .finally(() => setHedgeLoading(false));
+  }, [tab]);                                                  
 
   // ── Fetch price history ───────────────────────────────
   useEffect(() => {
@@ -197,6 +223,59 @@ const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
     if (!user?.id || !confirm("Delete this contract? This cannot be undone.")) return;
     try { await fetch(`/api/marketing/contracts?id=${id}`, { method: "DELETE", headers: { "x-user-id": user.id } }); fetchContracts(); fetch(`/api/marketing/positions?cropYear=${cropYear}&view=${prodView}`, { headers: { "x-user-id": user.id } }).then((r) => r.json()).then((d) => { if (d.success) setData(d); }); } catch {}
   };
+
+  // ── Hedge helpers ─────────────────────────────────────   
+  const resetHedgeForm = () => {
+    setEditingHedge(null); setHCrop("Canola"); setHExchange("ICE");
+    setHMonth(""); setHContracts(""); setHSizeMt("20"); setHDirection("short");
+    setHEntry(""); setHCurrent(""); setHDate(""); setHNotes("");
+  };
+
+  const openNewHedge = () => { resetHedgeForm(); setShowHedgeModal(true); };
+
+  const openEditHedge = (p: HedgePosition) => {
+    setEditingHedge(p); setHCrop(p.crop); setHExchange(p.exchange);
+    setHMonth(p.contract_month); setHContracts(String(p.contracts));
+    setHSizeMt(String(p.contract_size_mt)); setHDirection(p.direction);
+    setHEntry(String(p.entry_price)); setHCurrent(p.current_price != null ? String(p.current_price) : "");
+    setHDate(p.opened_date?.slice(0, 10) || ""); setHNotes(p.notes || "");
+    setShowHedgeModal(true);
+  };
+
+  const handleSaveHedge = async () => {
+    if (!hCrop || !hMonth || !hContracts || !hEntry) return;
+    setSavingHedge(true);
+    const body = {
+      ...(editingHedge ? { id: editingHedge.id } : {}),
+      crop: hCrop, exchange: hExchange, contract_month: hMonth,
+      contracts: Number(hContracts), contract_size_mt: Number(hSizeMt),
+      direction: hDirection, entry_price: Number(hEntry),
+      current_price: hCurrent ? Number(hCurrent) : null,
+      opened_date: hDate || null, notes: hNotes || null,
+    };
+    try {
+      const res = await fetch("/api/marketing/hedge", {
+        method: editingHedge ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setHedgePositions(prev => editingHedge
+          ? prev.map(p => p.id === editingHedge.id ? d.position : p)
+          : [d.position, ...prev]
+        );
+        setShowHedgeModal(false); resetHedgeForm();
+      }
+    } catch {}
+    setSavingHedge(false);
+  };
+
+  const handleDeleteHedge = async (id: string) => {
+    if (!confirm("Delete this hedge position?")) return;
+    await fetch(`/api/marketing/hedge?id=${id}`, { method: "DELETE" });
+    setHedgePositions(prev => prev.filter(p => p.id !== id));
+  };                                                          
 
   // ── Computed ───────────────────────────────────────────
   const filteredContracts = useMemo(() => {
@@ -240,6 +319,29 @@ const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
   }, [futures, priceFilter]);
 
   const selectedFuture = futures.find((f) => f.symbol === selectedSymbol);
+
+  // Hedge Tracker
+  interface HedgePosition {
+    id: string; crop: string; exchange: string; contract_month: string;
+    contracts: number; contract_size_mt: number; direction: string;
+    entry_price: number; current_price: number | null; status: string;
+    opened_date: string | null; notes: string | null;
+  }
+  const [hedgePositions, setHedgePositions] = useState<HedgePosition[]>([]);
+  const [hedgeLoading, setHedgeLoading] = useState(false);
+  const [showHedgeModal, setShowHedgeModal] = useState(false);
+  const [editingHedge, setEditingHedge] = useState<HedgePosition | null>(null);
+  const [savingHedge, setSavingHedge] = useState(false);
+  const [hCrop, setHCrop] = useState("Canola");
+  const [hExchange, setHExchange] = useState("ICE");
+  const [hMonth, setHMonth] = useState("");
+  const [hContracts, setHContracts] = useState("");
+  const [hSizeMt, setHSizeMt] = useState("20");
+  const [hDirection, setHDirection] = useState("short");
+  const [hEntry, setHEntry] = useState("");
+  const [hCurrent, setHCurrent] = useState("");
+  const [hDate, setHDate] = useState("");
+  const [hNotes, setHNotes] = useState("");
 
   const t = data?.totals;
   const tabs_list = [
@@ -527,36 +629,260 @@ const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
 
       /* ═══ HEDGE TRACKER TAB ══════════════════════════════ */
       ) : tab === "hedge" ? (
-        <div style={{ maxWidth: 640, margin: "0 auto", textAlign: "center", padding: "40px 0" }}>
-          <div style={{ width: 72, height: 72, borderRadius: 20, background: T.purpleBg, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-            <Shield size={32} style={{ color: T.purple }} />
+        <>
+          {/* Header row */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: T.text, margin: "0 0 2px" }}>Hedge Tracker</h2>
+              <p style={{ fontSize: 12, color: T.text4, margin: 0 }}>Futures positions, P&L, and hedge ratios vs your physical crop</p>
+            </div>
+            <button onClick={openNewHedge} style={{ background: T.purple, color: "#fff", border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              <Plus size={15} /> Add Position
+            </button>
           </div>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: T.text, marginBottom: 8 }}>Hedge Tracker</h2>
-          <p style={{ fontSize: 14, color: T.text2, marginBottom: 32, lineHeight: 1.6 }}>
-            Track your futures positions, monitor margin requirements, and see real-time P&amp;L on your hedging strategy — all integrated with your physical grain positions.
-          </p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 32 }}>
-            {[
-              { icon: Activity, label: "Futures Positions", desc: "Track open futures contracts with real-time P&L" },
-              { icon: Shield, label: "Margin Monitor", desc: "Monitor margin requirements and account balance" },
-              { icon: TrendingUp, label: "Hedge Analysis", desc: "Hedge ratio, basis risk, and effectiveness metrics" },
-            ].map((item) => (
-              <div key={item.label} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 20, textAlign: "left" }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: T.purpleBg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
-                  <item.icon size={18} style={{ color: T.purple }} />
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 4 }}>{item.label}</div>
-                <div style={{ fontSize: 11, color: T.text3, lineHeight: 1.5 }}>{item.desc}</div>
+          {hedgeLoading ? (
+            <div style={{ textAlign: "center", padding: 60 }}><Loader2 size={24} className="animate-spin" style={{ color: T.purple }} /></div>
+          ) : hedgePositions.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "60px 0" }}>
+              <div style={{ width: 64, height: 64, borderRadius: 18, background: T.purpleBg, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                <Shield size={28} style={{ color: T.purple }} />
               </div>
-            ))}
-          </div>
+              <p style={{ color: T.text2, fontSize: 15, marginBottom: 6 }}>No hedge positions yet</p>
+              <p style={{ color: T.text4, fontSize: 12, marginBottom: 20 }}>Add a futures position to start tracking your hedge</p>
+              <button onClick={openNewHedge} style={{ background: T.purple, color: "#fff", border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Add First Position</button>
+            </div>
+          ) : (() => {
+            // ── Calculations ──────────────────────────────────────
+            const KG_PER_BU: Record<string, number> = {
+              Canola: 22.68, Wheat: 27.22, "CWRS Wheat": 27.22, Durum: 27.22,
+              Barley: 21.77, Oats: 15.42, Peas: 27.22, Lentils: 27.22,
+              Flax: 25.40, Soybeans: 27.22, Corn: 25.40,
+            };
 
-          <div style={{ background: "linear-gradient(135deg, rgba(167,139,250,0.08), rgba(96,165,250,0.08))", border: `1px solid ${T.border}`, borderRadius: 14, padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
-            <Bell size={16} style={{ color: T.purple }} />
-            <span style={{ fontSize: 13, color: T.text2 }}>Coming Q3 2026 — we&apos;ll notify you when it&apos;s ready</span>
-          </div>
-        </div>
+            const openPositions = hedgePositions.filter(p => p.status === "open");
+
+            const totalHedgedMT = openPositions.reduce((s, p) => s + (p.contracts * Number(p.contract_size_mt)), 0);
+
+            const totalPnL = openPositions.reduce((s, p) => {
+              if (p.current_price == null) return s;
+              const sizeMt = p.contracts * Number(p.contract_size_mt);
+              const diff = p.direction === "short"
+                ? Number(p.entry_price) - Number(p.current_price)
+                : Number(p.current_price) - Number(p.entry_price);
+              return s + diff * sizeMt;
+            }, 0);
+
+            const totalProductionMT = data?.positions.reduce((s, p) => {
+              const kgPerBu = KG_PER_BU[p.crop] || 27.22;
+              return s + (p.estimated_production * kgPerBu / 1000);
+            }, 0) || 0;
+
+            const hedgeRatio = totalProductionMT > 0
+              ? Math.round((totalHedgedMT / totalProductionMT) * 100)
+              : 0;
+
+            // Per-crop hedge vs production
+            const cropHedge = data?.positions.map(p => {
+              const kgPerBu = KG_PER_BU[p.crop] || 27.22;
+              const prodMT = p.estimated_production * kgPerBu / 1000;
+              const hedgedMT = openPositions
+                .filter(h => h.crop === p.crop)
+                .reduce((s, h) => s + h.contracts * Number(h.contract_size_mt), 0);
+              const ratio = prodMT > 0 ? Math.min(100, Math.round((hedgedMT / prodMT) * 100)) : 0;
+              return { crop: p.crop, prodMT: Math.round(prodMT), hedgedMT: Math.round(hedgedMT), ratio };
+            }) || [];
+
+            return (
+              <>
+                {/* KPI Cards */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
+                  <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "18px 20px" }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: T.text3, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Total Hedged</div>
+                    <div style={{ fontSize: 26, fontWeight: 700, color: T.purple }}>{fmtNum(totalHedgedMT)} MT</div>
+                    <div style={{ fontSize: 11, color: T.text4, marginTop: 4 }}>{openPositions.length} open position{openPositions.length !== 1 ? "s" : ""}</div>
+                  </div>
+                  <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "18px 20px" }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: T.text3, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Unrealized P&L</div>
+                    <div style={{ fontSize: 26, fontWeight: 700, color: totalPnL >= 0 ? T.green : T.red }}>
+                      {totalPnL >= 0 ? "+" : ""}{fmtDollar(totalPnL)}
+                    </div>
+                    <div style={{ fontSize: 11, color: T.text4, marginTop: 4 }}>Positions with current price</div>
+                  </div>
+                  <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "18px 20px" }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: T.text3, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Hedge Ratio</div>
+                    <div style={{ fontSize: 26, fontWeight: 700, color: hedgeRatio >= 30 ? T.green : T.gold }}>{hedgeRatio}%</div>
+                    <div style={{ fontSize: 11, color: T.text4, marginTop: 4 }}>vs estimated production</div>
+                  </div>
+                </div>
+
+                {/* Per-crop hedge ratio bars */}
+                {cropHedge.length > 0 && (
+                  <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 24, marginBottom: 20 }}>
+                    <h3 style={{ fontSize: 14, fontWeight: 600, color: T.text, margin: "0 0 16px" }}>Hedge Ratio by Crop</h3>
+                    {cropHedge.map(c => (
+                      <div key={c.crop} style={{ marginBottom: 14 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: "50%", background: getCropColor(c.crop) }} />
+                            <span style={{ fontSize: 12, color: T.text }}>{c.crop}</span>
+                          </div>
+                          <span style={{ fontSize: 11, color: T.text3 }}>
+                            {fmtNum(c.hedgedMT)} / {fmtNum(c.prodMT)} MT hedged ({c.ratio}%)
+                          </span>
+                        </div>
+                        <div style={{ height: 8, borderRadius: 4, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                          <div style={{ width: `${c.ratio}%`, height: "100%", borderRadius: 4, background: c.ratio >= 30 ? T.purple : T.gold, transition: "width 0.6s ease" }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Positions table */}
+                <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: "hidden" }}>
+                  <div style={{ padding: "16px 20px", borderBottom: `1px solid ${T.border}` }}>
+                    <h3 style={{ fontSize: 14, fontWeight: 600, color: T.text, margin: 0 }}>Open Positions</h3>
+                  </div>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ borderBottom: `1px solid ${T.border}` }}>
+                        {["Crop", "Exchange", "Month", "Direction", "Contracts", "Size (MT)", "Entry", "Current", "Unrealized P&L", ""].map(h => (
+                          <th key={h} style={{ textAlign: "left", padding: "10px 14px", fontSize: 10, fontWeight: 600, color: T.text4, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {hedgePositions.map(p => {
+                        const sizeMt = p.contracts * Number(p.contract_size_mt);
+                        const hasCurrent = p.current_price != null;
+                        const diff = hasCurrent
+                          ? p.direction === "short"
+                            ? Number(p.entry_price) - Number(p.current_price)
+                            : Number(p.current_price) - Number(p.entry_price)
+                          : null;
+                        const pnl = diff != null ? diff * sizeMt : null;
+
+                        return (
+                          <tr key={p.id} style={{ borderBottom: `1px solid ${T.border}` }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                            <td style={{ padding: "12px 14px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <div style={{ width: 8, height: 8, borderRadius: "50%", background: getCropColor(p.crop) }} />
+                                <span style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>{p.crop}</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: "12px 14px", fontSize: 12, color: T.text2 }}>{p.exchange}</td>
+                            <td style={{ padding: "12px 14px", fontSize: 12, color: T.text2, fontWeight: 600 }}>{p.contract_month}</td>
+                            <td style={{ padding: "12px 14px" }}>
+                              <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 10px", borderRadius: 10, background: p.direction === "short" ? T.redBg : T.greenBg, color: p.direction === "short" ? T.red : T.green, textTransform: "uppercase" }}>
+                                {p.direction}
+                              </span>
+                            </td>
+                            <td style={{ padding: "12px 14px", fontSize: 13, color: T.text, fontWeight: 600 }}>{p.contracts}</td>
+                            <td style={{ padding: "12px 14px", fontSize: 12, color: T.text2 }}>{fmtNum(sizeMt)}</td>
+                            <td style={{ padding: "12px 14px", fontSize: 13, color: T.text }}>${Number(p.entry_price).toFixed(2)}</td>
+                            <td style={{ padding: "12px 14px", fontSize: 13, color: T.text2 }}>
+                              {p.current_price != null ? `$${Number(p.current_price).toFixed(2)}` : <span style={{ color: T.text4 }}>—</span>}
+                            </td>
+                            <td style={{ padding: "12px 14px", fontSize: 13, fontWeight: 600, color: pnl == null ? T.text4 : pnl >= 0 ? T.green : T.red }}>
+                              {pnl != null ? `${pnl >= 0 ? "+" : ""}${fmtDollar(pnl)}` : "—"}
+                            </td>
+                            <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                              <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                                <button onClick={() => openEditHedge(p)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}><Edit2 size={14} style={{ color: T.text3 }} /></button>
+                                <button onClick={() => handleDeleteHedge(p.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}><Trash2 size={14} style={{ color: T.red }} /></button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            );
+          })()}
+
+          {/* Add/Edit Modal */}
+          {showHedgeModal && (
+            <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div onClick={() => { setShowHedgeModal(false); resetHedgeForm(); }} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} />
+              <div style={{ position: "relative", background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, width: 520, maxHeight: "90vh", overflow: "auto", padding: 28, zIndex: 101 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, color: T.text, margin: 0 }}>{editingHedge ? "Edit Position" : "Add Hedge Position"}</h2>
+                  <button onClick={() => { setShowHedgeModal(false); resetHedgeForm(); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}><X size={18} style={{ color: T.text3 }} /></button>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+                  <Field label="Crop *">
+                    <select value={hCrop} onChange={e => setHCrop(e.target.value)} style={inputStyle}>
+                      {PRAIRIE_CROPS.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Exchange">
+                    <select value={hExchange} onChange={e => { setHExchange(e.target.value); setHSizeMt(e.target.value === "ICE" ? "20" : "136"); }} style={inputStyle}>
+                      <option value="ICE">ICE (Canola — 20 MT)</option>
+                      <option value="CME">CME (Grains — 136 MT)</option>
+                      <option value="MGE">MGE (Wheat — 136 MT)</option>
+                    </select>
+                  </Field>
+                  <Field label="Contract Month *">
+                    <input value={hMonth} onChange={e => setHMonth(e.target.value)} placeholder="e.g. NOV25" style={inputStyle} />
+                  </Field>
+                  <Field label="Direction">
+                    <select value={hDirection} onChange={e => setHDirection(e.target.value)} style={inputStyle}>
+                      <option value="short">Short (selling hedge)</option>
+                      <option value="long">Long (buying hedge)</option>
+                    </select>
+                  </Field>
+                  <Field label="# Contracts *">
+                    <input type="number" value={hContracts} onChange={e => setHContracts(e.target.value)} placeholder="e.g. 5" style={inputStyle} />
+                  </Field>
+                  <Field label="Contract Size (MT)">
+                    <input type="number" value={hSizeMt} onChange={e => setHSizeMt(e.target.value)} placeholder="20" style={inputStyle} />
+                  </Field>
+                  <Field label="Entry Price ($/MT) *">
+                    <input type="number" step="0.01" value={hEntry} onChange={e => setHEntry(e.target.value)} placeholder="e.g. 612.50" style={inputStyle} />
+                  </Field>
+                  <Field label="Current Price ($/MT)">
+                    <input type="number" step="0.01" value={hCurrent} onChange={e => setHCurrent(e.target.value)} placeholder="e.g. 598.00" style={inputStyle} />
+                  </Field>
+                  <Field label="Opened Date">
+                    <input type="date" value={hDate} onChange={e => setHDate(e.target.value)} style={inputStyle} />
+                  </Field>
+                </div>
+                <Field label="Notes">
+                  <textarea value={hNotes} onChange={e => setHNotes(e.target.value)} placeholder="Optional notes..." rows={2} style={{ ...inputStyle, resize: "vertical" }} />
+                </Field>
+                {/* Live P&L preview */}
+                {hEntry && hCurrent && hContracts && (
+                  <div style={{ marginBottom: 16, padding: "12px 16px", borderRadius: 10, background: "rgba(167,139,250,0.06)", border: `1px solid rgba(167,139,250,0.15)` }}>
+                    {(() => {
+                      const size = Number(hContracts) * Number(hSizeMt);
+                      const diff = hDirection === "short" ? Number(hEntry) - Number(hCurrent) : Number(hCurrent) - Number(hEntry);
+                      const pnl = diff * size;
+                      return (
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: 12, color: T.text3 }}>Unrealized P&L preview</span>
+                          <span style={{ fontSize: 16, fontWeight: 700, color: pnl >= 0 ? T.green : T.red }}>
+                            {pnl >= 0 ? "+" : ""}{fmtDollar(pnl)}
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                  <button onClick={() => { setShowHedgeModal(false); resetHedgeForm(); }} style={{ padding: "9px 20px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.text2, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+                  <button onClick={handleSaveHedge} disabled={savingHedge || !hCrop || !hMonth || !hContracts || !hEntry} style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: T.purple, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: savingHedge ? 0.7 : 1 }}>
+                    {savingHedge ? "Saving..." : editingHedge ? "Update Position" : "Add Position"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
 
       /* ═══ EMPTY STATE ════════════════════════════════════ */
       ) : tab === "overview" ? (
