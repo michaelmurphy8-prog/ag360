@@ -50,24 +50,43 @@ export async function GET(req: NextRequest) {
       SELECT
         s.issue_date::text          AS "Settlement Date",
         s.settlement_number         AS "Settlement #",
-        s.terminal_name             AS "Terminal / Elevator",
-        sl.commodity                AS "Commodity",
-        sl.grade                    AS "Grade",
+        s.terminal_name             AS "Terminal",
+        s.terminal_location         AS "Location",
+        s.crop                      AS "Crop",
+        s.grade                     AS "Grade",
+        s.contract_number           AS "Contract #",
+        s.total_loads               AS "Total Loads",
+        s.total_net_weight_mt       AS "Total Net Weight (MT)",
+        s.total_bushels             AS "Total Bushels",
+        s.price_per_mt              AS "Price / MT",
+        s.gross_payable             AS "Gross Payable",
+        s.total_adjustments         AS "Adjustments",
+        s.net_payable               AS "Net Payable",
+        s.avg_dockage_pct           AS "Avg Dockage %",
+        s.avg_moisture_pct          AS "Avg Moisture %",
+        s.payment_date::text        AS "Payment Date",
+        s.payment_method            AS "Payment Method",
+        s.status                    AS "Status",
         sl.delivery_number          AS "Delivery #",
-        sl.contract_reference       AS "Contract #",
+        sl.receipt_number           AS "Receipt #",
+        sl.cper_number              AS "CPER #",
+        sl.delivery_date::text      AS "Delivery Date",
+        sl.commodity                AS "Commodity",
+        sl.unload_weight_mt         AS "Unload Weight (MT)",
+        sl.dockage_pct              AS "Dockage %",
         sl.net_weight_mt            AS "Net Weight (MT)",
-        sl.price_per_mt             AS "Price / MT",
+        sl.net_bushels              AS "Net Bushels",
+        sl.moisture_pct             AS "Moisture %",
+        sl.price_per_mt             AS "Line Price / MT",
         sl.gross_amount             AS "Gross Amount",
-        sl.deductions               AS "Deductions",
-        sl.net_amount               AS "Net Amount",
-        s.net_payable               AS "Settlement Net Payable",
-        s.crop_year                 AS "Crop Year",
-        s.payment_status            AS "Payment Status"
+        sl.handling                 AS "Handling",
+        sl.gst                      AS "GST",
+        sl.levy                     AS "Levy",
+        sl.net_payable_line         AS "Line Net Payable"
       FROM settlements s
       LEFT JOIN settlement_lines sl ON sl.settlement_id = s.id
       WHERE s.user_id = ${userId}
-        AND s.crop_year = ${cropYear}
-      ORDER BY s.issue_date, s.settlement_number
+      ORDER BY s.issue_date, s.settlement_number, sl.line_number
     `;
 
     // ── 3. Input Expenses (from journal entries, expense accounts) ──
@@ -108,11 +127,9 @@ export async function GET(req: NextRequest) {
         w.role                      AS "Role",
         w.worker_type               AS "Type",
         t.hours                     AS "Hours",
-        t.task                      AS "Task",
-        t.field_name                AS "Field",
+        t.description               AS "Description",
         COALESCE(w.hourly_rate, 0)  AS "Hourly Rate",
-        ROUND(t.hours * COALESCE(w.hourly_rate, 0), 2) AS "Cost",
-        t.notes                     AS "Notes"
+        ROUND(t.hours * COALESCE(w.hourly_rate, 0), 2) AS "Cost"
       FROM time_entries t
       JOIN workers w ON w.id = t.worker_id
       WHERE w.user_id = ${userId}
@@ -123,24 +140,20 @@ export async function GET(req: NextRequest) {
     // ── 5. Equipment / Depreciation ───────────────────────────
     const equipRows = await sql`
       SELECT
-        m.year                      AS "Year",
-        m.make                      AS "Make",
-        m.model                     AS "Model",
-        m.serial_number             AS "Serial #",
-        m.asset_type                AS "Type",
-        m.purchase_price            AS "Purchase Price",
-        m.purchase_date::text       AS "Purchase Date",
-        m.current_value             AS "Current Value",
-        m.hours_current             AS "Current Hours",
-        CASE
-          WHEN m.purchase_price > 0 AND m.purchase_date IS NOT NULL
-          THEN ROUND(m.purchase_price * 0.15, 2)
-          ELSE 0
-        END                         AS "Est. Annual Depreciation (15%)",
-        m.notes                     AS "Notes"
-      FROM machinery m
-      WHERE m.user_id = ${userId}
-      ORDER BY m.asset_type, m.year DESC, m.make
+        e.year                      AS "Year",
+        e.make                      AS "Make",
+        e.model                     AS "Model",
+        e.display_name              AS "Display Name",
+        e.serial_number             AS "Serial #",
+        e.equipment_type            AS "Type",
+        e.is_active                 AS "Active",
+        e.created_at::text          AS "Date Added"
+      FROM equipment e
+      WHERE e.user_id = ${userId} OR e.farm_id IN (
+        SELECT id FROM farm_profiles WHERE user_id = ${userId}
+      )
+        AND e.is_active = true
+      ORDER BY e.equipment_type, e.year DESC, e.make
     `;
 
     // ── Build Excel workbook ──────────────────────────────────
@@ -149,7 +162,7 @@ export async function GET(req: NextRequest) {
     // Cover sheet
     const coverData = [
       ["AG360 — Accountant Export Package"],
-      [`Farm: ${userId}`],
+      [`Generated by: AG360`],
       [`Crop Year: ${cropYear}`],
       [`Date Range: ${dateFrom} to ${dateTo}`],
       [`Generated: ${new Date().toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" })}`],
