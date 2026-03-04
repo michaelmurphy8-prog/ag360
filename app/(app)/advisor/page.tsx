@@ -183,6 +183,9 @@ export default function AdvisorPage() {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [memories, setMemories] = useState<{id: string; content: string; category: string; created_at: string}[]>([]);
+  const [showMemoryPanel, setShowMemoryPanel] = useState(false);
+  const [cropYear] = useState(String(new Date().getFullYear()));
     const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -198,7 +201,15 @@ export default function AdvisorPage() {
         if (data.profile) setProfile(data.profile);
         setProfileLoaded(true);
       });
-}, [user?.id]);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetch("/api/lily/memory")
+      .then(r => r.json())
+      .then(d => setMemories(d.memories || []))
+      .catch(() => {});
+  }, [user?.id]);
 // Auto-send prompt from query params (e.g. from Marketing chips)
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
 
@@ -239,7 +250,12 @@ export default function AdvisorPage() {
   }
   async function sendMessage(text: string) {
     if ((!text.trim() && attachments.length === 0) || loading) return;
-    const farmContext = profile ? buildFarmContext(profile) : "";
+    const farmContext = [
+      profile ? buildFarmContext(profile) : "",
+      memories.length > 0
+        ? `LILY REMEMBERS FROM PAST CONVERSATIONS:\n${memories.slice(0, 20).map(m => `  [${m.category.toUpperCase()}] ${m.content}`).join("\n")}\n\nReference these memories naturally when relevant. Don't announce them unless asked.`
+        : "",
+    ].filter(Boolean).join("\n\n");
 
     const contentBlocks: any[] = [];
     for (const att of attachments) {
@@ -281,8 +297,35 @@ export default function AdvisorPage() {
         fullText += decoder.decode(value);
         setStreamingText(fullText);
       }
-      setMessages([...updatedMessages, { role: "assistant", content: fullText }]);
+      const finalMessages: Message[] = [...updatedMessages, { role: "assistant" as const, content: fullText }];
+      setMessages(finalMessages);
       setStreamingText("");
+
+      // Auto-extract and save memories from this exchange
+      const userText = typeof apiUserMessage.content === "string"
+        ? apiUserMessage.content
+        : (apiUserMessage.content as any[]).find((b: any) => b.type === "text")?.text || "";
+      if (userText && fullText) {
+        fetch("/api/lily/memory", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userMessage: userText,
+            assistantMessage: fullText,
+            cropYear,
+          }),
+        })
+          .then(r => r.json())
+          .then(d => {
+            if (d.saved > 0) {
+              // Refresh memories silently
+              fetch("/api/lily/memory")
+                .then(r => r.json())
+                .then(data => setMemories(data.memories || []));
+            }
+          })
+          .catch(() => {});
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -332,6 +375,14 @@ export default function AdvisorPage() {
             <a href="/farm-profile" className="text-[11px] font-semibold text-[var(--ag-green)] bg-[var(--ag-accent)]/[0.06] border border-[var(--ag-accent)]/15 px-4 py-2 rounded-full hover:bg-[var(--ag-accent)]/[0.12] transition-colors">
               Set Up Farm Profile →
             </a>
+          )}
+          {memories.length > 0 && (
+            <button
+              onClick={() => setShowMemoryPanel(!showMemoryPanel)}
+              className="flex items-center gap-1.5 text-[11px] font-semibold px-4 py-2 rounded-full transition-colors"
+              style={{ background: "rgba(167,139,250,0.06)", border: "1px solid rgba(167,139,250,0.15)", color: "#A78BFA" }}>
+              <Sparkles size={11} /> {memories.length} memories
+            </button>
           )}
           {profileLoaded && profile && (
             <a href="/farm-profile" className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--ag-green)] bg-[var(--ag-accent)]/[0.06] border border-[var(--ag-accent)]/15 px-4 py-2 rounded-full hover:bg-[var(--ag-accent)]/[0.12] transition-colors">
@@ -545,6 +596,53 @@ export default function AdvisorPage() {
           </button>
         </div>
       </div>
+      {/* Memory Panel */}
+      {showMemoryPanel && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "flex-end", padding: "80px 24px 24px" }}>
+          <div onClick={() => setShowMemoryPanel(false)} style={{ position: "absolute", inset: 0 }} />
+          <div style={{ position: "relative", width: 380, maxHeight: "60vh", background: "var(--ag-bg-card)", border: "1px solid rgba(167,139,250,0.2)", borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--ag-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ag-text-primary)", display: "flex", alignItems: "center", gap: 6 }}><Sparkles size={14} style={{ color: "#A78BFA" }} /> Lily's Memory</div>
+                <div style={{ fontSize: 11, color: "var(--ag-text-muted)", marginTop: 2 }}>What Lily remembers about your operation</div>
+              </div>
+              <button
+                onClick={async () => {
+                  if (!confirm("Clear all of Lily's memories?")) return;
+                  await fetch("/api/lily/memory", { method: "DELETE" });
+                  setMemories([]);
+                }}
+                style={{ fontSize: 11, color: "var(--ag-red)", background: "none", border: "none", cursor: "pointer" }}>
+                Clear all
+              </button>
+            </div>
+            <div style={{ overflowY: "auto", padding: "12px 16px", flex: 1 }}>
+              {memories.map(m => (
+                <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "10px 12px", marginBottom: 8, borderRadius: 10, background: "var(--ag-bg-secondary)", border: "1px solid var(--ag-border)" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 6, background: "rgba(167,139,250,0.1)", color: "#A78BFA", textTransform: "uppercase", letterSpacing: 0.5 }}>{m.category}</span>
+                      <span style={{ fontSize: 10, color: "var(--ag-text-dim)" }}>{new Date(m.created_at).toLocaleDateString("en-CA", { month: "short", day: "numeric" })}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--ag-text-secondary)", lineHeight: 1.5 }}>{m.content}</div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      await fetch(`/api/lily/memory?id=${m.id}`, { method: "DELETE" });
+                      setMemories(prev => prev.filter(x => x.id !== m.id));
+                    }}
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 4px", color: "var(--ag-text-dim)", flexShrink: 0, marginLeft: 8 }}>
+                    ✕
+                  </button>
+                </div>
+              ))}
+              {memories.length === 0 && (
+                <div style={{ textAlign: "center", padding: "20px 0", color: "var(--ag-text-dim)", fontSize: 12 }}>No memories yet — have a conversation with Lily</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
