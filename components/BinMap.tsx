@@ -239,10 +239,12 @@ export default function BinMap() {
         el.style.cursor = "grab";
 
         const marker = new mapboxgl.Marker({
-          element: el,
-          draggable: true,
-          anchor: "center",
-        })
+  element: el,
+  draggable: true,
+  anchor: "center",
+  pitchAlignment: "viewport",
+  rotationAlignment: "viewport",
+})
           .setLngLat([binLng, binLat])
           .addTo(map);
 
