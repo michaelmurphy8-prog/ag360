@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { getCropColor, buToMt } from "@/lib/crop-colors";
 import { useRouter, useSearchParams } from "next/navigation";
+import LocalCashBids from "@/components/marketing/LocalCashBids";
 
 // ─── Theme ──────────────────────────────────────────────
 const T = {
@@ -674,31 +675,7 @@ async function saveCanolaSpot() {
             </div>
           )}
 
-          {/* Cash Bids */}
-          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: "hidden" }}>
-            <div style={{ padding: "18px 20px 0" }}>
-              <h3 style={{ fontSize: 15, fontWeight: 600, color: T.text, margin: "0 0 2px" }}>Local Cash Bids</h3>
-              <p style={{ fontSize: 11, color: T.text4, margin: "0 0 12px" }}>Elevator prices near your operation</p>
-            </div>
-            {cashBids.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 30 }}><MapPin size={24} style={{ color: T.text4, margin: "0 auto 8px" }} /><p style={{ color: T.text4, fontSize: 12 }}>No cash bids available</p></div>
-            ) : (
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead><tr style={{ borderBottom: `1px solid ${T.border}` }}>{["Commodity", "Location", "Cash Price", "Basis", "Delivery Window"].map((h) => (<th key={h} style={{ textAlign: "left", padding: "8px 16px", fontSize: 10, fontWeight: 600, color: T.text4, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</th>))}</tr></thead>
-                <tbody>
-                  {cashBids.map((b) => (
-                    <tr key={b.id} style={{ borderBottom: `1px solid ${T.border}` }} onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                      <td style={{ padding: "10px 16px" }}><div style={{ display: "flex", alignItems: "center", gap: 8 }}><div style={{ width: 8, height: 8, borderRadius: "50%", background: getCropColor(b.commodity) }} /><span style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{b.commodity}</span></div></td>
-                      <td style={{ padding: "10px 16px" }}><div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: T.text2 }}><MapPin size={11} style={{ color: T.text4 }} />{b.location}</div></td>
-                      <td style={{ padding: "10px 16px", fontSize: 14, fontWeight: 700, color: T.green }}>${b.cashPrice.toFixed(2)}</td>
-                      <td style={{ padding: "10px 16px" }}><span style={{ fontSize: 12, fontWeight: 600, color: b.basis >= 0 ? T.green : T.red }}>{b.basis >= 0 ? "+" : ""}{b.basis.toFixed(2)}</span></td>
-                      <td style={{ padding: "10px 16px", fontSize: 11, color: T.text3 }}>{fmtDate(b.deliveryStart)} — {fmtDate(b.deliveryEnd)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+          <LocalCashBids />
         </>
 
       /* ═══ HEDGE TRACKER TAB ══════════════════════════════ */
