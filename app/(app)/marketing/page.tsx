@@ -125,6 +125,10 @@ const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
   const [priceHistory, setPriceHistory] = useState<PriceHistoryPoint[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [priceFilter, setPriceFilter] = useState<"all" | "grain" | "livestock" | "energy">("all");
+  const [showCanolaEntry, setShowCanolaEntry] = useState(false)
+  const [canolaPrice, setCanolaPrice] = useState('')
+  const [canolaElevator, setCanolaElevator] = useState('')
+  const [canolaSaving, setCanolaSaving] = useState(false)
 
   // ── Fetch positions ───────────────────────────────────
   useEffect(() => {
@@ -150,21 +154,6 @@ const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
 
   useEffect(() => { if (tab === "contracts") fetchContracts(); }, [tab, fetchContracts]);
 
-  // ── Fetch prices ──────────────────────────────────────
-  useEffect(() => {
-    if (tab !== "price") return;
-    setPricesLoading(true);
-    fetch("/api/grain360/prices")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success) {
-          setFutures(d.futures || []);
-          setCashBids(d.cashBids || []);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setPricesLoading(false));
-  }, [tab]);
   // ── Fetch prices ──────────────────────────────────────
   useEffect(() => {
     if (tab !== "price") return;
@@ -276,6 +265,31 @@ const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
     await fetch(`/api/marketing/hedge?id=${id}`, { method: "DELETE" });
     setHedgePositions(prev => prev.filter(p => p.id !== id));
   };                                                          
+async function saveCanolaSpot() {
+    if (!canolaPrice || !canolaElevator) return
+    setCanolaSaving(true)
+    try {
+      await fetch('/api/grain360/canola-bids', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          elevator: canolaElevator,
+          cash_price: parseFloat(canolaPrice),
+          delivery_month: null,
+          notes: null,
+        }),
+      })
+      setShowCanolaEntry(false)
+      setCanolaPrice('')
+      setCanolaElevator('')
+      setPricesLoading(true)
+      fetch('/api/grain360/prices')
+        .then(r => r.json())
+        .then(d => { if (d.success) { setFutures(d.futures || []); setCashBids(d.cashBids || []) } })
+        .finally(() => setPricesLoading(false))
+    } catch {}
+    setCanolaSaving(false)
+  }
 
   // ── Computed ───────────────────────────────────────────
   const filteredContracts = useMemo(() => {
@@ -517,9 +531,13 @@ const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
                   <h3 style={{ fontSize: 15, fontWeight: 600, color: T.text, margin: "0 0 2px" }}>Futures Markets</h3>
                   <p style={{ fontSize: 11, color: T.text4, margin: 0 }}>Click a row to view price history</p>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: T.text4 }}>
-                  <Clock size={10} />
-                  <span>Mock data — live feed coming soon</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 3, color: T.green }}>
+                    <Activity size={10} />
+                    Wheat · Corn · Cattle · Diesel: live
+                  </span>
+                  <span style={{ color: T.text4 }}>·</span>
+                  <span style={{ color: T.gold }}>Canola: manual entry</span>
                 </div>
               </div>
               {pricesLoading ? (
@@ -547,7 +565,23 @@ const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
                           <td style={{ padding: "10px 16px" }}>
                             <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 10, background: isUp ? T.greenBg : T.redBg, color: isUp ? T.green : T.red }}>{isUp ? "+" : ""}{f.percentChange.toFixed(2)}%</span>
                           </td>
-                          <td style={{ padding: "10px 16px", fontSize: 11, color: T.text4 }}>{f.unitCode}</td>
+                          <td style={{ padding: "10px 16px", fontSize: 11, color: T.text4 }}>
+                            {f.unitCode}
+                            {(f.symbol === "ZW*1" || f.symbol === "ZC*1") && (
+                              <div style={{ fontSize: 9, color: T.text4, marginTop: 1 }}>¢/bu</div>
+                            )}
+                            {f.symbol === "WC*1" && (
+                              <button
+                                onClick={e => { e.stopPropagation(); setShowCanolaEntry(v => !v) }}
+                                style={{ display: 'block', marginTop: 3, fontSize: 9, color: T.gold, background: 'none', border: `1px solid ${T.gold}`, borderRadius: 4, padding: '1px 6px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                              >
+                                + update
+                              </button>
+                            )}
+                            {(f.symbol === "ZW*1" || f.symbol === "ZC*1") && (
+                              <div style={{ fontSize: 9, color: T.text4, marginTop: 1 }}>¢/bu</div>
+                            )}
+                          </td>
                         </tr>
                       );
                     })}
@@ -599,6 +633,46 @@ const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
               </div>
             )}
           </div>
+
+          {/* Canola Quick Entry */}
+          {showCanolaEntry && (
+            <div style={{ background: T.card, border: `1px solid ${T.gold}`, borderRadius: 12, padding: '16px 20px', display: 'flex', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: T.gold, marginBottom: 'auto', paddingBottom: 6 }}>📞 Enter today&apos;s canola bid</div>
+              <div>
+                <div style={{ fontSize: 10, color: T.text4, marginBottom: 4 }}>ELEVATOR</div>
+                <input
+                  value={canolaElevator}
+                  onChange={e => setCanolaElevator(e.target.value)}
+                  placeholder="e.g. Viterra Swift Current"
+                  style={{ ...inputStyle, width: 220, background: T.bg }}
+                />
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: T.text4, marginBottom: 4 }}>CASH PRICE (CAD/bu)</div>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={canolaPrice}
+                  onChange={e => setCanolaPrice(e.target.value)}
+                  placeholder="e.g. 13.42"
+                  style={{ ...inputStyle, width: 140, background: T.bg }}
+                />
+              </div>
+              <button
+                onClick={saveCanolaSpot}
+                disabled={canolaSaving || !canolaPrice || !canolaElevator}
+                style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: T.gold, color: T.bg, fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: canolaSaving ? 0.7 : 1 }}
+              >
+                {canolaSaving ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                onClick={() => setShowCanolaEntry(false)}
+                style={{ padding: '9px 14px', borderRadius: 8, border: `1px solid ${T.border}`, background: 'transparent', color: T.text3, fontSize: 12, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
 
           {/* Cash Bids */}
           <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: "hidden" }}>

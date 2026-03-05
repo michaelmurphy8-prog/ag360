@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 import { getPricesData } from '@/lib/prices-data'
 
 export async function GET() {
   try {
-    const data = await getPricesData()
+    const { userId } = await auth()
+const data = await getPricesData(userId ?? undefined)
     return NextResponse.json(data)
   } catch (error) {
     console.error('Prices API error:', error)

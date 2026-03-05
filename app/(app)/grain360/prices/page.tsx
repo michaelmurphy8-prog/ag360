@@ -49,6 +49,28 @@ type HistoryPoint = {
   price: number
 }
 
+type CanolaLocalBid = {
+  id: number
+  elevator: string
+  cash_price: number
+  delivery_month: string | null
+  notes: string | null
+  updated_at: string
+}
+
+type StatCanPoint = {
+  date: string
+  price: number
+}
+
+type StatCanData = {
+  success: boolean
+  source: string
+  label: string
+  note: string
+  points: StatCanPoint[]
+}
+
 const COMMODITY_GROUPS = [
   { label: 'Canola', symbols: ['WC*1', 'WC*2', 'WC*3'], primarySymbol: 'WC*1' },
   { label: 'Wheat', symbols: ['ZW*1'], primarySymbol: 'ZW*1' },
@@ -133,6 +155,12 @@ export default function PricesPage() {
   const [fxSource, setFxSource] = useState<string>('fallback')
   const [history, setHistory] = useState<HistoryPoint[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
+  const [canolaLocalBids, setCanolaLocalBids] = useState<CanolaLocalBid[]>([])
+  const [statcanData, setStatcanData] = useState<StatCanData | null>(null)
+  const [statcanLoading, setStatcanLoading] = useState(false)
+  const [bidForm, setBidForm] = useState({ elevator: '', cash_price: '', delivery_month: '', notes: '' })
+  const [bidFormOpen, setBidFormOpen] = useState(false)
+  const [bidSaving, setBidSaving] = useState(false)
 
   async function fetchPrices(isRefresh = false) {
     if (isRefresh) setRefreshing(true)
@@ -185,6 +213,52 @@ export default function PricesPage() {
     }
   }
 
+  async function fetchCanolaLocalBids() {
+    try {
+      const res = await fetch('/api/grain360/canola-bids')
+      const json = await res.json()
+      if (json.success) setCanolaLocalBids(json.bids)
+    } catch { console.error('Failed to fetch canola bids') }
+  }
+
+  async function fetchStatcan() {
+    setStatcanLoading(true)
+    try {
+      const res = await fetch('/api/grain360/statcan')
+      const json = await res.json()
+      if (json.success) setStatcanData(json)
+    } catch { console.error('StatCan fetch failed') }
+    finally { setStatcanLoading(false) }
+  }
+
+  async function saveLocalBid() {
+    if (!bidForm.elevator || !bidForm.cash_price) return
+    setBidSaving(true)
+    try {
+      await fetch('/api/grain360/canola-bids', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          elevator: bidForm.elevator,
+          cash_price: parseFloat(bidForm.cash_price),
+          delivery_month: bidForm.delivery_month || null,
+          notes: bidForm.notes || null,
+        }),
+      })
+      setBidForm({ elevator: '', cash_price: '', delivery_month: '', notes: '' })
+      setBidFormOpen(false)
+      fetchCanolaLocalBids()
+    } catch { console.error('Failed to save bid') }
+    finally { setBidSaving(false) }
+  }
+
+  async function deleteLocalBid(id: number) {
+    try {
+      await fetch(`/api/grain360/canola-bids?id=${id}`, { method: 'DELETE' })
+      setCanolaLocalBids(prev => prev.filter(b => b.id !== id))
+    } catch { console.error('Failed to delete bid') }
+  }
+
   const fetchWatchlist = useCallback(async () => {
     try {
       const res = await fetch('/api/grain360/watchlist')
@@ -201,6 +275,8 @@ export default function PricesPage() {
     fetchPrices()
     fetchFX()
     fetchWatchlist()
+    fetchCanolaLocalBids()
+    fetchStatcan()
     const interval = setInterval(() => fetchPrices(), 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [fetchWatchlist])
@@ -452,6 +528,198 @@ export default function PricesPage() {
           </table>
         </div>
       </div>
+
+      {/* Canola Panel — Manual Bids + StatCan Trend (only on Canola tab) */}
+      {activeCommodity === 'Canola' && (
+        <div className="grid grid-cols-2 gap-4">
+
+          {/* Manual Bid Entry */}
+          <div className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden shadow-sm">
+            <div className="px-4 py-3 border-b border-[#E4E7E0] flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-[#222527]">My Canola Bids</h2>
+                <p className="text-xs text-[#7A8A7C] mt-0.5">Enter your elevator call each morning</p>
+              </div>
+              <button
+                onClick={() => setBidFormOpen(v => !v)}
+                className="text-xs font-semibold px-3 py-1.5 bg-[#4A7C59] text-white rounded-lg hover:bg-[#3d6b4a] transition-colors"
+              >
+                {bidFormOpen ? 'Cancel' : '+ Add Bid'}
+              </button>
+            </div>
+
+            {bidFormOpen && (
+              <div className="px-4 py-4 border-b border-[#E4E7E0] bg-[#F9FAF8] space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-[#7A8A7C] font-medium block mb-1">Elevator / Location</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Viterra Swift Current"
+                      value={bidForm.elevator}
+                      onChange={e => setBidForm(f => ({ ...f, elevator: e.target.value }))}
+                      className="w-full text-sm border border-[#E4E7E0] rounded-lg px-3 py-2 bg-white text-[#222527] placeholder-[#7A8A7C] focus:outline-none focus:border-[#4A7C59]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#7A8A7C] font-medium block mb-1">Cash Price (CAD/bu)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="e.g. 13.42"
+                      value={bidForm.cash_price}
+                      onChange={e => setBidForm(f => ({ ...f, cash_price: e.target.value }))}
+                      className="w-full text-sm border border-[#E4E7E0] rounded-lg px-3 py-2 bg-white text-[#222527] placeholder-[#7A8A7C] focus:outline-none focus:border-[#4A7C59]"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-[#7A8A7C] font-medium block mb-1">Delivery Month (optional)</label>
+                    <input
+                      type="month"
+                      value={bidForm.delivery_month}
+                      onChange={e => setBidForm(f => ({ ...f, delivery_month: e.target.value }))}
+                      className="w-full text-sm border border-[#E4E7E0] rounded-lg px-3 py-2 bg-white text-[#222527] focus:outline-none focus:border-[#4A7C59]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#7A8A7C] font-medium block mb-1">Notes (optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. basis -1.08"
+                      value={bidForm.notes}
+                      onChange={e => setBidForm(f => ({ ...f, notes: e.target.value }))}
+                      className="w-full text-sm border border-[#E4E7E0] rounded-lg px-3 py-2 bg-white text-[#222527] placeholder-[#7A8A7C] focus:outline-none focus:border-[#4A7C59]"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={saveLocalBid}
+                  disabled={bidSaving || !bidForm.elevator || !bidForm.cash_price}
+                  className="w-full py-2 bg-[#4A7C59] text-white text-sm font-semibold rounded-lg hover:bg-[#3d6b4a] transition-colors disabled:opacity-50"
+                >
+                  {bidSaving ? 'Saving...' : 'Save Bid'}
+                </button>
+              </div>
+            )}
+
+            <div className="divide-y divide-[#E4E7E0]">
+              {canolaLocalBids.length === 0 && !bidFormOpen && (
+                <div className="px-4 py-8 text-center text-[#7A8A7C] text-sm">
+                  <p className="font-medium mb-1">No bids entered yet</p>
+                  <p className="text-xs">Call your elevator and enter today&apos;s canola cash bid above</p>
+                </div>
+              )}
+              {canolaLocalBids.map(bid => {
+                const hoursAgo = Math.floor((new Date().getTime() - new Date(bid.updated_at).getTime()) / (1000 * 60 * 60))
+                const isStale = hoursAgo > 12
+                return (
+                  <div key={bid.id} className="px-4 py-3 flex items-center justify-between hover:bg-[#F9FAF8]">
+                    <div>
+                      <p className="text-sm font-semibold text-[#222527]">{bid.elevator}</p>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        {bid.delivery_month && (
+                          <span className="text-xs text-[#7A8A7C]">{bid.delivery_month}</span>
+                        )}
+                        {bid.notes && (
+                          <span className="text-xs text-[#7A8A7C]">· {bid.notes}</span>
+                        )}
+                        <span className={`text-[10px] font-medium ${isStale ? 'text-yellow-600' : 'text-emerald-600'}`}>
+                          · {hoursAgo === 0 ? 'Updated just now' : `${hoursAgo}h ago`}{isStale ? ' ⚠ Update today' : ''}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg font-bold text-[#222527]">${Number(bid.cash_price).toFixed(2)}</span>
+                      <span className="text-xs text-[#7A8A7C]">CAD/bu</span>
+                      <button
+                        onClick={() => deleteLocalBid(bid.id)}
+                        className="text-[#7A8A7C] hover:text-red-500 transition-colors text-xs"
+                      >✕</button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* StatCan Canola Trend */}
+          <div className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden shadow-sm">
+            <div className="px-4 py-3 border-b border-[#E4E7E0]">
+              <h2 className="text-sm font-semibold text-[#222527]">
+                {statcanData?.label ?? 'SK Canola Price Trend'}
+              </h2>
+              <p className="text-xs text-[#7A8A7C] mt-0.5">
+                {statcanData?.source === 'statcan'
+                  ? 'Statistics Canada · Monthly average · Open data'
+                  : 'Indicative trend · StatCan data loading'}
+              </p>
+            </div>
+            <div className="p-4">
+              {statcanLoading ? (
+                <div className="h-48 flex items-center justify-center text-[#7A8A7C] text-sm animate-pulse">
+                  Loading StatCan data...
+                </div>
+              ) : statcanData && statcanData.points.length > 0 ? (
+                <>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <AreaChart
+                      data={statcanData.points}
+                      margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+                    >
+                      <defs>
+                        <linearGradient id="statcanGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#4A7C59" stopOpacity={0.15} />
+                          <stop offset="95%" stopColor="#4A7C59" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E4E7E0" vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 10, fill: '#7A8A7C' }}
+                        tickLine={false}
+                        axisLine={false}
+                        interval={2}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 10, fill: '#7A8A7C' }}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={v => `$${v}`}
+                        width={50}
+                        domain={['auto', 'auto']}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Area
+                        type="monotone"
+                        dataKey="price"
+                        stroke="#4A7C59"
+                        strokeWidth={2}
+                        fill="url(#statcanGradient)"
+                        dot={false}
+                        activeDot={{ r: 4, fill: '#4A7C59', strokeWidth: 0 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                  <div className="mt-3 pt-3 border-t border-[#E4E7E0] flex items-center justify-between">
+                    <p className="text-[10px] text-[#7A8A7C]">{statcanData.note}</p>
+                    {statcanData.source === 'statcan' && (
+                      <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        LIVE
+                      </span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="h-48 flex items-center justify-center text-[#7A8A7C] text-sm">
+                  No trend data available
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Price History Chart */}
       <div className="bg-white border border-[#E4E7E0] rounded-xl overflow-hidden shadow-sm">
