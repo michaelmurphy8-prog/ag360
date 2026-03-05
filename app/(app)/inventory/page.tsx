@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import BinMap from "@/components/BinMap";
 import SlideOutPanel from "@/components/SlideOutPanel";
+import { getCropColor } from "@/lib/crop-colors"
 
 const CROPS = ["Canola", "CWRS Wheat", "Durum", "Barley", "Oats", "Peas", "Lentils", "Flax", "Soybeans", "Corn"];
 const CONTRACT_TYPES = ["Cash Sale", "HTA (Basis Contract)", "Deferred Delivery", "Futures-First", "Target Order", "PRO/Pool"];
@@ -188,6 +189,7 @@ export default function InventoryPage() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [showAddHolding, setShowAddHolding] = useState(false);
+const [editingHolding, setEditingHolding] = useState<Holding | null>(null);
   const [showAddContract, setShowAddContract] = useState(false);
   const [showAddMovement, setShowAddMovement] = useState(false);
   const [newHolding, setNewHolding] = useState<Holding>({ crop: "Canola", location: "", quantity_bu: 0, grade: "#1", moisture: 0, estimated_price: 0 });
@@ -320,6 +322,26 @@ export default function InventoryPage() {
     await logMovement({ movement_type: "Inventory Adjustment", crop: newHolding.crop, quantity_bu: newHolding.quantity_bu, to_location: newHolding.location, movement_date: new Date().toISOString().split("T")[0] });
   }
 
+  async function updateHolding() {
+    if (!editingHolding?.id) return;
+    await fetch("/api/inventory/holdings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: editingHolding.id,
+        bin_name: editingHolding.location,
+        crop: editingHolding.crop,
+        quantity_bu: editingHolding.quantity_bu,
+        grade: editingHolding.grade,
+        moisture: editingHolding.moisture,
+        estimated_price: editingHolding.estimated_price,
+      }),
+    });
+    setEditingHolding(null);
+    const res = await fetch("/api/inventory/holdings");
+    const data = await res.json();
+    setHoldings(data.holdings || []);
+  }
   async function deleteHolding(id: number) {
     await fetch("/api/inventory/holdings", {
       method: "POST", headers: { ...headers, "Content-Type": "application/json" },
@@ -750,6 +772,22 @@ export default function InventoryPage() {
                 </div>
               </FormCard>
             )}
+            {editingHolding && (
+              <FormCard title="Edit Holding" onClose={() => setEditingHolding(null)} accent>
+                <div className="grid grid-cols-3 gap-3">
+                  <div><label className={labelClass}>Crop</label><select value={editingHolding.crop} onChange={e => setEditingHolding({...editingHolding, crop: e.target.value})} className={selectClass}>{CROPS.map(c => <option key={c}>{c}</option>)}</select></div>
+                  <div><label className={labelClass}>Location / Bin</label><input type="text" value={editingHolding.location} onChange={e => setEditingHolding({...editingHolding, location: e.target.value})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Quantity (bu)</label><input type="number" value={editingHolding.quantity_bu || ""} onChange={e => setEditingHolding({...editingHolding, quantity_bu: Number(e.target.value)})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Grade</label><select value={editingHolding.grade} onChange={e => setEditingHolding({...editingHolding, grade: e.target.value})} className={selectClass}>{GRADES.map(g => <option key={g}>{g}</option>)}</select></div>
+                  <div><label className={labelClass}>Moisture (%)</label><input type="number" step="0.1" value={editingHolding.moisture || ""} onChange={e => setEditingHolding({...editingHolding, moisture: Number(e.target.value)})} className={inputClass} /></div>
+                  <div><label className={labelClass}>Est. Price ($/bu)</label><input type="number" step="0.01" value={editingHolding.estimated_price || ""} onChange={e => setEditingHolding({...editingHolding, estimated_price: Number(e.target.value)})} className={inputClass} /></div>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => setEditingHolding(null)} className={btnGhost}>Cancel</button>
+                  <button onClick={updateHolding} className={btnPrimary}>Save Changes</button>
+                </div>
+              </FormCard>
+            )}
             {cropFilter !== "all" && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--ag-accent)]/10 border border-[var(--ag-accent-border)] text-sm text-[var(--ag-green)]">
                 <Filter size={14} />
@@ -780,17 +818,25 @@ export default function InventoryPage() {
                   <tbody className="divide-y divide-[var(--ag-border)]">
                      {(cropFilter !== "all" ? holdings.filter(h => h.crop === cropFilter) : holdings).map((h, i) => (
                       <tr key={h.id || i} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3 pr-6 font-semibold text-ag-primary">{h.crop}</td>
-                        <td className="py-3 pr-6 text-ag-secondary">{h.location}</td>
-                        <td className="py-3 pr-6 text-right font-semibold text-ag-primary font-mono">{Number(h.quantity_bu).toLocaleString()} bu</td>
-                        <td className="py-3 pr-6"><span className="text-[10px] bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] px-2 py-0.5 rounded text-ag-secondary">{h.grade || "—"}</span></td>
-                        <td className="py-3 pr-6 text-right text-ag-muted">{h.moisture ? `${h.moisture}%` : "—"}</td>
-                        <td className="py-3 pr-6 text-right text-ag-secondary">{h.estimated_price ? `$${h.estimated_price}/bu` : "—"}</td>
-                        <td className="py-3 text-right font-semibold text-[var(--ag-green)]">{fmt(Number(h.quantity_bu) * Number(h.estimated_price || 0))}</td>
-                        <td className="py-3 text-right">
-                          {h.id && <button onClick={() => deleteHolding(h.id!)} className="text-[var(--ag-red)]/40 hover:text-[var(--ag-red)] transition-colors"><Trash2 size={14} /></button>}
-                        </td>
-                      </tr>
+  <td className="py-3 pr-6">
+    <div className="flex items-center gap-2">
+      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: getCropColor(h.crop || "") }} />
+      <span className="font-semibold text-ag-primary">{h.crop || "—"}</span>
+    </div>
+  </td>
+  <td className="py-3 pr-6 text-ag-secondary">{h.location}</td>
+  <td className="py-3 pr-6 text-right font-semibold text-ag-primary font-mono">{Number(h.quantity_bu).toLocaleString()} bu</td>
+  <td className="py-3 pr-6"><span className="text-[10px] bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] px-2 py-0.5 rounded text-ag-secondary">{h.grade || "—"}</span></td>
+  <td className="py-3 pr-6 text-right text-ag-muted">{h.moisture ? `${h.moisture}%` : "—"}</td>
+  <td className="py-3 pr-6 text-right text-ag-secondary">{h.estimated_price ? `$${Number(h.estimated_price).toFixed(2)}/bu` : "—"}</td>
+  <td className="py-3 text-right font-semibold text-[var(--ag-green)]">{fmt(Number(h.quantity_bu) * Number(h.estimated_price || 0))}</td>
+  <td className="py-3 text-right">
+    <div className="flex items-center justify-end gap-2">
+      {h.id && <button onClick={() => setEditingHolding(h)} className="text-ag-muted hover:text-ag-primary transition-colors"><Pencil size={13} /></button>}
+      {h.id && <button onClick={() => deleteHolding(h.id!)} className="text-[var(--ag-red)]/40 hover:text-[var(--ag-red)] transition-colors"><Trash2 size={14} /></button>}
+    </div>
+  </td>
+</tr>
                     ))}
                   </tbody>
                 </table>

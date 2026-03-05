@@ -102,30 +102,34 @@ function buildMarkerHTML(bin: Bin): string {
   if (isRect) {
     return `<div style="position:relative;width:${size * 1.4}px;height:${size}px;cursor:grab;user-select:none">
       ${badges}
-      <div style="width:100%;height:100%;border-radius:6px;border:${isEmpty ? `1.5px dashed rgba(255,255,255,0.15)` : `2px solid ${cropColor}`};background:rgba(17,24,39,0.85);overflow:hidden;position:relative;backdrop-filter:blur(4px)">
-        <div style="position:absolute;bottom:0;left:0;right:0;height:${fillPct}%;background:${cropColor};opacity:0.4;transition:height 0.3s"></div>
+      <div style="width:100%;height:100%;border-radius:6px;border:${isEmpty ? `1.5px dashed rgba(255,255,255,0.15)` : `3px solid ${cropColor}`};background:rgba(17,24,39,0.85);overflow:hidden;position:relative;backdrop-filter:blur(4px)">
+        <div style="position:absolute;bottom:0;left:0;right:0;height:${fillPct}%;background:${cropColor};opacity:0.65;transition:height 0.3s"></div>
         <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;z-index:1">
           <span style="font-size:${size > 56 ? 14 : 12}px;font-weight:700;color:${isEmpty ? T.text4 : "#fff"}">${isEmpty ? "Empty" : fillPct + "%"}</span>
         </div>
       </div>
       <div style="text-align:center;margin-top:4px">
-        <div style="font-size:10px;font-weight:600;color:#E2E8F0;text-shadow:0 1px 3px rgba(0,0,0,0.8)">${bin.bin_name}</div>
-        <div style="font-size:9px;color:#94A3B8;text-shadow:0 1px 2px rgba(0,0,0,0.8)">${bin.crop ? bin.crop + " · " + fmtNum(bin.current_bu) + " bu" : fmtNum(bin.capacity_bu) + " bu cap"}</div>
+        <div class="bin-label" style="margin-top:4px;background:rgba(255,255,255,0.92);border-radius:4px;padding:2px 6px;text-align:center;display:none">
+          <div style="font-size:10px;font-weight:700;color:#0F172A">${bin.bin_name}</div>
+          <div style="font-size:9px;color:#475569">${bin.crop ? bin.crop + " · " + fmtNum(bin.current_bu) + " bu" : fmtNum(bin.capacity_bu) + " bu cap"}</div>
+        </div>
       </div>
     </div>`;
   }
 
   return `<div style="position:relative;width:${size}px;height:${size}px;cursor:grab;user-select:none">
     ${badges}
-    <div style="width:100%;height:100%;border-radius:50%;border:${isEmpty ? `1.5px dashed rgba(255,255,255,0.15)` : `2px solid ${cropColor}`};background:rgba(17,24,39,0.85);overflow:hidden;position:relative;backdrop-filter:blur(4px)">
-      <div style="position:absolute;bottom:0;left:0;right:0;height:${fillPct}%;background:${cropColor};opacity:0.4;transition:height 0.3s"></div>
+    <div style="width:100%;height:100%;border-radius:50%;border:${isEmpty ? `1.5px dashed rgba(255,255,255,0.15)` : `3px solid ${cropColor}`};background:rgba(17,24,39,0.85);overflow:hidden;position:relative;backdrop-filter:blur(4px)">
+      <div style="position:absolute;bottom:0;left:0;right:0;height:${fillPct}%;background:${cropColor};opacity:0.65;transition:height 0.3s"></div>
       <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;z-index:1">
         <span style="font-size:${size > 56 ? 14 : 12}px;font-weight:700;color:${isEmpty ? T.text4 : "#fff"}">${isEmpty ? "Empty" : fillPct + "%"}</span>
       </div>
     </div>
     <div style="text-align:center;margin-top:4px">
-      <div style="font-size:10px;font-weight:600;color:#E2E8F0;text-shadow:0 1px 3px rgba(0,0,0,0.8)">${bin.bin_name}</div>
-      <div style="font-size:9px;color:#94A3B8;text-shadow:0 1px 2px rgba(0,0,0,0.8)">${bin.crop ? bin.crop + " · " + fmtNum(bin.current_bu) + " bu" : fmtNum(bin.capacity_bu) + " bu cap"}</div>
+      <div class="bin-label" style="margin-top:4px;background:rgba(255,255,255,0.92);border-radius:4px;padding:2px 6px;text-align:center;display:none">
+        <div style="font-size:10px;font-weight:700;color:#0F172A">${bin.bin_name}</div>
+        <div style="font-size:9px;color:#475569">${bin.crop ? bin.crop + " · " + fmtNum(bin.current_bu) + " bu" : fmtNum(bin.capacity_bu) + " bu cap"}</div>
+      </div>
     </div>
   </div>`;
 }
@@ -237,6 +241,13 @@ export default function BinMap() {
         const el = document.createElement("div");
         el.innerHTML = buildMarkerHTML(bin);
         el.style.cursor = "grab";
+        el.innerHTML = buildMarkerHTML(bin);
+el.style.cursor = "grab";
+
+// Show label on hover
+const label = el.querySelector(".bin-label") as HTMLElement;
+el.addEventListener("mouseenter", () => { if (label) label.style.display = "block"; });
+el.addEventListener("mouseleave", () => { if (label) label.style.display = "none"; });
 
         const marker = new mapboxgl.Marker({
   element: el,

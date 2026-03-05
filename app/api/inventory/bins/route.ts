@@ -9,25 +9,6 @@ import { CANONICAL_CROPS } from "@/lib/crop-colors";
 const BIN_TYPES = ["hopper", "flat_bottom", "temporary", "shed"];
 
 // Sync bins → inventory_holdings (bins are source of truth)
-async function syncBinsToHoldings(userId: string) {
-  // Clear existing holdings for this user that came from bins
-  await sql`DELETE FROM inventory_holdings WHERE user_id = ${userId}`;
-
-  // Re-create from current bin state
-  await sql`
-    INSERT INTO inventory_holdings (user_id, crop, location, quantity_bu, grade, moisture, notes)
-    SELECT
-      user_id,
-      COALESCE(crop, 'Empty'),
-      bin_name,
-      current_bu,
-      grade,
-      moisture_pct,
-      CONCAT('Yard: ', (SELECT yard_name FROM bin_yards WHERE id = bins.yard_id), ' | ', COALESCE(notes, ''))
-    FROM bins
-    WHERE user_id = ${userId} AND current_bu > 0
-  `;
-}
 
 // GET — all bins for user, optionally filtered by yard
 export async function GET(req: NextRequest) {
@@ -124,7 +105,6 @@ export async function POST(req: NextRequest) {
       RETURNING *
     `;
 
-    await syncBinsToHoldings(userId);
     return NextResponse.json({ bin: rows[0] });
   } catch (error: any) {
     if (error.message?.includes("unique")) {
@@ -152,7 +132,6 @@ export async function PUT(req: NextRequest) {
         RETURNING *
       `;
       if (rows.length === 0) return NextResponse.json({ error: "Bin not found" }, { status: 404 });
-      await syncBinsToHoldings(userId);
       return NextResponse.json({ bin: rows[0] });
     }
 
@@ -184,7 +163,6 @@ export async function PUT(req: NextRequest) {
     `;
 
     if (rows.length === 0) return NextResponse.json({ error: "Bin not found" }, { status: 404 });
-    await syncBinsToHoldings(userId);
     return NextResponse.json({ bin: rows[0] });
   } catch (error) {
     console.error("Error updating bin:", error);
