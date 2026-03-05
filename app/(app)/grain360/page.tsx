@@ -73,8 +73,23 @@ type FarmProfile = {
 };
 
 type WeatherData = {
-  current: { temperature_2m: number; weather_code: number; wind_speed_10m: number };
-  daily: { time: string[]; temperature_2m_max: number[]; temperature_2m_min: number[]; precipitation_probability_max: number[]; weather_code: number[] };
+  current: {
+    temperature_2m: number;
+    weather_code: number;
+    wind_speed_10m: number;
+    wind_direction_10m: number;
+    apparent_temperature: number;
+    relative_humidity_2m: number;
+  };
+  daily: {
+    time: string[];
+    temperature_2m_max: number[];
+    temperature_2m_min: number[];
+    precipitation_probability_max: number[];
+    precipitation_sum: number[];
+    weather_code: number[];
+    wind_speed_10m_max: number[];
+  };
 };
 
 type MonthlyEntry = {
@@ -114,6 +129,9 @@ function fmt(n: number) {
   return `$${Math.abs(n).toLocaleString("en-CA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
+function normalizeCrop(name: string) {
+  return name.toLowerCase().trim().replace(/\s+/g, " ");
+}
 function calcCropCosts(crop: FarmProfile["inventory"][0]) {
   const fixed = (crop.landRent || 0) + (crop.equipmentDepreciation || 0) + (crop.insurance || 0) + (crop.propertyTax || 0) + (crop.overhead || 0);
   const variable = (crop.seed || 0) + (crop.fertilizer || 0) + (crop.herbicide || 0) + (crop.fungicide || 0) + (crop.insecticide || 0) + (crop.fuel || 0) + (crop.drying || 0) + (crop.trucking || 0) + (crop.elevation || 0) + (crop.cropInsurance || 0);
@@ -128,7 +146,8 @@ function getWeatherInfo(code: number) {
 
 function KPICard({ label, value, sub, highlight, trend }: { label: string; value: string; sub?: string; highlight?: boolean; trend?: "up" | "down" | "neutral" }) {
   return (
-    <div className={`rounded-xl border p-5 ${highlight ? "bg-[var(--ag-yellow)/0.06] border-[var(--ag-yellow)/0.2]" : "bg-[var(--ag-bg-card)] border-[var(--ag-border)]"}`}>
+    <div className={`rounded-xl border p-5 ${highlight ? "border-[var(--ag-border)]" : "bg-[var(--ag-bg-card)] border-[var(--ag-border)]"}`}
+  style={highlight ? { backgroundColor: "rgba(var(--ag-yellow-rgb, 234,179,8), 0.06)" } : {}}>
       <p className="font-mono text-[11px] font-bold text-ag-primary uppercase tracking-[1.5px]">{label}</p>
       <div className="flex items-end gap-2 mt-1">
         <p className={`text-2xl font-bold ${highlight ? "text-[var(--ag-yellow)]" : "text-ag-primary"}`}>{value}</p>
@@ -144,9 +163,9 @@ function CropCard({ crop, holdings, contracts }: { crop: FarmProfile["inventory"
   const costPerAcre = calcCropCosts(crop);
   const aph = crop.aph || 1;
   const breakEven = costPerAcre / aph;
-  const cropHoldings = holdings.filter(h => h.crop.toLowerCase() === crop.crop.toLowerCase());
-  const totalBu = cropHoldings.reduce((s, h) => s + Number(h.quantity_bu), 0);
-  const contracted = contracts.filter(c => c.crop.toLowerCase() === crop.crop.toLowerCase()).reduce((s, c) => s + Number(c.quantity_bu), 0);
+  const cropHoldings = holdings.filter(h => normalizeCrop(h.crop) === normalizeCrop(crop.crop));
+const totalBu = cropHoldings.reduce((s, h) => s + Number(h.quantity_bu), 0);
+const contracted = contracts.filter(c => normalizeCrop(c.crop) === normalizeCrop(crop.crop)).reduce((s, c) => s + Number(c.quantity_bu), 0);
   const targetPrice = crop.targetPrice || 0;
   const margin = targetPrice - breakEven;
   const pctContracted = totalBu > 0 ? Math.min(100, Math.round((contracted / totalBu) * 100)) : 0;
@@ -295,16 +314,26 @@ export default function Grain360Page() {
 
   // ── Derived KPIs ──
   const totalBu = holdings.reduce((s, h) => s + Number(h.quantity_bu), 0);
-  const totalValue = holdings.reduce((s, h) => s + Number(h.quantity_bu) * Number(h.estimated_price || 0), 0);
+  const totalValue = holdings.reduce((s, h) => {
+  const profileCrop = profile?.inventory.find(
+    c => c.crop.toLowerCase().trim() === h.crop.toLowerCase().trim()
+  );
+  const price = profileCrop?.targetPrice || Number(h.estimated_price) || 0;
+  return s + Number(h.quantity_bu) * price;
+}, 0);
   const totalContracted = contracts.reduce((s, c) => s + Number(c.quantity_bu), 0);
-  const pctContracted = totalBu > 0 ? Math.round((totalContracted / totalBu) * 100) : 0;
+  const projectedHarvest = profile?.inventory.reduce((s, crop) => {
+  return s + ((crop.acres || 0) * (crop.aph || 0));
+}, 0) || 0;
+const pctContracted = projectedHarvest > 0 ? Math.round((totalContracted / projectedHarvest) * 100) : 0;
   const totalAcres = profile?.totalAcres || 1;
 
   const totalCosts = profile?.inventory.reduce((s, crop) => {
     return s + calcCropCosts(crop) * (crop.acres || 0);
   }, 0) || 0;
 
-  const avgCostPerAcre = totalAcres > 0 ? totalCosts / totalAcres : 0;
+  const avgCostPerAcre = totalCosts > 0 && totalAcres > 0 ? totalCosts / totalAcres : 0;
+const avgCostPerAcreDisplay = avgCostPerAcre > 0 ? fmt(avgCostPerAcre) : "—";
 
   const ytdIncome = contracts.reduce((s, c) => s + Number(c.quantity_bu) * Number(c.price_per_bu || 0), 0);
 
@@ -392,8 +421,8 @@ export default function Grain360Page() {
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
         <KPICard label="Total Inventory" value={`${totalBu.toLocaleString()} bu`} sub="across all bins" />
         <KPICard label="Est. Value" value={fmt(totalValue)} sub="at target prices" trend="up" />
-        <KPICard label="% Contracted" value={`${pctContracted}%`} sub={`${totalContracted.toLocaleString()} bu sold`} highlight={pctContracted < 50} />
-        <KPICard label="Avg Cost/Acre" value={fmt(avgCostPerAcre)} sub="all crops blended" />
+        <KPICard label="% Contracted" value={`${pctContracted}%`} sub={projectedHarvest > 0 ? `${totalContracted.toLocaleString()} of ${projectedHarvest.toLocaleString()} bu projected` : "Set Farm Profile to calculate"} highlight={pctContracted < 50} />
+        <KPICard label="Avg Cost/Acre" value={avgCostPerAcreDisplay} sub={avgCostPerAcre > 0 ? "all crops blended" : "Complete Farm Profile"} />
         <KPICard label="YTD Income" value={fmt(ytdIncome)} sub="contracted sales" trend="up" />
         <KPICard label="Fixed Assets" value={fmt(fixedAssets)} sub="land + storage est." />
       </div>
@@ -403,10 +432,15 @@ export default function Grain360Page() {
         <div>
           <p className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px] mb-3">Crop Positions</p>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-            {profile.inventory.filter(c => c.crop).map((crop, i) => (
-              <CropCard key={i} crop={crop} holdings={holdings} contracts={contracts} />
-            ))}
-          </div>
+  {profile.inventory.filter(c => c.crop).map((crop, i, arr) => (
+    <div key={i} className={
+      arr.length % 3 === 1 && i === arr.length - 1 ? "col-span-2 lg:col-span-3" :
+      arr.length % 3 === 2 && i === arr.length - 1 ? "col-span-2 lg:col-span-1" : ""
+    }>
+      <CropCard crop={crop} holdings={holdings} contracts={contracts} />
+    </div>
+  ))}
+</div>
         </div>
       )}
 
@@ -566,41 +600,83 @@ export default function Grain360Page() {
         {/* Weather Widget */}
         <div className="bg-[var(--ag-bg-card)] rounded-xl border border-[var(--ag-border)] p-5">
           <p className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px] mb-4">Weather · Swift Current</p>
-          {weather ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-4xl font-bold text-ag-primary">{Math.round(weather.current.temperature_2m)}°C</p>
-                  <p className="text-xs text-ag-secondary mt-1">{getWeatherInfo(weather.current.weather_code).label}</p>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <Wind size={12} className="text-ag-muted" />
-                    <p className="text-xs text-ag-muted">{Math.round(weather.current.wind_speed_10m)} km/h</p>
-                  </div>
-                </div>
-                {(() => {
-                  const { Icon } = getWeatherInfo(weather.current.weather_code);
-                  return <Icon size={48} className="text-[var(--ag-yellow)]" />;
-                })()}
-              </div>
-              <div className="space-y-2">
-                {weather.daily.time.slice(0, 4).map((dateStr, i) => {
-                  const date = new Date(dateStr);
-                  const { Icon, label } = getWeatherInfo(weather.daily.weather_code[i]);
-                  return (
-                    <div key={i} className="flex items-center justify-between text-xs">
-                      <p className="text-ag-muted w-10">{i === 0 ? "Today" : DAYS[date.getDay()]}</p>
-                      <Icon size={14} className="text-ag-secondary" />
-                      <div className="flex items-center gap-1">
-                        <Droplets size={10} className="text-[var(--ag-blue)]" />
-                        <p className="text-ag-muted">{weather.daily.precipitation_probability_max[i]}%</p>
-                      </div>
-                      <p className="font-semibold text-ag-primary">{Math.round(weather.daily.temperature_2m_max[i])}° / {Math.round(weather.daily.temperature_2m_min[i])}°</p>
+          {weather ? (() => {
+            const windDir = weather.current.wind_direction_10m;
+            const compassDir = ["N","NE","E","SE","S","SW","W","NW"][Math.round(windDir / 45) % 8];
+            const frostDays = weather.daily.time.slice(0, 7).reduce((acc: string[], d, i) => {
+              if (weather.daily.temperature_2m_min[i] <= 0) acc.push(DAYS[new Date(d).getDay()]);
+              return acc;
+            }, []);
+            const rainDays = weather.daily.time.slice(0, 7).reduce((acc: {day: string; mm: number}[], d, i) => {
+              if ((weather.daily.precipitation_sum[i] || 0) >= 5) acc.push({ day: DAYS[new Date(d).getDay()], mm: Math.round(weather.daily.precipitation_sum[i]) });
+              return acc;
+            }, []);
+            const { Icon: CurrentIcon } = getWeatherInfo(weather.current.weather_code);
+            return (
+              <div className="space-y-4">
+                {/* Current conditions */}
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-4xl font-bold text-ag-primary">{Math.round(weather.current.temperature_2m)}°C</p>
+                    <p className="text-xs text-ag-secondary mt-1">{getWeatherInfo(weather.current.weather_code).label}</p>
+                    <p className="text-xs text-ag-muted mt-0.5">Feels like {Math.round(weather.current.apparent_temperature)}°C</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Wind size={11} className="text-ag-muted" />
+                      <p className="text-xs text-ag-muted">{Math.round(weather.current.wind_speed_10m)} km/h {compassDir}</p>
+                      <span className="text-ag-muted mx-1">·</span>
+                      <Droplets size={11} className="text-ag-muted" />
+                      <p className="text-xs text-ag-muted">{weather.current.relative_humidity_2m}% RH</p>
                     </div>
-                  );
-                })}
+                  </div>
+                  <CurrentIcon size={44} className="text-[var(--ag-yellow)]" />
+                </div>
+
+                {/* Ag alerts */}
+                {(frostDays.length > 0 || rainDays.length > 0) && (
+                  <div className="space-y-1.5">
+                    {frostDays.length > 0 && (
+                      <div className="flex items-center gap-2 bg-[var(--ag-blue)]/[0.06] border border-[var(--ag-blue)]/20 rounded-lg px-3 py-2">
+                        <CloudSnow size={12} className="text-[var(--ag-blue)] shrink-0" />
+                        <p className="text-xs text-ag-secondary">Frost risk: <span className="font-semibold text-ag-primary">{frostDays.join(", ")}</span></p>
+                      </div>
+                    )}
+                    {rainDays.length > 0 && (
+                      <div className="flex items-center gap-2 bg-[var(--ag-accent)]/[0.06] border border-[var(--ag-accent-border)] rounded-lg px-3 py-2">
+                        <CloudRain size={12} className="text-[var(--ag-green)] shrink-0" />
+                        <p className="text-xs text-ag-secondary">
+                          Rain: <span className="font-semibold text-ag-primary">{rainDays.map(r => `${r.day} ${r.mm}mm`).join(", ")}</span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 7-day forecast */}
+                <div className="space-y-1.5">
+                  {weather.daily.time.slice(0, 7).map((dateStr, i) => {
+                    const date = new Date(dateStr);
+                    const { Icon } = getWeatherInfo(weather.daily.weather_code[i]);
+                    const precip = weather.daily.precipitation_sum[i] || 0;
+                    return (
+                      <div key={i} className="flex items-center justify-between text-xs">
+                        <p className="text-ag-muted w-8 shrink-0">{i === 0 ? "Today" : DAYS[date.getDay()]}</p>
+                        <Icon size={13} className="text-ag-secondary shrink-0" />
+                        <div className="flex items-center gap-1 w-10 justify-end">
+                          <Droplets size={9} className="text-[var(--ag-blue)]" />
+                          <p className="text-ag-muted">{weather.daily.precipitation_probability_max[i]}%</p>
+                        </div>
+                        {precip >= 1 && (
+                          <p className="text-[var(--ag-blue)] w-10 text-right">{precip.toFixed(1)}mm</p>
+                        )}
+                        {precip < 1 && <p className="w-10" />}
+                        <p className="font-semibold text-ag-primary text-right w-16">{Math.round(weather.daily.temperature_2m_max[i])}° / {Math.round(weather.daily.temperature_2m_min[i])}°</p>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ) : <p className="text-xs text-ag-muted">Loading weather...</p>}
+            );
+          })() : <p className="text-xs text-ag-muted">Loading weather...</p>}
         </div>
       </div>
 
@@ -612,7 +688,7 @@ export default function Grain360Page() {
           </div>
           <div>
             <p className="text-sm font-bold text-ag-primary">Ask Lily</p>
-            <p className="text-xs text-ag-muted">Quick question without leaving Grain360</p>
+            <p className="text-xs text-ag-muted">Ask anything about your operation</p>
           </div>
         </div>
         {lilyResponse && (
@@ -624,7 +700,7 @@ export default function Grain360Page() {
         <div className="flex gap-3 items-center bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] rounded-xl px-4 py-3">
           <input type="text" value={lilyInput} onChange={e => setLilyInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && askLily()}
-            placeholder="Ask about your grain position, basis, sell plan..."
+            placeholder="Ask Lily anything about your farm…"
             className="flex-1 text-sm text-ag-primary placeholder:text-ag-muted outline-none bg-transparent" />
           <button onClick={askLily} disabled={lilyLoading || !lilyInput.trim()}
             className="w-8 h-8 rounded-full bg-[var(--ag-accent)] flex items-center justify-center hover:bg-[var(--ag-accent-hover)] disabled:opacity-40 transition-colors">
@@ -632,7 +708,7 @@ export default function Grain360Page() {
           </button>
         </div>
         <div className="flex flex-wrap gap-2 mt-3">
-          {["What's my best crop to sell right now?", "Should I price more canola?", "Build me a sell plan"].map(chip => (
+          {["What's my best crop to sell right now?", "When is my next spray window?", "Give me a P&L summary"].map(chip => (
             <button key={chip} onClick={() => { setLilyInput(chip); }}
               className="text-xs bg-[var(--ag-bg-hover)] border border-[var(--ag-border)] text-ag-secondary px-3 py-1.5 rounded-full hover:bg-[var(--ag-bg-active)] hover:text-ag-primary transition-colors">
               {chip}
