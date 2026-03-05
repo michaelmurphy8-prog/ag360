@@ -12,12 +12,12 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  const history = getPriceHistory(symbol)
+  const history = await getPriceHistory(symbol)
 
   return NextResponse.json({
     success: true,
     symbol,
-    source: 'mock',
+    source: 'yahoo-finance',
     history,
   })
 }

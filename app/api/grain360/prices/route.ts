@@ -3,7 +3,8 @@ import { getPricesData } from '@/lib/prices-data'
 
 export async function GET() {
   try {
-    return NextResponse.json(getPricesData())
+    const data = await getPricesData()
+    return NextResponse.json(data)
   } catch (error) {
     console.error('Prices API error:', error)
     return NextResponse.json(
