@@ -183,6 +183,136 @@ function Counter({ end, suffix = "", duration = 2000, inView }: CounterProps) {
   return <>{count.toLocaleString()}{suffix}</>;
 }
 
+// ─── Topography Canvas (hero top-left) ───────────────────────────────
+function TopographyCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const W = 600;
+    const H = 520;
+    canvas.width = W;
+    canvas.height = H;
+
+    let animFrame: number;
+    let time = 0;
+
+    // Elevation field — layered sine waves to simulate terrain
+    const elevation = (x: number, y: number, t: number): number => {
+      const nx = x / W;
+      const ny = y / H;
+      return (
+        Math.sin(nx * 4.2 + t * 0.18) * 0.30 +
+        Math.sin(ny * 3.7 - t * 0.12) * 0.25 +
+        Math.sin((nx + ny) * 5.1 + t * 0.09) * 0.20 +
+        Math.sin((nx * 2.3 - ny * 1.8) + t * 0.07) * 0.15 +
+        Math.cos(nx * 7.0 + ny * 4.5 - t * 0.14) * 0.10
+      );
+    };
+
+    const LEVELS = 10;
+    // Marching squares edge interpolation
+    const interp = (v0: number, v1: number, iso: number): number =>
+      Math.abs(v1 - v0) < 0.0001 ? 0 : (iso - v0) / (v1 - v0);
+
+    const draw = () => {
+      time += 0.004;
+      ctx.clearRect(0, 0, W, H);
+
+      const GRID = 8; // cell size — smaller = more detail
+      const cols = Math.ceil(W / GRID);
+      const rows = Math.ceil(H / GRID);
+
+      // Pre-compute elevation grid
+      const grid: number[][] = [];
+      for (let j = 0; j <= rows; j++) {
+        grid[j] = [];
+        for (let i = 0; i <= cols; i++) {
+          grid[j][i] = elevation(i * GRID, j * GRID, time);
+        }
+      }
+
+      for (let lvl = 0; lvl < LEVELS; lvl++) {
+        const iso = -0.5 + (lvl / (LEVELS - 1));
+        // Deeper bands = dimmer, higher bands = slightly brighter
+        const t = lvl / (LEVELS - 1);
+        const alpha = 0.06 + t * 0.10; // 0.06 → 0.16
+        const isIndex = lvl % 3 === 0;
+        ctx.strokeStyle = `rgba(52, 211, 153, ${isIndex ? alpha * 1.6 : alpha})`;
+        ctx.lineWidth = isIndex ? 1.1 : 0.6;
+
+        ctx.beginPath();
+        for (let j = 0; j < rows; j++) {
+          for (let i = 0; i < cols; i++) {
+            const x0 = i * GRID, y0 = j * GRID;
+            const x1 = x0 + GRID, y1 = y0 + GRID;
+            const v00 = grid[j][i];
+            const v10 = grid[j][i + 1];
+            const v01 = grid[j + 1][i];
+            const v11 = grid[j + 1][i + 1];
+
+            // Marching squares case index
+            const idx =
+              (v00 >= iso ? 8 : 0) |
+              (v10 >= iso ? 4 : 0) |
+              (v11 >= iso ? 2 : 0) |
+              (v01 >= iso ? 1 : 0);
+
+            if (idx === 0 || idx === 15) continue;
+
+            // Edge midpoints
+            const top    = { x: x0 + interp(v00, v10, iso) * GRID, y: y0 };
+            const right  = { x: x1, y: y0 + interp(v10, v11, iso) * GRID };
+            const bottom = { x: x0 + interp(v01, v11, iso) * GRID, y: y1 };
+            const left   = { x: x0, y: y0 + interp(v00, v01, iso) * GRID };
+
+            const lines: [typeof top, typeof top][] = [];
+            switch (idx) {
+              case 1:  case 14: lines.push([left, bottom]); break;
+              case 2:  case 13: lines.push([bottom, right]); break;
+              case 3:  case 12: lines.push([left, right]); break;
+              case 4:  case 11: lines.push([top, right]); break;
+              case 5:           lines.push([top, left], [bottom, right]); break;
+              case 6:  case 9:  lines.push([top, bottom]); break;
+              case 7:  case 8:  lines.push([top, left]); break;
+              case 10:          lines.push([top, right], [bottom, left]); break;
+            }
+            for (const [a, b] of lines) {
+              ctx.moveTo(a.x, a.y);
+              ctx.lineTo(b.x, b.y);
+            }
+          }
+        }
+        ctx.stroke();
+      }
+      animFrame = requestAnimationFrame(draw);
+    };
+
+    draw();
+    return () => cancelAnimationFrame(animFrame);
+  }, []);
+
+  return (
+    <div style={{
+      position: "absolute",
+      top: 0,
+      left: 0,
+      width: 600,
+      height: 520,
+      pointerEvents: "none",
+      // Fade out toward center-right and bottom — no hard canvas edge
+      maskImage: "radial-gradient(ellipse 70% 75% at 15% 20%, black 0%, transparent 100%)",
+      WebkitMaskImage: "radial-gradient(ellipse 70% 75% at 15% 20%, black 0%, transparent 100%)",
+      opacity: 0.85,
+    }}>
+      <canvas ref={canvasRef} style={{ display: "block" }} />
+    </div>
+  );
+}
+
 // ─── Grid Canvas Background ──────────────────────────────────────────
 function GridCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -597,6 +727,7 @@ export default function LandingPage() {
         padding: "120px 40px 80px", textAlign: "center", overflow: "hidden",
       }}>
         <GridCanvas />
+        <TopographyCanvas />
         <div style={{
           position: "absolute", top: "30%", left: "50%", transform: "translate(-50%, -50%)",
           width: 800, height: 800, borderRadius: "50%",
