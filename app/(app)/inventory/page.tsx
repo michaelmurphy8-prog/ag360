@@ -9,6 +9,7 @@ import {
   Download, Filter, RotateCcw, ShieldCheck, XCircle, Eye,
 } from "lucide-react";
 import BinMap from "@/components/BinMap";
+import SlideOutPanel from "@/components/SlideOutPanel";
 
 const CROPS = ["Canola", "CWRS Wheat", "Durum", "Barley", "Oats", "Peas", "Lentils", "Flax", "Soybeans", "Corn"];
 const CONTRACT_TYPES = ["Cash Sale", "HTA (Basis Contract)", "Deferred Delivery", "Futures-First", "Target Order", "PRO/Pool"];
@@ -225,6 +226,7 @@ export default function InventoryPage() {
   const [selectedSettlement, setSelectedSettlement] = useState<any | null>(null);
   const [settlementLines, setSettlementLines] = useState<any[]>([]);
   const [settledMap, setSettledMap] = useState<Map<string, { matched: boolean; discrepancy: string | null; terminal: string; date: string }>>(new Map());
+  const [selectedLoad, setSelectedLoad] = useState<GrainLoad | null>(null);
   const [settlementParsing, setSettlementParsing] = useState(false);
   const [settlementError, setSettlementError] = useState<string | null>(null);
   const [settlementAnalysis, setSettlementAnalysis] = useState<any | null>(null);
@@ -1258,7 +1260,9 @@ export default function InventoryPage() {
                   </thead>
                   <tbody className="divide-y divide-[var(--ag-border)]">
                     {filteredLoads.map(load => (
-                      <tr key={load.id} className="hover:bg-white/[0.02] transition-colors">
+                      <tr key={load.id}
+                        className="hover:bg-white/[0.02] transition-colors cursor-pointer"
+                        onClick={() => setSelectedLoad(load)}>
                         <td className="py-3 pr-3 text-ag-muted font-mono text-[11px]">{load.date?.split("T")[0]}</td>
                         <td className="py-3 pr-3 font-medium text-ag-primary">{load.driver_name || "—"}</td>
                         <td className="py-3 pr-3 text-ag-secondary">{load.truck_name || "—"}</td>
@@ -1315,8 +1319,8 @@ export default function InventoryPage() {
 </td>
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <button onClick={() => setEditingLoad(load)} className="text-ag-dim hover:text-[var(--ag-green)] transition-colors"><Pencil size={13} /></button>
-                            <button onClick={() => deleteLoad(load.id)} className="text-ag-dim hover:text-[var(--ag-red)] transition-colors"><Trash2 size={13} /></button>
+                            <button onClick={(e) => { e.stopPropagation(); setEditingLoad(load); }} className="text-ag-dim hover:text-[var(--ag-green)] transition-colors"><Pencil size={13} /></button>
+                            <button onClick={(e) => { e.stopPropagation(); deleteLoad(load.id); }} className="text-ag-dim hover:text-[var(--ag-red)] transition-colors"><Trash2 size={13} /></button>
                           </div>
                         </td>
                       </tr>
@@ -1567,6 +1571,105 @@ export default function InventoryPage() {
           </div>
         )}
       </div>
+
+      <SlideOutPanel
+        open={!!selectedLoad}
+        onClose={() => setSelectedLoad(null)}
+        title={selectedLoad ? `Load — ${selectedLoad.date?.split("T")[0]}` : ""}
+        subtitle={selectedLoad ? [selectedLoad.driver_name, selectedLoad.truck_name, selectedLoad.customer_name].filter(Boolean).join(" · ") : ""}
+      >
+        {selectedLoad && (() => {
+          const load = selectedLoad;
+          const key = load.settlement_id ? String(load.settlement_id) : null;
+          const ticketKey = load.ticket_number ? String(load.ticket_number) : null;
+          const matchKey = (key && settledMap.has(key)) ? key : (ticketKey && settledMap.has(ticketKey)) ? ticketKey : null;
+          const settlementInfo = matchKey ? settledMap.get(matchKey) : null;
+          const matchedLine = settlementLines.find((l: any) =>
+            [l.delivery_number, l.receipt_number, l.cper_number].includes(matchKey || "")
+          );
+          const discrepancyKg = matchedLine && load.net_weight_kg
+            ? Math.abs(Number(load.net_weight_kg) - Number(matchedLine.net_weight_mt) * 1000)
+            : null;
+
+          const row = (label: string, value: any) => (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid var(--ag-border)" }}>
+              <span style={{ fontSize: 12, color: "var(--ag-text-muted)", fontWeight: 500 }}>{label}</span>
+              <span style={{ fontSize: 13, color: "var(--ag-text-primary)", fontWeight: 600, textAlign: "right", maxWidth: "60%" }}>{value ?? "—"}</span>
+            </div>
+          );
+
+          const section = (title: string) => (
+            <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ag-text-dim)", textTransform: "uppercase", letterSpacing: 2, marginTop: 20, marginBottom: 4 }}>{title}</div>
+          );
+
+          const netKg = Number(load.net_weight_kg || load.gross_weight_kg);
+          const grossKg = Number(load.gross_weight_kg);
+          const dockageKg = load.dockage_percent ? grossKg * (Number(load.dockage_percent) / 100) : null;
+          const crop = load.crop || "";
+          const kgPerBu = KG_PER_BUSHEL[crop] || 27.22;
+          const estimatedBushels = netKg ? Math.round(netKg / kgPerBu) : null;
+          const estimatedValue = estimatedBushels && load.price_per_bushel
+            ? estimatedBushels * Number(load.price_per_bushel)
+            : null;
+
+          return (
+            <div>
+              {settlementInfo ? (
+                <div style={{ padding: "10px 14px", borderRadius: 10, marginBottom: 16, background: discrepancyKg && discrepancyKg > 50 ? "rgba(245,158,11,0.06)" : "rgba(52,211,153,0.06)", border: `1px solid ${discrepancyKg && discrepancyKg > 50 ? "rgba(245,158,11,0.2)" : "rgba(52,211,153,0.2)"}`, display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 18 }}>{discrepancyKg && discrepancyKg > 50 ? "⚠" : "✓"}</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: discrepancyKg && discrepancyKg > 50 ? "var(--ag-yellow)" : "var(--ag-green)" }}>
+                      {discrepancyKg && discrepancyKg > 50 ? "Weight Discrepancy Detected" : "Settled"}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--ag-text-muted)", marginTop: 2 }}>
+                      {settlementInfo.terminal} · {settlementInfo.date}
+                      {discrepancyKg && discrepancyKg > 50 && ` · Δ ${discrepancyKg.toFixed(0)} kg`}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: "10px 14px", borderRadius: 10, marginBottom: 16, background: "rgba(255,255,255,0.02)", border: "1px solid var(--ag-border)", display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 13, color: "var(--ag-text-dim)" }}>No settlement match found</span>
+                </div>
+              )}
+              {section("Logistics")}
+              {row("Date", load.date?.split("T")[0])}
+              {row("Driver", load.driver_name)}
+              {row("Truck", load.truck_name)}
+              {row("Customer", load.customer_name)}
+              {row("From (Bin)", load.from)}
+              {row("Contract Ref", load.contract_reference)}
+              {row("Ticket #", load.ticket_number)}
+              {row("Crop Year", load.crop_year)}
+              {section("Weight & Quality")}
+              {row("Crop", load.crop)}
+              {row("Gross Weight", grossKg ? `${grossKg.toLocaleString()} kg` : null)}
+              {row("Dockage %", load.dockage_percent ? `${load.dockage_percent}%` : null)}
+              {row("Dockage", dockageKg ? `${dockageKg.toFixed(0)} kg` : null)}
+              {row("Net Weight", netKg ? `${netKg.toLocaleString()} kg` : null)}
+              {row("Net Weight (MT)", netKg ? `${(netKg / 1000).toFixed(3)} MT` : null)}
+              {row("Est. Bushels", estimatedBushels ? `${estimatedBushels.toLocaleString()} bu` : null)}
+              {section("Pricing")}
+              {row("Price / bu", load.price_per_bushel ? `$${Number(load.price_per_bushel).toFixed(2)}` : null)}
+              {row("Est. Value", estimatedValue ? `$${estimatedValue.toLocaleString("en-CA", { maximumFractionDigits: 0 })}` : null)}
+              {load.notes && (
+                <>
+                  {section("Notes")}
+                  <p style={{ fontSize: 13, color: "var(--ag-text-secondary)", lineHeight: 1.6, marginTop: 8 }}>{load.notes}</p>
+                </>
+              )}
+              <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
+                <button onClick={() => { setSelectedLoad(null); setEditingLoad(load); }} className={btnSecondary}>
+                  <Pencil size={13} /> Edit Load
+                </button>
+                <button onClick={() => { setSelectedLoad(null); deleteLoad(load.id); }} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "6px 14px", borderRadius: 99, cursor: "pointer", background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.2)", color: "var(--ag-red)" }}>
+                  <Trash2 size={13} /> Delete
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+      </SlideOutPanel>
     </div>
   );
 }
