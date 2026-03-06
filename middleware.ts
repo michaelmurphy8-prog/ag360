@@ -19,7 +19,7 @@ export default clerkMiddleware(async (auth, request) => {
 
   // If user is signed in and hitting the landing page, redirect to dashboard
   if (userId && request.nextUrl.pathname === "/") {
-    return NextResponse.redirect(new URL("/overview", request.url));
+    return NextResponse.redirect(new URL("/grain360", request.url));
   }
 
   // Protect all non-public routes
