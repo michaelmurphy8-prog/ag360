@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
         fc.variety,
         fc.seeded_acres,
         fc.expected_yield_bu_ac,
-        fc.seeding_date,
+        COALESCE(fc.seeding_date, seed_log.seeding_date) AS seeding_date,
         fc.status AS crop_status,
         COALESCE(cost_summary.budget_total, 0) AS budget_total,
         COALESCE(cost_summary.actual_total, 0) AS actual_total,
@@ -61,6 +61,14 @@ export async function GET(req: NextRequest) {
         FROM field_revenue fr
         WHERE fr.field_crop_id = fc.id
       ) rev_summary ON true
+      LEFT JOIN LATERAL (
+        SELECT seeding_date
+        FROM agronomy_seeding_log asl
+        WHERE asl.clerk_user_id = ${userId}
+          AND LOWER(asl.field_name) = LOWER(f.field_name)
+        ORDER BY asl.seeding_date DESC
+        LIMIT 1
+      ) seed_log ON true
       WHERE f.farm_id = ${userId}
       ORDER BY f.field_name ASC
     `;
@@ -98,7 +106,7 @@ export async function GET(req: NextRequest) {
         }
       }
     }
-
+    
     return NextResponse.json({
       fields,
       kpis: {

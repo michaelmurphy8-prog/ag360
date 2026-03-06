@@ -197,7 +197,7 @@ export default function OperationsPage() {
                       </td>
                       <td className="py-2.5" style={{ color: "var(--ag-text-secondary)" }}>{fmt(parseFloat(f.acres))} ac</td>
                       <td className="py-2.5" style={{ color: "var(--ag-text-secondary)" }}>
-                        {f.seeding_date ? new Date(f.seeding_date).toLocaleDateString("en-CA", { month: "short", day: "numeric" }) : "—"}
+                        {f.seeding_date ? new Date(f.seeding_date).toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "UTC" }) : "—"}
                       </td>
                       <td className="py-2.5" style={{ color: "var(--ag-text-secondary)" }}>
                         {parseFloat(f.actual_total) > 0 ? `$${fmt(parseFloat(f.actual_total))}` : "—"}
