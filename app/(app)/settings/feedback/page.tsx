@@ -1,8 +1,10 @@
 "use client";
 import { MessageSquare } from "lucide-react";
 import { useState } from "react";
+import { useUser } from "@clerk/nextjs";
 
 export default function FeedbackPage() {
+  const { user } = useUser();
   const [category, setCategory] = useState("general");
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -12,10 +14,16 @@ export default function FeedbackPage() {
     if (!message.trim()) return;
     setLoading(true);
     try {
-      await fetch("mailto:hello@ag360.farm");
-      // In future: POST to /api/feedback
-    } finally {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category, message, userEmail: user?.primaryEmailAddress?.emailAddress, userName: user?.fullName }),
+      });
+      if (!res.ok) throw new Error("Failed");
       setSubmitted(true);
+    } catch {
+      alert("Something went wrong. Please try again or email hello@ag360.farm directly.");
+    } finally {
       setLoading(false);
     }
   }
