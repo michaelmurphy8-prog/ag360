@@ -105,6 +105,8 @@ export default function FieldDetailPage() {
   const [activeTab, setActiveTab] = useState<"costs" | "revenue">("costs");
   const [showAddCost, setShowAddCost] = useState(false);
   const [showAddRevenue, setShowAddRevenue] = useState(false);
+  const [showEditCrop, setShowEditCrop] = useState(false);
+  const [editForm, setEditForm] = useState({ status: "", seeding_date: "", seeded_acres: "" });
 
   async function fetchData() {
     try {
@@ -204,9 +206,16 @@ export default function FieldDetailPage() {
               </span>
               {crop.seeding_date && (
                 <span className="text-xs text-ag-dim flex items-center gap-1">
-                  <Calendar size={11} /> Seeded {new Date(crop.seeding_date).toLocaleDateString("en-CA")}
+                  <Calendar size={11} /> Seeded {new Date(crop.seeding_date).toLocaleDateString("en-CA", { timeZone: "UTC" })}
                 </span>
               )}
+              <button
+                onClick={() => setShowEditCrop(true)}
+                className="text-xs px-2 py-0.5 rounded-md font-semibold transition-colors"
+                style={{ color: "var(--ag-text-muted)", backgroundColor: "var(--ag-bg-hover)" }}
+              >
+                Edit
+              </button>
             </div>
           )}
         </div>
@@ -598,6 +607,82 @@ export default function FieldDetailPage() {
       </div>
 
       {/* ── Modals ────────────────────────────────────── */}
+      {showEditCrop && crop && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
+          <div className="rounded-xl p-6 w-full max-w-sm" style={{ backgroundColor: "var(--ag-bg-card)", border: "1px solid var(--ag-border)" }}>
+            <h3 className="text-base font-bold mb-4" style={{ color: "var(--ag-text-primary)" }}>Edit Crop Status</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-semibold uppercase tracking-wide block mb-1" style={{ color: "var(--ag-text-muted)" }}>Status</label>
+                <select
+                  value={editForm.status || crop.status || "planned"}
+                  onChange={e => setEditForm(prev => ({ ...prev, status: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg text-sm"
+                  style={{ backgroundColor: "var(--ag-bg-hover)", border: "1px solid var(--ag-border)", color: "var(--ag-text-primary)" }}
+                >
+                  <option value="planned">Planned</option>
+                  <option value="seeded">Seeded</option>
+                  <option value="emerged">Emerged</option>
+                  <option value="harvested">Harvested</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold uppercase tracking-wide block mb-1" style={{ color: "var(--ag-text-muted)" }}>Seeding Date</label>
+                <input
+                  type="date"
+                  value={editForm.seeding_date || crop.seeding_date?.split("T")[0] || ""}
+                  onChange={e => setEditForm(prev => ({ ...prev, seeding_date: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg text-sm"
+                  style={{ backgroundColor: "var(--ag-bg-hover)", border: "1px solid var(--ag-border)", color: "var(--ag-text-primary)" }}
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold uppercase tracking-wide block mb-1" style={{ color: "var(--ag-text-muted)" }}>Seeded Acres</label>
+                <input
+                  type="number"
+                  value={editForm.seeded_acres || crop.seeded_acres || ""}
+                  onChange={e => setEditForm(prev => ({ ...prev, seeded_acres: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg text-sm"
+                  style={{ backgroundColor: "var(--ag-bg-hover)", border: "1px solid var(--ag-border)", color: "var(--ag-text-primary)" }}
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowEditCrop(false)}
+                className="flex-1 py-2 rounded-lg text-sm font-semibold"
+                style={{ backgroundColor: "var(--ag-bg-hover)", color: "var(--ag-text-secondary)" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/fields/${field.id}/crops`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        crop_id: crop.id,
+                        status: editForm.status || crop.status,
+                        seeding_date: editForm.seeding_date || crop.seeding_date,
+                        seeded_acres: editForm.seeded_acres ? parseFloat(editForm.seeded_acres) : crop.seeded_acres,
+                      }),
+                    });
+                    if (res.ok) {
+                      setShowEditCrop(false);
+                      window.location.reload();
+                    }
+                  } catch (e) { console.error(e); }
+                }}
+                className="flex-1 py-2 rounded-lg text-sm font-semibold"
+                style={{ backgroundColor: "var(--ag-accent)", color: "var(--ag-accent-text)" }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {showAddCost && crop && (
         <AddCostModal fieldCropId={crop.id} fieldName={field.field_name} cropType={crop.crop_type}
           onClose={() => setShowAddCost(false)} onCostAdded={fetchData} />
