@@ -13,7 +13,8 @@ export async function POST(req: NextRequest) {
 
     await resend.emails.send({
       from: "AG360 Feedback <hello@ag360.farm>",
-      to: "hello@ag360.farm",
+      to: "michaelmurphy8@yahoo.com",
+      replyTo: "hello@ag360.farm",
       subject: `[AG360 Feedback] ${category} — ${new Date().toLocaleDateString("en-CA")}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
