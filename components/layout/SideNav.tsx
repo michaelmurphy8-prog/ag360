@@ -6,9 +6,9 @@ import { useState } from "react";
 import {
   LayoutDashboard, Wheat, Sprout, Tractor, Package, Users, Cloud,
   Settings, ClipboardList, DollarSign, ChevronDown, Lock, Wrench,
-  MapPin, Leaf, Beef, Palette, UserCog, Bell, Shield, MessageSquare,
+  MapPin, Leaf, Beef, Palette, UserCog, Bell, Shield, MessageSquare, LogOut,
 } from "lucide-react";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, SignOutButton } from "@clerk/nextjs";
 import LilyIcon from "@/components/LilyIcon";
 import { ThemeToggleCompact } from "@/components/ThemeToggle";
 
@@ -240,6 +240,13 @@ export default function SideNav() {
                 </Link>
               );
             })}
+            <SignOutButton redirectUrl="/">
+              <button className="flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] transition-colors w-full"
+                style={{ color: "var(--ag-red, #ef4444)" }}>
+                <LogOut size={11} />
+                Sign Out
+              </button>
+            </SignOutButton>
           </div>
         )}
       </div>
