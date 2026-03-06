@@ -94,8 +94,10 @@ type WeatherData = {
 
 type MonthlyEntry = {
   month: string;
-  budget: number;
-  actual: number;
+  monthIndex: number;
+  expenses: number;
+  income: number;
+  items: { date: string; description: string; vendor: string | null; account: string; type: string; amount: number }[];
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -117,10 +119,8 @@ const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct
 const CURRENT_MONTH = new Date().getMonth();
 const CURRENT_YEAR = new Date().getFullYear();
 
-const MONTHLY_BUDGETS: MonthlyEntry[] = MONTHS_SHORT.map((month, i) => ({
-  month,
-  budget: i >= 3 && i <= 5 ? 45000 : i >= 6 && i <= 8 ? 35000 : 20000,
-  actual: i < CURRENT_MONTH ? Math.round((Math.random() * 0.3 + 0.85) * (i >= 3 && i <= 5 ? 45000 : i >= 6 && i <= 8 ? 35000 : 20000)) : 0,
+const EMPTY_MONTHLY: MonthlyEntry[] = MONTHS_SHORT.map((month, i) => ({
+  month, monthIndex: i, expenses: 0, income: 0, items: [],
 }));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -292,11 +292,18 @@ export default function Grain360Page() {
   const [newReminder, setNewReminder] = useState<{ title: string; due_date: string; priority: "low" | "medium" | "high" }>({ title: "", due_date: "", priority: "medium" });
   const [showAddReminder, setShowAddReminder] = useState(false);
   const [activeMonthlyTab, setActiveMonthlyTab] = useState<"spend" | "income">("spend");
+const [monthlyData, setMonthlyData] = useState<MonthlyEntry[]>(EMPTY_MONTHLY);
+const [selectedMonth, setSelectedMonth] = useState<MonthlyEntry | null>(null);
 
   const headers = { "x-user-id": user?.id || "" };
 
   useEffect(() => {
     if (!user?.id) return;
+    // Fetch spend summary
+    fetch(`/api/grain360/spend-summary?year=${CURRENT_YEAR}`, { headers })
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setMonthlyData(data); })
+      .catch(() => {});
     Promise.all([
       fetch("/api/farm-profile", { headers }).then(r => r.json()),
       fetch("/api/inventory/holdings", { headers }).then(r => r.json()),
@@ -549,54 +556,102 @@ const avgCostPerAcreDisplay = avgCostPerAcre > 0 ? fmt(avgCostPerAcre) : "—";
             </div>
           </div>
           <div className="grid grid-cols-6 gap-2">
-            {MONTHLY_BUDGETS.slice(0, 6).map((m, i) => {
+            {monthlyData.slice(0, 6).map((m, i) => {
               const isCurrent = i === CURRENT_MONTH;
-              const pct = m.budget > 0 ? Math.min(130, Math.round((m.actual / m.budget) * 100)) : 0;
-              const over = m.actual > m.budget;
-              return (
-                <div key={m.month} className={`p-3 rounded-[10px] ${isCurrent ? "bg-[var(--ag-accent)]/[0.06] border border-[var(--ag-accent-border)]" : "bg-[var(--ag-bg-hover)]"}`}>
-                  <p className="text-xs font-bold text-ag-primary">{m.month}</p>
-                  <div className="mt-2 h-16 bg-[var(--ag-bg-active)] rounded-full overflow-hidden flex items-end">
-                    <div className="w-full rounded-full transition-all"
-                      style={{ height: `${pct}%`, backgroundColor: over ? "var(--ag-red)" : "var(--ag-green)", opacity: m.actual === 0 ? 0.2 : 0.85 }} />
-                  </div>
-                  <p className="text-xs font-semibold text-ag-primary mt-1">{m.actual > 0 ? fmt(m.actual) : "—"}</p>
-                  <p className="text-xs text-ag-muted">of {fmt(m.budget)}</p>
-                  {m.actual > 0 && (
-                    <p className={`text-xs font-semibold ${over ? "text-[var(--ag-red)]" : "text-[var(--ag-green)]"}`}>
-                      {over ? "+" : "-"}{Math.abs(100 - pct)}%
-                    </p>
-                  )}
-                </div>
-              );
+const val = activeMonthlyTab === "spend" ? m.expenses : m.income;
+const maxVal = Math.max(...monthlyData.map(x => activeMonthlyTab === "spend" ? x.expenses : x.income), 1);
+const pct = Math.min(100, Math.round((val / maxVal) * 100));
+  const net = m.income - m.expenses;
+  const hasData = m.income > 0 || m.expenses > 0;
+  return (
+  <div key={m.month} onClick={() => val > 0 && setSelectedMonth(m)}
+    className={`p-3 rounded-[10px] transition-colors ${isCurrent ? "bg-[var(--ag-accent)]/[0.06] border border-[var(--ag-accent-border)]" : "bg-[var(--ag-bg-hover)]"} ${val > 0 ? "cursor-pointer hover:bg-[var(--ag-bg-active)]" : ""}`}>
+    <p className="text-xs font-bold text-ag-primary">{m.month}</p>
+    <div className="mt-2 h-16 bg-[var(--ag-bg-active)] rounded-full overflow-hidden flex items-end">
+      <div className="w-full rounded-full transition-all"
+        style={{ height: `${pct}%`, backgroundColor: (m.income - m.expenses) >= 0 ? "var(--ag-green)" : "var(--ag-red)", opacity: val === 0 ? 0.2 : 0.85 }} />
+    </div>
+    <p className={`text-xs font-semibold mt-1 ${!hasData ? "text-ag-muted" : net >= 0 ? "text-[var(--ag-green)]" : "text-[var(--ag-red)]"}`}>
+      {hasData ? `${net >= 0 ? "+" : ""}${fmt(net)}` : "—"}
+    </p>
+    {hasData && <p className="text-xs text-ag-muted">{m.items.length} item{m.items.length !== 1 ? "s" : ""}</p>}
+  </div>
+);
             })}
           </div>
           <div className="grid grid-cols-6 gap-2 mt-2">
-            {MONTHLY_BUDGETS.slice(6).map((m, i) => {
-              const idx = i + 6;
-              const isCurrent = idx === CURRENT_MONTH;
-              const pct = m.budget > 0 ? Math.min(130, Math.round((m.actual / m.budget) * 100)) : 0;
-              const over = m.actual > m.budget;
-              return (
-                <div key={m.month} className={`p-3 rounded-[10px] ${isCurrent ? "bg-[var(--ag-accent)]/[0.06] border border-[var(--ag-accent-border)]" : "bg-[var(--ag-bg-hover)]"}`}>
-                  <p className="text-xs font-bold text-ag-primary">{m.month}</p>
-                  <div className="mt-2 h-16 bg-[var(--ag-bg-active)] rounded-full overflow-hidden flex items-end">
-                    <div className="w-full rounded-full transition-all"
-                      style={{ height: `${pct}%`, backgroundColor: over ? "var(--ag-red)" : "var(--ag-green)", opacity: m.actual === 0 ? 0.2 : 0.85 }} />
-                  </div>
-                  <p className="text-xs font-semibold text-ag-primary mt-1">{m.actual > 0 ? fmt(m.actual) : "—"}</p>
-                  <p className="text-xs text-ag-muted">of {fmt(m.budget)}</p>
-                  {m.actual > 0 && (
-                    <p className={`text-xs font-semibold ${over ? "text-[var(--ag-red)]" : "text-[var(--ag-green)]"}`}>
-                      {over ? "+" : "-"}{Math.abs(100 - pct)}%
-                    </p>
-                  )}
-                </div>
-              );
-            })}
+            {monthlyData.slice(6).map((m, i) => {
+  const isCurrent = (i + 6) === CURRENT_MONTH;
+  const val = activeMonthlyTab === "spend" ? m.expenses : m.income;
+  const maxVal = Math.max(...monthlyData.map(x => activeMonthlyTab === "spend" ? x.expenses : x.income), 1);
+  const pct = Math.min(100, Math.round((val / maxVal) * 100));
+  const net = m.income - m.expenses;
+  const hasData = m.income > 0 || m.expenses > 0;
+  return (
+    <div key={m.month} onClick={() => val > 0 && setSelectedMonth(m)}
+      className={`p-3 rounded-[10px] transition-colors ${isCurrent ? "bg-[var(--ag-accent)]/[0.06] border border-[var(--ag-accent-border)]" : "bg-[var(--ag-bg-hover)]"} ${val > 0 ? "cursor-pointer hover:bg-[var(--ag-bg-active)]" : ""}`}>
+      <p className="text-xs font-bold text-ag-primary">{m.month}</p>
+      <div className="mt-2 h-16 bg-[var(--ag-bg-active)] rounded-full overflow-hidden flex items-end">
+        <div className="w-full rounded-full transition-all"
+          style={{ height: `${pct}%`, backgroundColor: (m.income - m.expenses) >= 0 ? "var(--ag-green)" : "var(--ag-red)", opacity: val === 0 ? 0.2 : 0.85 }} />
+      </div>
+      <p className={`text-xs font-semibold mt-1 ${!hasData ? "text-ag-muted" : net >= 0 ? "text-[var(--ag-green)]" : "text-[var(--ag-red)]"}`}>
+        {hasData ? `${net >= 0 ? "+" : ""}${fmt(net)}` : "—"}
+      </p>
+      {hasData && <p className="text-xs text-ag-muted">{m.items.length} item{m.items.length !== 1 ? "s" : ""}</p>}
+    </div>
+  );
+})}
           </div>
         </div>
-
+{/* Month Drill-down Drawer */}
+      {selectedMonth && (
+        <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setSelectedMonth(null)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="relative w-full max-w-md bg-[var(--ag-bg-card)] border-l border-[var(--ag-border-solid)] h-full overflow-y-auto p-6 shadow-2xl"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-lg font-bold text-ag-primary">{selectedMonth.month} {CURRENT_YEAR}</h2>
+                <p className="text-xs text-ag-muted">Cash flow detail</p>
+              </div>
+              <button onClick={() => setSelectedMonth(null)} className="text-ag-muted hover:text-ag-primary text-xl">✕</button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="bg-[var(--ag-bg-hover)] rounded-xl p-3">
+                <p className="text-xs text-ag-muted mb-1">Income</p>
+                <p className="text-lg font-bold text-[var(--ag-green)]">{fmt(selectedMonth.income)}</p>
+              </div>
+              <div className="bg-[var(--ag-bg-hover)] rounded-xl p-3">
+                <p className="text-xs text-ag-muted mb-1">Expenses</p>
+                <p className="text-lg font-bold text-ag-primary">{fmt(selectedMonth.expenses)}</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {selectedMonth.items.length === 0 && (
+                <p className="text-sm text-ag-muted text-center py-8">No transactions this month.</p>
+              )}
+              {selectedMonth.items
+                .sort((a, b) => b.amount - a.amount)
+                .map((item, idx) => (
+                <div key={idx} className="flex items-start justify-between p-3 bg-[var(--ag-bg-hover)] rounded-xl">
+                  <div className="flex-1 min-w-0 pr-3">
+                    <p className="text-xs font-semibold text-ag-primary truncate">{item.description}</p>
+                    <p className="text-xs text-ag-muted">{item.account}</p>
+                    {item.vendor && <p className="text-xs text-ag-muted">{item.vendor}</p>}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className={`text-sm font-bold ${item.type === "revenue" ? "text-[var(--ag-green)]" : "text-ag-primary"}`}>
+                      {item.type === "revenue" ? "+" : "-"}{fmt(item.amount)}
+                    </p>
+                    <p className="text-xs text-ag-muted">{new Date(item.date).toLocaleDateString("en-CA", { month: "short", day: "numeric" })}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
         {/* Weather Widget */}
         <div className="bg-[var(--ag-bg-card)] rounded-xl border border-[var(--ag-border)] p-5">
           <p className="font-mono text-[11px] font-semibold text-ag-secondary uppercase tracking-[2px] mb-4">Weather · Swift Current</p>
