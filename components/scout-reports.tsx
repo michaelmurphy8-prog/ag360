@@ -99,6 +99,7 @@ const selectClass = "w-full text-sm border border-[var(--ag-border-solid)] round
 export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
   const { user } = useUser()
   const [entries, setEntries] = useState<ScoutEntry[]>([])
+  const [fieldOptions, setFieldOptions] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null)
@@ -115,8 +116,12 @@ export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
   })
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => { fetchEntries() }, [user?.id])
-
+  useEffect(() => {
+    fetchEntries()
+    fetch('/api/fields/summary').then(r => r.json()).then(d => {
+      setFieldOptions((d.fields || []).map((f: { field_name: string }) => f.field_name))
+    }).catch(() => {})
+  }, [user?.id])
   async function fetchEntries() {
     try {
       const res = await fetch('/api/scout/entries')
@@ -194,7 +199,10 @@ export default function ScoutReports({ crops }: { crops: { name: string }[] }) {
             </div>
             <div>
               <label className="text-[10px] text-ag-muted font-semibold block mb-1 uppercase tracking-[1px]">Field</label>
-              <input type="text" placeholder="e.g. North Quarter" value={form.field_name} onChange={e => setForm(p => ({ ...p, field_name: e.target.value }))} className={inputClass} />
+              <select value={form.field_name} onChange={e => setForm(p => ({ ...p, field_name: e.target.value }))} className={inputClass}>
+  <option value="">Select field...</option>
+  {fieldOptions.map(f => <option key={f} value={f}>{f}</option>)}
+</select>
             </div>
             <div>
               <label className="text-[10px] text-ag-muted font-semibold block mb-1 uppercase tracking-[1px]">Crop</label>

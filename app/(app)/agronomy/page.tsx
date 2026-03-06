@@ -602,6 +602,7 @@ function InputCostsTab({ crops, zone }: { crops: Crop[], zone: SoilZone }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function ScoutTab({ crops }: { crops: Crop[] }) {
+  const [fieldOptions, setFieldOptions] = useState<string[]>([])
   const [selectedCrop, setSelectedCrop] = useState<string>('')
   const [selectedType, setSelectedType] = useState<'insects' | 'diseases' | ''>('')
   const [selectedSymptom, setSelectedSymptom] = useState<string>('')
