@@ -6,7 +6,7 @@ import { useState } from "react";
 import {
   LayoutDashboard, Wheat, Sprout, Tractor, Package, Users, Cloud,
   Settings, ClipboardList, DollarSign, ChevronDown, Lock, Wrench,
-  MapPin, Leaf, Beef, Palette, UserCog, Bell, Shield,
+  MapPin, Leaf, Beef, Palette, UserCog, Bell, Shield, MessageSquare,
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import LilyIcon from "@/components/LilyIcon";
@@ -225,6 +225,7 @@ export default function SideNav() {
               { label: "Account", href: "/settings/account", icon: UserCog },
               { label: "Notifications", href: "/settings/notifications", icon: Bell },
               { label: "Data & Privacy", href: "/settings/privacy", icon: Shield },
+{ label: "Feedback", href: "/settings/feedback", icon: MessageSquare },
             ].map((item) => {
               const active = pathname === item.href;
               return (
