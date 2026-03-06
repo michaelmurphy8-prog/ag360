@@ -1,51 +1,39 @@
-// app/api/waitlist/route.ts
-import { neon } from "@neondatabase/serverless";
 import { NextRequest, NextResponse } from "next/server";
+import { Resend } from "resend";
+import { neon } from "@neondatabase/serverless";
+
+const sql = neon(process.env.DATABASE_URL!);
 
 export async function POST(req: NextRequest) {
   try {
-    const { firstName, lastName, email, operationType, province } = await req.json();
+    const { name, email, farmSize, province } = await req.json();
 
-    if (!firstName || !email || !operationType || !province) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!email) {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
-
     await sql`
-      CREATE TABLE IF NOT EXISTS waitlist (
-        id SERIAL PRIMARY KEY,
-        first_name TEXT NOT NULL,
-        last_name TEXT,
-        email TEXT NOT NULL UNIQUE,
-        op_type TEXT NOT NULL,
-        province TEXT NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `;
-
-    await sql`
-      INSERT INTO waitlist (first_name, last_name, email, op_type, province)
-      VALUES (${firstName}, ${lastName}, ${email}, ${operationType}, ${province})
+      INSERT INTO waitlist (name, email, farm_size, province, created_at)
+      VALUES (${name ?? null}, ${email}, ${farmSize ?? null}, ${province ?? null}, NOW())
       ON CONFLICT (email) DO NOTHING
     `;
 
-    // Optional — email ping on every signup
-if (process.env.RESEND_API_KEY) {
-  await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: "AG360 <noreply@ag360.farm>",
-      to: "hello@ag360.farm",
-      subject: `New waitlist signup — ${firstName} ${lastName} (${province})`,
-      text: `Name: ${firstName} ${lastName}\nEmail: ${email}\nOperation: ${operationType}\nProvince: ${province}`,
-    }),
-  });
-}
+    if (process.env.RESEND_API_KEY) {
+        const resend = new Resend(process.env.RESEND_API_KEY);
+      await resend.emails.send({
+        from: "AG360 Waitlist <hello@ag360.farm>",
+        to: "hello@ag360.farm",
+        subject: `New Waitlist Signup — ${name ?? email}`,
+        html: `<h2>New Signup</h2><p><b>Name:</b> ${name ?? "—"}<br/><b>Email:</b> ${email}<br/><b>Farm Size:</b> ${farmSize ?? "—"}<br/><b>Province:</b> ${province ?? "—"}</p>`,
+      });
+
+      await resend.emails.send({
+        from: "AG360 <hello@ag360.farm>",
+        to: email,
+        subject: "You're on the list — AG360",
+        html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;"><h2 style="color:#0F172A;">You're on the AG360 waitlist.</h2><p>Hey ${name ? name.split(" ")[0] : "there"},</p><p>We've got your spot saved. When we open beta access to prairie farmers, you'll be first to know.</p><p>— Mike<br/><span style="color:#64748B;">Founder, AG360 · Murphy Farms, SK</span></p></div>`,
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (err) {
