@@ -1,4 +1,5 @@
-import { SignIn } from "@clerk/nextjs";
+import { SignUp } from "@clerk/nextjs";
+
 const clerkStyles = `
   .cl-socialButtonsIconButton {
     background-color: #1e3320 !important;
@@ -9,25 +10,25 @@ const clerkStyles = `
   }
 `;
 
-export default function LoginPage() {
+export default function SignupPage() {
   return (
     <main className="min-h-screen flex items-center justify-center relative overflow-hidden"
       style={{ background: "#080d0a" }}>
-        <style dangerouslySetInnerHTML={{ __html: clerkStyles }} />
+      <style dangerouslySetInnerHTML={{ __html: clerkStyles }} />
 
-      {/* Circular outline graphic — top left, matching landing page */}
+      {/* Circular outline graphic */}
       <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full pointer-events-none"
         style={{ border: "1px solid rgba(74, 222, 128, 0.08)" }} />
       <div className="absolute -top-16 -left-16 w-[350px] h-[350px] rounded-full pointer-events-none"
         style={{ border: "1px solid rgba(74, 222, 128, 0.05)" }} />
 
-      {/* Subtle green glow center */}
+      {/* Subtle green glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] pointer-events-none"
         style={{ background: "radial-gradient(ellipse, rgba(74, 222, 128, 0.04) 0%, transparent 70%)" }} />
 
       <div className="relative w-full max-w-md px-6 space-y-8">
 
-        {/* Logo — matching landing page style */}
+        {/* Logo */}
         <div className="text-center space-y-3">
           <div className="text-3xl font-light tracking-widest" style={{ color: "#ffffff", fontFamily: "Georgia, serif" }}>
             AG <span style={{ color: "#4ade80" }}>/</span> <span style={{ color: "#4ade80" }}>360</span>
@@ -37,17 +38,16 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Sign in card */}
-        <SignIn
+        <SignUp
           forceRedirectUrl="/grain360"
-          signUpUrl="/signup"
+          signInUrl="/login"
           appearance={{
             elements: {
               rootBox: "w-full",
               card: "rounded-2xl p-8",
               headerTitle: "hidden",
               headerSubtitle: "hidden",
-              socialButtonsBlockButton: "border border-[#3d5c3d] bg-[#1a2e1a] rounded-xl transition-colors",
+              socialButtonsIconButton: "border rounded-xl transition-colors",
               dividerLine: "bg-[#1a2a1a]",
               dividerText: "text-gray-600 text-xs",
               formFieldLabel: "text-gray-400 text-sm",
@@ -68,7 +68,6 @@ export default function LoginPage() {
             },
           }}
         />
-
       </div>
     </main>
   );
