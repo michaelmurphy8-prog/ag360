@@ -30,6 +30,19 @@ export async function POST(req: NextRequest) {
     VALUES (${userId}, ${date}, ${field_name || null}, ${crop || null}, ${growth_stage || null}, ${issue_type || null}, ${severity || null}, ${symptoms || null}, ${notes || null}, ${recommendation || null})
     RETURNING *
   `
+  // Auto-create field alert for scout report
+  if (field_name) {
+    await sql`
+      INSERT INTO field_alerts (user_id, field_name, alert_type, message, severity)
+      VALUES (
+        ${userId},
+        ${field_name},
+        'scout_report',
+        ${`Scout report filed: ${issue_type || "issue"} (${severity || "medium"}) on ${field_name}`},
+        ${severity || "medium"}
+      )
+    `
+  }
   return NextResponse.json({ entry: rows[0] }, { status: 201 })
 }
 

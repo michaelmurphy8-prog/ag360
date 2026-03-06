@@ -18,6 +18,7 @@ interface Field {
   id: string; field_name: string; acres: string; crop_type?: string;
   seeded_acres?: string; seeding_date?: string; crop_status?: string;
   actual_total: string; actual_revenue: string;
+  budget_total?: string;
 }
 interface CropBreakdown { [crop: string]: { acres: number; count: number } }
 interface MachineryStats {
@@ -29,7 +30,14 @@ interface ScoutEntry {
   id: string; date: string; field_name: string; crop: string;
   issue_type: string; severity: string; notes?: string;
 }
-
+interface FieldAlert {
+  id: string;
+  field_name: string;
+  alert_type: string;
+  message: string;
+  severity: string;
+  created_at: string;
+}
 const CROP_COLORS: Record<string, string> = {
   Canola: "#facc15", Wheat: "#3b82f6", Barley: "#8b5cf6",
   Oats: "#d97706", Peas: "#84cc16", "Lentils - Red": "#ef4444",
@@ -94,15 +102,18 @@ export default function OperationsPage() {
   const [cropBreakdown, setCropBreakdown] = useState<CropBreakdown>({});
   const [machinery, setMachinery] = useState<MachineryStats | null>(null);
   const [scoutEntries, setScoutEntries] = useState<ScoutEntry[]>([]);
+  const [fieldAlerts, setFieldAlerts] = useState<FieldAlert[]>([]);
+  const [openAlertPopover, setOpenAlertPopover] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const [summaryRes, machineryRes, scoutRes] = await Promise.all([
+        const [summaryRes, machineryRes, scoutRes, alertsRes] = await Promise.all([
           fetch(`/api/fields/summary?crop_year=${cropYear}`),
           fetch("/api/machinery/stats"),
           fetch("/api/scout/entries"),
+          fetch("/api/field-alerts"),
         ]);
         const summary = await summaryRes.json();
         setKpis(summary.kpis);
@@ -116,6 +127,10 @@ export default function OperationsPage() {
           const s = await scoutRes.json();
           setScoutEntries((s.entries || []).slice(0, 5));
         }
+        if (alertsRes.ok) {
+          const a = await alertsRes.json();
+          setFieldAlerts(a.alerts || []);
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -124,6 +139,16 @@ export default function OperationsPage() {
     }
     load();
   }, [cropYear]);
+
+  async function dismissAlert(alertId: string) {
+    await fetch("/api/field-alerts", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: alertId }),
+    });
+    setFieldAlerts(prev => prev.filter(a => a.id !== alertId));
+    setOpenAlertPopover(null);
+  }
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto">
@@ -177,7 +202,7 @@ export default function OperationsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--ag-border)" }}>
-                    {["Field", "Crop", "Acres", "Seeded", "Cost", "Revenue"].map(h => (
+                    {["Field", "Crop", "Acres", "Seeded", "Cost", "Revenue", "Alerts"].map(h => (
                       <th key={h} className="text-left pb-2 text-[10px] font-semibold tracking-wide uppercase"
                         style={{ color: "var(--ag-text-muted)" }}>{h}</th>
                     ))}
@@ -204,6 +229,69 @@ export default function OperationsPage() {
                       </td>
                       <td className="py-2.5" style={{ color: parseFloat(f.actual_revenue) > 0 ? "var(--ag-green)" : "var(--ag-text-muted)" }}>
                         {parseFloat(f.actual_revenue) > 0 ? `$${fmt(parseFloat(f.actual_revenue))}` : "—"}
+                      </td>
+                      <td className="py-2.5 relative">
+                        {(() => {
+                          const fieldAlertList = fieldAlerts.filter(a =>
+                            a.field_name?.toLowerCase() === f.field_name?.toLowerCase()
+                          );
+                          const costOverrun = parseFloat(f.actual_total) > parseFloat(f.budget_total || "0") && parseFloat(f.budget_total || "0") > 0;
+                          const totalAlerts = fieldAlertList.length + (costOverrun ? 1 : 0);
+                          if (totalAlerts === 0) return <span style={{ color: "var(--ag-text-muted)" }}>—</span>;
+                          const isOpen = openAlertPopover === f.field_name;
+                          return (
+                            <div className="relative inline-block">
+                              <button
+                                onClick={() => setOpenAlertPopover(isOpen ? null : f.field_name)}
+                                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
+                                style={{ backgroundColor: "rgba(239,68,68,0.12)", color: "var(--ag-red)" }}
+                              >
+                                <AlertTriangle size={11} />
+                                {totalAlerts}
+                              </button>
+                              {isOpen && (
+                                <div className="absolute right-0 top-7 z-50 w-72 rounded-xl shadow-xl p-3 space-y-2"
+                                  style={{ backgroundColor: "var(--ag-bg-card)", border: "1px solid var(--ag-border)" }}>
+                                  <p className="text-[10px] font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--ag-text-muted)" }}>
+                                    Alerts — {f.field_name}
+                                  </p>
+                                  {costOverrun && (
+                                    <div className="flex items-start justify-between gap-2 p-2 rounded-lg"
+                                      style={{ backgroundColor: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.2)" }}>
+                                      <div className="flex items-start gap-2">
+                                        <AlertTriangle size={12} style={{ color: "#f97316", marginTop: 1 }} />
+                                        <p className="text-xs" style={{ color: "var(--ag-text-secondary)" }}>
+                                          Cost overrun — actual exceeds budget
+                                        </p>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {fieldAlertList.map(alert => (
+                                    <div key={alert.id} className="flex items-start justify-between gap-2 p-2 rounded-lg"
+                                      style={{ backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                                      <div className="flex items-start gap-2">
+                                        <AlertTriangle size={12} style={{ color: "var(--ag-red)", marginTop: 1 }} />
+                                        <div>
+                                          <p className="text-xs" style={{ color: "var(--ag-text-secondary)" }}>{alert.message}</p>
+                                          <p className="text-[10px] mt-0.5" style={{ color: "var(--ag-text-muted)" }}>
+                                            {new Date(alert.created_at).toLocaleDateString("en-CA", { month: "short", day: "numeric" })}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <button
+                                        onClick={() => dismissAlert(alert.id)}
+                                        className="text-[10px] shrink-0 px-1.5 py-0.5 rounded font-semibold"
+                                        style={{ backgroundColor: "var(--ag-bg-hover)", color: "var(--ag-text-muted)" }}
+                                      >
+                                        Clear
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                     </tr>
                   ))}
