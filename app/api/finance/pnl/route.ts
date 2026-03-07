@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   const { searchParams } = new URL(req.url);
   const cropYear = parseInt(searchParams.get("cropYear") || String(new Date().getFullYear()));
-  const view = searchParams.get("view") || "farm"; // farm | crop | field
+  const view = searchParams.get("view") || "farm";
 
   try {
-    // ── Real ledger data from journal entries ──
     let ledgerData;
 
     if (view === "crop") {
@@ -27,8 +28,8 @@ export async function GET(req: NextRequest) {
           COALESCE(SUM(jl.credit), 0) as total_credit
         FROM journal_entries je
         JOIN journal_lines jl ON jl.journal_entry_id = je.id
-        JOIN accounts a ON a.id = jl.account_id AND a.user_id = ${userId}
-        WHERE je.user_id = ${userId}
+        JOIN accounts a ON a.id = jl.account_id AND a.tenant_id = ${tenantId}
+        WHERE je.tenant_id = ${tenantId}
           AND je.crop_year = ${cropYear}
           AND je.is_void = false
         GROUP BY jl.crop, a.account_type, a.sub_type, a.name
@@ -46,8 +47,8 @@ export async function GET(req: NextRequest) {
           COALESCE(SUM(jl.credit), 0) as total_credit
         FROM journal_entries je
         JOIN journal_lines jl ON jl.journal_entry_id = je.id
-        JOIN accounts a ON a.id = jl.account_id AND a.user_id = ${userId}
-        WHERE je.user_id = ${userId}
+        JOIN accounts a ON a.id = jl.account_id AND a.tenant_id = ${tenantId}
+        WHERE je.tenant_id = ${tenantId}
           AND je.crop_year = ${cropYear}
           AND je.is_void = false
         GROUP BY jl.field_name, a.account_type, a.sub_type, a.name
@@ -65,8 +66,8 @@ export async function GET(req: NextRequest) {
           COALESCE(SUM(jl.credit), 0) as total_credit
         FROM journal_entries je
         JOIN journal_lines jl ON jl.journal_entry_id = je.id
-        JOIN accounts a ON a.id = jl.account_id AND a.user_id = ${userId}
-        WHERE je.user_id = ${userId}
+        JOIN accounts a ON a.id = jl.account_id AND a.tenant_id = ${tenantId}
+        WHERE je.tenant_id = ${tenantId}
           AND je.crop_year = ${cropYear}
           AND je.is_void = false
         GROUP BY a.account_type, a.sub_type, a.name
@@ -74,9 +75,8 @@ export async function GET(req: NextRequest) {
       `;
     }
 
-    // ── Farm Profile estimates as fallback ──
     const profileRows = await sql`
-      SELECT profile FROM farm_profiles WHERE user_id = ${userId}
+      SELECT profile FROM farm_profiles WHERE tenant_id = ${tenantId}
     `;
     const profile = profileRows[0]?.profile;
     const estimates: Record<string, { revenue: number; costs: number; acres: number }> = {};
@@ -89,7 +89,6 @@ export async function GET(req: NextRequest) {
         const targetYield = Number(c.target_yield || c.yield || 0);
         const targetPrice = Number(c.target_price || c.price || 0);
         const costPerAcre = Number(c.cost_per_acre || c.costs || 0);
-
         estimates[name] = {
           revenue: Math.round(acres * targetYield * targetPrice),
           costs: Math.round(acres * costPerAcre),
@@ -98,7 +97,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // ── Merge real + estimated ──
     const groups: Record<string, {
       label: string;
       revenue: number;
@@ -110,17 +108,9 @@ export async function GET(req: NextRequest) {
     for (const row of ledgerData) {
       const key = row.group_key || "farm";
       if (!groups[key]) {
-        groups[key] = {
-          label: row.group_label || key,
-          revenue: 0,
-          expenses: 0,
-          categories: {},
-          hasRealData: true,
-        };
+        groups[key] = { label: row.group_label || key, revenue: 0, expenses: 0, categories: {}, hasRealData: true };
       }
-
       const amount = Number(row.total_credit) - Number(row.total_debit);
-
       if (row.account_type === "revenue") {
         groups[key].revenue += Math.abs(amount);
         groups[key].categories[row.account_name] = { type: "revenue", amount: Math.abs(amount) };
@@ -131,7 +121,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Fill in Farm Profile estimates for crops with no real data
     if (view === "crop" || view === "farm") {
       for (const [cropName, est] of Object.entries(estimates)) {
         const key = view === "crop" ? cropName : "farm";
@@ -147,7 +136,6 @@ export async function GET(req: NextRequest) {
             hasRealData: false,
           };
         } else if (view === "farm" && groups[key].revenue === 0 && groups[key].expenses === 0) {
-          // Farm view: add estimates if ledger is empty
           groups[key].revenue += est.revenue;
           groups[key].expenses += est.costs;
           groups[key].hasRealData = false;
@@ -155,7 +143,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Build response
     const result = Object.entries(groups).map(([key, g]) => ({
       key,
       label: g.label,
@@ -163,15 +150,10 @@ export async function GET(req: NextRequest) {
       expenses: g.expenses,
       netIncome: g.revenue - g.expenses,
       margin: g.revenue > 0 ? Math.round((g.revenue - g.expenses) / g.revenue * 100) : 0,
-      categories: Object.entries(g.categories).map(([name, c]) => ({
-        name,
-        type: c.type,
-        amount: c.amount,
-      })),
+      categories: Object.entries(g.categories).map(([name, c]) => ({ name, type: c.type, amount: c.amount })),
       hasRealData: g.hasRealData,
     }));
 
-    // Farm-level totals
     const totals = {
       revenue: result.reduce((s, r) => s + r.revenue, 0),
       expenses: result.reduce((s, r) => s + r.expenses, 0),
@@ -180,7 +162,7 @@ export async function GET(req: NextRequest) {
 
     const availableYears = await sql`
       SELECT DISTINCT crop_year FROM journal_entries
-      WHERE user_id = ${userId} AND is_void = false
+      WHERE tenant_id = ${tenantId} AND is_void = false
       ORDER BY crop_year DESC
     `;
 

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   const { searchParams } = new URL(req.url);
   const cropYear = parseInt(searchParams.get("cropYear") || String(new Date().getFullYear()));
@@ -51,8 +53,8 @@ export async function GET(req: NextRequest) {
         ) AS lines
       FROM journal_entries je
       LEFT JOIN journal_lines jl ON jl.journal_entry_id = je.id
-      LEFT JOIN accounts a ON a.id = jl.account_id AND a.user_id = ${userId}
-      WHERE je.user_id = ${userId}
+      LEFT JOIN accounts a ON a.id = jl.account_id AND a.tenant_id = ${tenantId}
+      WHERE je.tenant_id = ${tenantId}
         AND je.crop_year = ${cropYear}
         AND je.is_void = false
       GROUP BY je.id
@@ -69,15 +71,15 @@ export async function GET(req: NextRequest) {
         COALESCE(SUM(CASE WHEN a.account_type = 'expense' THEN jl.debit - jl.credit ELSE 0 END), 0) as total_expenses
       FROM journal_entries je
       JOIN journal_lines jl ON jl.journal_entry_id = je.id
-      JOIN accounts a ON a.id = jl.account_id AND a.user_id = ${userId}
-      WHERE je.user_id = ${userId}
+      JOIN accounts a ON a.id = jl.account_id AND a.tenant_id = ${tenantId}
+      WHERE je.tenant_id = ${tenantId}
         AND je.crop_year = ${cropYear}
         AND je.is_void = false
     `;
 
     const availableYears = await sql`
       SELECT DISTINCT crop_year FROM journal_entries
-      WHERE user_id = ${userId} AND is_void = false
+      WHERE tenant_id = ${tenantId} AND is_void = false
       ORDER BY crop_year DESC
     `;
 
