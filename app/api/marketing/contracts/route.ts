@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
-// GET — list all contracts
-export async function GET(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET() {
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const rows = await sql`
       SELECT id, crop, contract_type, quantity_bu, price_per_bu, basis,
              elevator, delivery_date, notes, created_at
       FROM inventory_contracts
-      WHERE user_id = ${userId}
+      WHERE tenant_id = ${tenantId}
       ORDER BY created_at DESC
     `;
     return NextResponse.json({ success: true, contracts: rows });
@@ -23,10 +24,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST — create new contract
 export async function POST(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const body = await req.json();
@@ -37,8 +38,14 @@ export async function POST(req: NextRequest) {
     }
 
     const rows = await sql`
-      INSERT INTO inventory_contracts (user_id, crop, contract_type, quantity_bu, price_per_bu, basis, elevator, delivery_date, notes)
-      VALUES (${userId}, ${crop}, ${contract_type || null}, ${Number(quantity_bu)}, ${Number(price_per_bu || 0)}, ${Number(basis || 0)}, ${elevator || null}, ${delivery_date || null}, ${notes || null})
+      INSERT INTO inventory_contracts (
+        tenant_id, crop, contract_type, quantity_bu,
+        price_per_bu, basis, elevator, delivery_date, notes
+      ) VALUES (
+        ${tenantId}, ${crop}, ${contract_type || null}, ${Number(quantity_bu)},
+        ${Number(price_per_bu || 0)}, ${Number(basis || 0)},
+        ${elevator || null}, ${delivery_date || null}, ${notes || null}
+      )
       RETURNING *
     `;
     return NextResponse.json({ success: true, contract: rows[0] });
@@ -48,10 +55,10 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PUT — update contract
 export async function PUT(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const body = await req.json();
@@ -60,16 +67,16 @@ export async function PUT(req: NextRequest) {
     if (!id) return NextResponse.json({ error: "Contract ID required" }, { status: 400 });
 
     const rows = await sql`
-      UPDATE inventory_contracts
-      SET crop = ${crop},
-          contract_type = ${contract_type || null},
-          quantity_bu = ${Number(quantity_bu)},
-          price_per_bu = ${Number(price_per_bu || 0)},
-          basis = ${Number(basis || 0)},
-          elevator = ${elevator || null},
-          delivery_date = ${delivery_date || null},
-          notes = ${notes || null}
-      WHERE id = ${id} AND user_id = ${userId}
+      UPDATE inventory_contracts SET
+        crop = ${crop},
+        contract_type = ${contract_type || null},
+        quantity_bu = ${Number(quantity_bu)},
+        price_per_bu = ${Number(price_per_bu || 0)},
+        basis = ${Number(basis || 0)},
+        elevator = ${elevator || null},
+        delivery_date = ${delivery_date || null},
+        notes = ${notes || null}
+      WHERE id = ${id} AND tenant_id = ${tenantId}
       RETURNING *
     `;
     if (rows.length === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -80,19 +87,17 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// DELETE — remove contract
 export async function DELETE(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "Contract ID required" }, { status: 400 });
 
-    await sql`
-      DELETE FROM inventory_contracts WHERE id = ${id} AND user_id = ${userId}
-    `;
+    await sql`DELETE FROM inventory_contracts WHERE id = ${id} AND tenant_id = ${tenantId}`;
     return NextResponse.json({ success: true });
   } catch (err: any) {
     console.error("Contracts DELETE error:", err?.message);

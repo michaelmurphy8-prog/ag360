@@ -1,29 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
-async function ensureTable() {
-  await sql`
-    CREATE TABLE IF NOT EXISTS grain360_reminders (
-      id SERIAL PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      title TEXT NOT NULL,
-      due_date TEXT,
-      completed BOOLEAN DEFAULT FALSE,
-      priority TEXT DEFAULT 'medium',
-      created_at TIMESTAMP DEFAULT NOW()
-    )
-  `;
-}
+export async function GET() {
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ reminders: [] });
+  const { tenantId } = tenantAuth;
 
-export async function GET(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ reminders: [] });
-  await ensureTable();
   const rows = await sql`
-    SELECT * FROM grain360_reminders 
-    WHERE user_id = ${userId} 
+    SELECT * FROM grain360_reminders
+    WHERE tenant_id = ${tenantId}
     ORDER BY completed ASC, due_date ASC, created_at DESC
     LIMIT 20
   `;
@@ -31,15 +19,16 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  await ensureTable();
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
+
   const { action, item } = await req.json();
 
   if (action === "add") {
     const row = await sql`
-      INSERT INTO grain360_reminders (user_id, title, due_date, priority)
-      VALUES (${userId}, ${item.title}, ${item.due_date || null}, ${item.priority || "medium"})
+      INSERT INTO grain360_reminders (tenant_id, title, due_date, priority)
+      VALUES (${tenantId}, ${item.title}, ${item.due_date || null}, ${item.priority || "medium"})
       RETURNING *
     `;
     return NextResponse.json({ reminder: row[0] });
@@ -47,15 +36,15 @@ export async function POST(req: NextRequest) {
 
   if (action === "toggle") {
     await sql`
-      UPDATE grain360_reminders 
-      SET completed = NOT completed 
-      WHERE id = ${item.id} AND user_id = ${userId}
+      UPDATE grain360_reminders
+      SET completed = NOT completed
+      WHERE id = ${item.id} AND tenant_id = ${tenantId}
     `;
     return NextResponse.json({ success: true });
   }
 
   if (action === "delete") {
-    await sql`DELETE FROM grain360_reminders WHERE id = ${item.id} AND user_id = ${userId}`;
+    await sql`DELETE FROM grain360_reminders WHERE id = ${item.id} AND tenant_id = ${tenantId}`;
     return NextResponse.json({ success: true });
   }
 
