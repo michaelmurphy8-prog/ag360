@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { neon } from "@neondatabase/serverless";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 export async function GET() {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { tenantId } = tenantAuth;
+
   const sql = neon(process.env.DATABASE_URL!);
 
-  // Service stats
   const [serviceStats] = await sql`
     SELECT
       COUNT(*)::int as total_logs,
@@ -16,10 +17,9 @@ export async function GET() {
       COUNT(CASE WHEN date >= NOW() - INTERVAL '30 days' THEN 1 END)::int as last_30_days
     FROM "MaintenanceLog" ml
     JOIN "Asset" a ON a.id = ml."assetId"
-    WHERE a."orgId" = ${userId}
+    WHERE a."orgId" = ${tenantId}
   `;
 
-  // Schedule stats
   const [scheduleStats] = await sql`
     SELECT
       COUNT(CASE WHEN status = 'OVERDUE' THEN 1 END)::int as overdue,
@@ -27,25 +27,27 @@ export async function GET() {
       COUNT(CASE WHEN status = 'OK' THEN 1 END)::int as on_track,
       COUNT(*)::int as total_scheduled
     FROM "ServiceSchedule"
-    WHERE "orgId" = ${userId}
+    WHERE "orgId" = ${tenantId}
   `;
 
-  // Active downtime
   const [downtimeStats] = await sql`
     SELECT
       COUNT(CASE WHEN "endTime" IS NULL THEN 1 END)::int as active_downtime,
       COUNT(*)::int as total_incidents,
       COALESCE(SUM("costImpact"), 0)::float as total_downtime_cost
     FROM "DowntimeLog"
-    WHERE "orgId" = ${userId}
+    WHERE "orgId" = ${tenantId}
   `;
 
-  // Top cost units (this year)
   const topCostUnits = await sql`
-    SELECT a.name, a.make, a.model, COALESCE(SUM(ml.cost), 0)::float as total_cost, COUNT(ml.id)::int as service_count
+    SELECT
+      a.name, a.make, a.model,
+      COALESCE(SUM(ml.cost), 0)::float as total_cost,
+      COUNT(ml.id)::int as service_count
     FROM "MaintenanceLog" ml
     JOIN "Asset" a ON a.id = ml."assetId"
-    WHERE a."orgId" = ${userId} AND ml.date >= date_trunc('year', NOW())
+    WHERE a."orgId" = ${tenantId}
+      AND ml.date >= date_trunc('year', NOW())
     GROUP BY a.id, a.name, a.make, a.model
     ORDER BY total_cost DESC
     LIMIT 5
@@ -53,11 +55,6 @@ export async function GET() {
 
   return NextResponse.json({
     success: true,
-    stats: {
-      service: serviceStats,
-      schedule: scheduleStats,
-      downtime: downtimeStats,
-      topCostUnits,
-    },
+    stats: { service: serviceStats, schedule: scheduleStats, downtime: downtimeStats, topCostUnits },
   });
 }
