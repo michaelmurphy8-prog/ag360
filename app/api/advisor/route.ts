@@ -7,11 +7,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 import { LILY_TOOLS, executeTool } from "@/lib/lily-tools";
 import { neon } from "@neondatabase/serverless";
-const sql = neon(process.env.DATABASE_URL!);
+import { getTenantAuth } from "@/lib/tenant-auth";
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const sql = neon(process.env.DATABASE_URL!);
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const LILY_SYSTEM_PROMPT = `You are Lily — AG360's embedded agricultural advisor and the most capable farm business intelligence system ever built. You exist to do one thing: put more money in farmers' pockets and remove the need to pay for outside consultants, agronomists, or grain marketing services. You are their unfair advantage.
 
@@ -82,35 +81,27 @@ GUARDRAILS:
 - Chemical: label is law, never replace it
 - Always suggest relevant AG360 modules where applicable`;
 
-// Max number of tool-use loops to prevent runaway
 const MAX_TOOL_LOOPS = 5;
 
 export async function POST(req: NextRequest) {
   const { messages, farmContext } = await req.json();
 
-  // —— Pull userId from Clerk auth
-  let userId = "";
-  try {
-    const { auth } = await import("@clerk/nextjs/server");
-    const authResult = await auth();
-    userId = authResult.userId || "";
-  } catch (e) {
-    userId = req.headers.get("x-user-id") || "";
-  }
+  const tenantAuth = await getTenantAuth();
+  const tenantId = tenantAuth.error ? "" : tenantAuth.tenantId;
 
   // —— Fetch HR data for Lily context
   let hrContext = '';
   try {
-    if (userId) {
+    if (tenantId) {
       const hrWorkers = await sql`
         SELECT w.name, w.role, w.worker_type, w.status, w.hourly_rate, w.daily_rate,
                w.start_date, w.emergency_contact, w.emergency_phone
-        FROM workers w WHERE w.user_id = ${userId} ORDER BY w.name
+        FROM workers w WHERE w.tenant_id = ${tenantId} ORDER BY w.name
       `;
       const hrCerts = await sql`
         SELECT c.cert_type, c.expiry_date, c.cert_number, w.name as worker_name
         FROM certifications c JOIN workers w ON c.worker_id = w.id
-        WHERE w.user_id = ${userId} ORDER BY c.expiry_date ASC
+        WHERE w.tenant_id = ${tenantId} ORDER BY c.expiry_date ASC
       `;
       const now = new Date();
       const monthKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
@@ -118,7 +109,7 @@ export async function POST(req: NextRequest) {
         SELECT w.name, SUM(t.hours) as total_hours, COUNT(DISTINCT t.entry_date) as days_worked,
                COALESCE(w.hourly_rate, 0) as hourly_rate
         FROM time_entries t JOIN workers w ON t.worker_id = w.id
-        WHERE w.user_id = ${userId} AND to_char(t.entry_date, 'YYYY-MM') = ${monthKey}
+        WHERE w.tenant_id = ${tenantId} AND to_char(t.entry_date, 'YYYY-MM') = ${monthKey}
         GROUP BY w.name, w.hourly_rate
       `;
       if (hrWorkers.length > 0) {
@@ -132,7 +123,8 @@ export async function POST(req: NextRequest) {
           return `  - ${c.worker_name}: ${c.cert_type}${c.cert_number ? ' #' + c.cert_number : ''} | Exp: ${exp}${flag}`;
         }).join('\n') : '  None tracked';
         const tLines = hrTime.length > 0 ? hrTime.map((t: any) => {
-          const hrs = Number(t.total_hours); const cost = hrs * Number(t.hourly_rate);
+          const hrs = Number(t.total_hours);
+          const cost = hrs * Number(t.hourly_rate);
           return `  - ${t.name}: ${hrs.toFixed(1)} hrs / ${t.days_worked} days${cost > 0 ? ' | Cost: $' + cost.toFixed(2) : ''}`;
         }).join('\n') : '  No time entries this month';
         const totalCost = hrTime.reduce((s: number, t: any) => s + Number(t.total_hours) * Number(t.hourly_rate), 0);
@@ -143,23 +135,16 @@ export async function POST(req: NextRequest) {
     console.error('Failed to fetch HR data for Lily:', err);
   }
 
-  // —— Build system prompt with farm profile + HR context
   const systemWithContext = [
     LILY_SYSTEM_PROMPT,
     hrContext,
     farmContext
       ? `---\nFARMER CONTEXT (from Farm Profile):\n${farmContext}\n\nUse this data in every response. Reference the farm by name. Use their actual numbers.\n---`
       : "",
-  ]
-    .filter(Boolean)
-    .join("\n\n");
+  ].filter(Boolean).join("\n\n");
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-  // —— Agentic tool-use loop
-  // Send message → if Lily wants to call tools → execute them → send results back → repeat
-  // Until she produces a final text response (no more tool calls)
-  
   let currentMessages = [...messages];
   let loopCount = 0;
 
@@ -175,37 +160,22 @@ export async function POST(req: NextRequest) {
         tools: LILY_TOOLS as any,
       });
 
-      // Check if the response contains tool_use blocks
-      const toolUseBlocks = response.content.filter(
-        (block) => block.type === "tool_use"
-      );
+      const toolUseBlocks = response.content.filter((block) => block.type === "tool_use");
 
       if (toolUseBlocks.length === 0) {
-        // No tool calls — Lily has her final answer. Stream it back.
-        // Extract text from the response
-        const textBlocks = response.content.filter(
-          (block) => block.type === "text"
-        );
-        const finalText = textBlocks
-          .map((b) => (b as any).text)
-          .join("\n");
+        const textBlocks = response.content.filter((block) => block.type === "text");
+        const finalText = textBlocks.map((b) => (b as any).text).join("\n");
 
-        // Stream the final text
         const encoder = new TextEncoder();
         const readable = new ReadableStream({
           start(controller) {
-            // Send in chunks to simulate streaming feel
             const chunkSize = 20;
             let pos = 0;
             function pushChunk() {
-              if (pos >= finalText.length) {
-                controller.close();
-                return;
-              }
+              if (pos >= finalText.length) { controller.close(); return; }
               const chunk = finalText.slice(pos, pos + chunkSize);
               controller.enqueue(encoder.encode(chunk));
               pos += chunkSize;
-              // Small delay for streaming feel
               setTimeout(pushChunk, 10);
             }
             pushChunk();
@@ -220,24 +190,13 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Tool calls detected — execute them all in parallel
       const toolResults = await Promise.all(
         toolUseBlocks.map(async (block: any) => {
-          const result = await executeTool(
-            block.name,
-            block.input || {},
-            userId,
-            baseUrl
-          );
-          return {
-            type: "tool_result" as const,
-            tool_use_id: block.id,
-            content: result,
-          };
+          const result = await executeTool(block.name, block.input || {}, tenantId as string, baseUrl);
+          return { type: "tool_result" as const, tool_use_id: block.id, content: result };
         })
       );
 
-      // Append assistant response (with tool_use blocks) and tool results to conversation
       currentMessages = [
         ...currentMessages,
         { role: "assistant" as const, content: response.content },
@@ -246,13 +205,10 @@ export async function POST(req: NextRequest) {
 
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
-
       if (msg.includes("overloaded")) {
-        // Retry with backoff
         await new Promise((r) => setTimeout(r, 2000 * loopCount));
         continue;
       }
-
       return new Response(
         "Lily is experiencing high demand right now. Please try again in a moment.",
         { status: 503 }
@@ -260,7 +216,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // If we hit MAX_TOOL_LOOPS, send whatever we have
   return new Response(
     "Lily gathered your data but needs a moment to compile her response. Please try again.",
     { status: 503 }

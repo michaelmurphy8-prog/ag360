@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { neon } from "@neondatabase/serverless";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
@@ -12,12 +12,13 @@ interface SeedingImportRow {
   seeding_date?: string | null;
   seed_rate?: number | null;
   seed_cost?: number | null;
-  field_acres?: number; // fallback for seeded_acres
+  field_acres?: number;
 }
 
 export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const { rows, crop_year } = (await req.json()) as { rows: SeedingImportRow[]; crop_year: number };
@@ -36,7 +37,6 @@ export async function POST(req: Request) {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       try {
-        // Check for existing crop record
         const existing = await sql`
           SELECT id FROM field_crops
           WHERE field_id = ${row.field_id} AND crop_year = ${crop_year} AND LOWER(crop_type) = LOWER(${row.crop_type})
@@ -62,11 +62,9 @@ export async function POST(req: Request) {
           results.cropsCreated++;
         }
 
-        // Create seed cost if provided
         if (row.seed_cost && row.seed_cost > 0) {
           const seedAcres = row.seeded_acres || row.field_acres || 0;
           const totalCost = row.seed_cost * seedAcres;
-
           await sql`
             INSERT INTO field_costs (field_id, crop_year, category, description, actual_amount)
             VALUES (${row.field_id}, ${crop_year}, 'seed', ${`Seed cost - ${row.crop_type}${row.variety ? ` (${row.variety})` : ""}`}, ${totalCost})
@@ -79,8 +77,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
-      success: true,
-      ...results,
+      success: true, ...results,
       message: `${results.cropsCreated} seeding records created, ${results.cropsUpdated} updated${results.costsCreated > 0 ? `, ${results.costsCreated} seed costs added` : ""}`,
     });
   } catch (err: any) {

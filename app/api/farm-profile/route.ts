@@ -1,26 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
-export async function GET(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ profile: null });
+export async function GET() {
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ profile: null });
+  const { tenantId } = tenantAuth;
 
   try {
-    await sql`
-      CREATE TABLE IF NOT EXISTS farm_profiles (
-        id SERIAL PRIMARY KEY,
-        user_id TEXT UNIQUE NOT NULL,
-        profile JSONB NOT NULL,
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `;
-
     const rows = await sql`
-      SELECT profile FROM farm_profiles WHERE user_id = ${userId}
+      SELECT profile FROM farm_profiles WHERE tenant_id = ${tenantId}
     `;
-
     return NextResponse.json({ profile: rows[0]?.profile || null });
   } catch (error) {
     console.error("Farm profile GET error:", error);
@@ -29,28 +21,19 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const { profile } = await req.json();
 
     await sql`
-      CREATE TABLE IF NOT EXISTS farm_profiles (
-        id SERIAL PRIMARY KEY,
-        user_id TEXT UNIQUE NOT NULL,
-        profile JSONB NOT NULL,
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `;
-
-    await sql`
-      INSERT INTO farm_profiles (user_id, profile)
-      VALUES (${userId}, ${JSON.stringify(profile)})
-      ON CONFLICT (user_id)
+      INSERT INTO farm_profiles (tenant_id, profile)
+      VALUES (${tenantId}, ${JSON.stringify(profile)})
+      ON CONFLICT (tenant_id)
       DO UPDATE SET profile = ${JSON.stringify(profile)}, updated_at = NOW()
     `;
-
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Farm profile POST error:", error);

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { neon } from "@neondatabase/serverless";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
@@ -14,8 +14,8 @@ interface ExpenseImportRow {
 }
 
 export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
 
   try {
     const { rows, crop_year } = (await req.json()) as { rows: ExpenseImportRow[]; crop_year: number };
@@ -34,7 +34,6 @@ export async function POST(req: Request) {
       const row = rows[i];
       try {
         const desc = [row.description, row.vendor].filter(Boolean).join(" — ") || null;
-
         await sql`
           INSERT INTO field_costs (field_id, crop_year, category, description, actual_amount)
           VALUES (${row.field_id}, ${crop_year}, ${row.category}, ${desc}, ${row.amount})
@@ -47,8 +46,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
-      success: true,
-      ...results,
+      success: true, ...results,
       message: `${results.costsCreated} expenses imported ($${results.totalAmount.toLocaleString("en-CA", { minimumFractionDigits: 2 })})`,
     });
   } catch (err: any) {
