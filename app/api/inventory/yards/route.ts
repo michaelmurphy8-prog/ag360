@@ -1,13 +1,13 @@
-// app/api/inventory/yards/route.ts
 import { neon } from "@neondatabase/serverless";
 import { NextRequest, NextResponse } from "next/server";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
-// GET — all yards for user
 export async function GET(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const yards = await sql`
@@ -16,12 +16,11 @@ export async function GET(req: NextRequest) {
         COALESCE(SUM(b.capacity_bu), 0) AS total_capacity_bu,
         COALESCE(SUM(b.current_bu), 0) AS total_stored_bu
       FROM bin_yards y
-      LEFT JOIN bins b ON b.yard_id = y.id AND b.user_id = ${userId}
-      WHERE y.user_id = ${userId}
+      LEFT JOIN bins b ON b.yard_id = y.id AND b.tenant_id = ${tenantId}
+      WHERE y.tenant_id = ${tenantId}
       GROUP BY y.id
       ORDER BY y.sort_order ASC, y.created_at ASC
     `;
-
     return NextResponse.json({ yards });
   } catch (error) {
     console.error("Error fetching yards:", error);
@@ -29,10 +28,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST — create a yard
 export async function POST(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const body = await req.json();
@@ -41,9 +40,13 @@ export async function POST(req: NextRequest) {
     }
 
     const rows = await sql`
-      INSERT INTO bin_yards (user_id, yard_name, location, notes, sort_order, latitude, longitude)
-      VALUES (${userId}, ${body.yard_name.trim()}, ${body.location || null}, ${body.notes || null}, ${body.sort_order || 0}, ${body.latitude || null}, ${body.longitude || null})
-      ON CONFLICT (user_id, yard_name) DO UPDATE SET
+      INSERT INTO bin_yards (tenant_id, yard_name, location, notes, sort_order, latitude, longitude)
+      VALUES (
+        ${tenantId}, ${body.yard_name.trim()}, ${body.location || null},
+        ${body.notes || null}, ${body.sort_order || 0},
+        ${body.latitude || null}, ${body.longitude || null}
+      )
+      ON CONFLICT (tenant_id, yard_name) DO UPDATE SET
         location = EXCLUDED.location,
         notes = EXCLUDED.notes,
         sort_order = EXCLUDED.sort_order,
@@ -52,7 +55,6 @@ export async function POST(req: NextRequest) {
         updated_at = NOW()
       RETURNING *
     `;
-
     return NextResponse.json({ yard: rows[0] });
   } catch (error) {
     console.error("Error creating yard:", error);
@@ -60,10 +62,10 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PUT — update a yard
 export async function PUT(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const body = await req.json();
@@ -78,10 +80,9 @@ export async function PUT(req: NextRequest) {
         latitude = COALESCE(${body.latitude ?? null}, latitude),
         longitude = COALESCE(${body.longitude ?? null}, longitude),
         updated_at = NOW()
-      WHERE id = ${body.id} AND user_id = ${userId}
+      WHERE id = ${body.id} AND tenant_id = ${tenantId}
       RETURNING *
     `;
-
     if (rows.length === 0) return NextResponse.json({ error: "Yard not found" }, { status: 404 });
     return NextResponse.json({ yard: rows[0] });
   } catch (error) {
@@ -90,10 +91,10 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// DELETE — remove a yard (cascades to bins)
 export async function DELETE(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   const { searchParams } = new URL(req.url);
   const yardId = searchParams.get("id");
@@ -101,10 +102,9 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const rows = await sql`
-      DELETE FROM bin_yards WHERE id = ${yardId} AND user_id = ${userId}
+      DELETE FROM bin_yards WHERE id = ${yardId} AND tenant_id = ${tenantId}
       RETURNING id, yard_name
     `;
-
     if (rows.length === 0) return NextResponse.json({ error: "Yard not found" }, { status: 404 });
     return NextResponse.json({ message: `Deleted yard "${rows[0].yard_name}" and all its bins`, deleted: rows[0] });
   } catch (error) {

@@ -1,19 +1,16 @@
-// app/api/inventory/bins/route.ts
 import { neon } from "@neondatabase/serverless";
 import { NextRequest, NextResponse } from "next/server";
+import { getTenantAuth } from "@/lib/tenant-auth";
+import { CANONICAL_CROPS } from "@/lib/crop-colors";
 
 const sql = neon(process.env.DATABASE_URL!);
 
-import { CANONICAL_CROPS } from "@/lib/crop-colors";
-
 const BIN_TYPES = ["hopper", "flat_bottom", "temporary", "shed"];
 
-// Sync bins → inventory_holdings (bins are source of truth)
-
-// GET — all bins for user, optionally filtered by yard
 export async function GET(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   const { searchParams } = new URL(req.url);
   const yardId = searchParams.get("yard_id");
@@ -25,7 +22,7 @@ export async function GET(req: NextRequest) {
         SELECT b.*, y.yard_name
         FROM bins b
         JOIN bin_yards y ON y.id = b.yard_id
-        WHERE b.user_id = ${userId} AND b.yard_id = ${yardId}
+        WHERE b.tenant_id = ${tenantId} AND b.yard_id = ${yardId}
         ORDER BY b.bin_name ASC
       `;
     } else {
@@ -33,12 +30,11 @@ export async function GET(req: NextRequest) {
         SELECT b.*, y.yard_name
         FROM bins b
         JOIN bin_yards y ON y.id = b.yard_id
-        WHERE b.user_id = ${userId}
+        WHERE b.tenant_id = ${tenantId}
         ORDER BY y.sort_order ASC, b.bin_name ASC
       `;
     }
 
-    // Parse decimals
     const parsed = bins.map((b: any) => ({
       ...b,
       capacity_bu: parseFloat(b.capacity_bu),
@@ -51,7 +47,6 @@ export async function GET(req: NextRequest) {
         : 0,
     }));
 
-    // Summary
     const totalCapacity = parsed.reduce((s: number, b: any) => s + b.capacity_bu, 0);
     const totalStored = parsed.reduce((s: number, b: any) => s + b.current_bu, 0);
     const cropBreakdown: Record<string, number> = {};
@@ -77,10 +72,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST — create a bin
 export async function POST(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const body = await req.json();
@@ -93,9 +88,12 @@ export async function POST(req: NextRequest) {
     if (body.crop && !CANONICAL_CROPS.includes(body.crop)) return NextResponse.json({ error: `Invalid crop. Must be one of: ${CANONICAL_CROPS.join(", ")}` }, { status: 400 });
 
     const rows = await sql`
-      INSERT INTO bins (user_id, yard_id, bin_name, bin_type, capacity_bu, current_bu, crop, grade, moisture_pct, has_aeration, has_monitoring, notes, pos_x, pos_y, latitude, longitude)
-      VALUES (
-        ${userId}, ${body.yard_id}, ${body.bin_name.trim()},
+      INSERT INTO bins (
+        tenant_id, yard_id, bin_name, bin_type, capacity_bu, current_bu,
+        crop, grade, moisture_pct, has_aeration, has_monitoring,
+        notes, pos_x, pos_y, latitude, longitude
+      ) VALUES (
+        ${tenantId}, ${body.yard_id}, ${body.bin_name.trim()},
         ${body.bin_type || "hopper"}, ${body.capacity_bu}, ${body.current_bu || 0},
         ${body.crop || null}, ${body.grade || null}, ${body.moisture_pct || null},
         ${body.has_aeration || false}, ${body.has_monitoring || false},
@@ -115,27 +113,25 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PUT — update a bin (details or position)
 export async function PUT(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const body = await req.json();
     if (!body.id) return NextResponse.json({ error: "Bin ID required" }, { status: 400 });
 
-    // Position-only update (from drag)
     if (body.pos_x !== undefined && body.pos_y !== undefined && Object.keys(body).length <= 3) {
       const rows = await sql`
         UPDATE bins SET pos_x = ${body.pos_x}, pos_y = ${body.pos_y}, updated_at = NOW()
-        WHERE id = ${body.id} AND user_id = ${userId}
+        WHERE id = ${body.id} AND tenant_id = ${tenantId}
         RETURNING *
       `;
       if (rows.length === 0) return NextResponse.json({ error: "Bin not found" }, { status: 404 });
       return NextResponse.json({ bin: rows[0] });
     }
 
-    // Full update
     if (body.current_bu !== undefined && body.capacity_bu !== undefined && body.current_bu > body.capacity_bu) {
       return NextResponse.json({ error: "Current bushels cannot exceed capacity" }, { status: 400 });
     }
@@ -158,7 +154,7 @@ export async function PUT(req: NextRequest) {
         latitude = COALESCE(${body.latitude ?? null}, latitude),
         longitude = COALESCE(${body.longitude ?? null}, longitude),
         updated_at = NOW()
-      WHERE id = ${body.id} AND user_id = ${userId}
+      WHERE id = ${body.id} AND tenant_id = ${tenantId}
       RETURNING *
     `;
 
@@ -170,10 +166,10 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// DELETE — remove a bin
 export async function DELETE(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   const { searchParams } = new URL(req.url);
   const binId = searchParams.get("id");
@@ -181,10 +177,9 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const rows = await sql`
-      DELETE FROM bins WHERE id = ${binId} AND user_id = ${userId}
+      DELETE FROM bins WHERE id = ${binId} AND tenant_id = ${tenantId}
       RETURNING id, bin_name
     `;
-
     if (rows.length === 0) return NextResponse.json({ error: "Bin not found" }, { status: 404 });
     return NextResponse.json({ message: `Deleted bin "${rows[0].bin_name}"`, deleted: rows[0] });
   } catch (error) {
@@ -193,10 +188,10 @@ export async function DELETE(req: NextRequest) {
   }
 }
 
-// PATCH — batch position update (for saving drag layout)
 export async function PATCH(req: NextRequest) {
-  const userId = req.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const body = await req.json();
@@ -207,7 +202,7 @@ export async function PATCH(req: NextRequest) {
     for (const pos of body.positions) {
       await sql`
         UPDATE bins SET pos_x = ${pos.pos_x}, pos_y = ${pos.pos_y}, updated_at = NOW()
-        WHERE id = ${pos.id} AND user_id = ${userId}
+        WHERE id = ${pos.id} AND tenant_id = ${tenantId}
       `;
     }
 
