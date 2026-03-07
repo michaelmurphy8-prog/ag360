@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { neon } from "@neondatabase/serverless";
+import { getTenantAuth } from "@/lib/tenant-auth";
+
+const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET() {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const sql = neon(process.env.DATABASE_URL!);
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   const lines = await sql`
     SELECT
@@ -23,7 +24,7 @@ export async function GET() {
       s.issue_date
     FROM settlement_lines sl
     JOIN settlements s ON sl.settlement_id = s.id
-    WHERE s.user_id = ${userId}
+    WHERE s.tenant_id = ${tenantId}
   `;
 
   return NextResponse.json({ lines });

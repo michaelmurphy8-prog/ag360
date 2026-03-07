@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { neon } from "@neondatabase/serverless";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
@@ -8,14 +8,15 @@ export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const { id } = await context.params;
 
     const settlement = await sql`
-      SELECT * FROM settlements WHERE id = ${id} AND user_id = ${userId}
+      SELECT * FROM settlements WHERE id = ${id} AND tenant_id = ${tenantId}
     `;
     if (settlement.length === 0) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -36,8 +37,9 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const { id } = await context.params;
@@ -45,9 +47,8 @@ export async function POST(
     const { action } = body;
 
     if (action === "post_to_ledger") {
-      // Get settlement + lines
       const settlement = await sql`
-        SELECT * FROM settlements WHERE id = ${id} AND user_id = ${userId}
+        SELECT * FROM settlements WHERE id = ${id} AND tenant_id = ${tenantId}
       `;
       if (settlement.length === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
       const s = settlement[0];
@@ -56,9 +57,8 @@ export async function POST(
         return NextResponse.json({ error: "Already posted to ledger" }, { status: 400 });
       }
 
-      // Check for required accounts
       const accounts = await sql`
-        SELECT code, id FROM accounts WHERE user_id = ${userId}
+        SELECT code, id FROM accounts WHERE tenant_id = ${tenantId}
       `;
       const acctMap: Record<string, string> = {};
       accounts.forEach((a: any) => { acctMap[a.code] = a.id; });
@@ -78,22 +78,20 @@ export async function POST(
         }, { status: 400 });
       }
 
-      // Check for duplicate
       const existing = await sql`
         SELECT id FROM journal_entries
-        WHERE user_id = ${userId} AND source = 'settlement' AND source_id = ${id} AND is_void = false
+        WHERE tenant_id = ${tenantId} AND source = 'settlement' AND source_id = ${id} AND is_void = false
         LIMIT 1
       `;
       if (existing.length > 0) {
         return NextResponse.json({ error: "Journal entry already exists for this settlement" }, { status: 400 });
       }
 
-      // Get next entry number
       const cropYear = s.issue_date ? new Date(s.issue_date).getFullYear() : new Date().getFullYear();
       const entryNumResult = await sql`
         SELECT COALESCE(MAX(entry_number), 0) + 1 as next_num
         FROM journal_entries
-        WHERE user_id = ${userId} AND crop_year = ${cropYear}
+        WHERE tenant_id = ${tenantId} AND crop_year = ${cropYear}
       `;
       const entryNumber = entryNumResult[0].next_num;
 
@@ -105,13 +103,12 @@ export async function POST(
 
       const description = `${s.crop} settlement — ${s.terminal_name} ${s.terminal_location || ""} — #${s.settlement_number || "N/A"} — ${s.total_loads} loads`;
 
-      // Create journal entry
       const entry = await sql`
         INSERT INTO journal_entries (
-          user_id, entry_number, entry_date, description, memo,
+          tenant_id, entry_number, entry_date, description, memo,
           source, source_id, crop_year, crop, is_posted
         ) VALUES (
-          ${userId}, ${entryNumber}, ${s.payment_date || s.issue_date || new Date().toISOString().split("T")[0]},
+          ${tenantId}, ${entryNumber}, ${s.payment_date || s.issue_date || new Date().toISOString().split("T")[0]},
           ${description},
           ${`${s.total_loads} loads, ${Number(s.total_net_weight_mt).toLocaleString()} MT net (${totalBushels.toLocaleString()} bu), $${pricePerMT}/MT, Gross $${grossPayable.toLocaleString()}, Adjustments $${totalAdjustments.toLocaleString()}, Net $${netPayable.toLocaleString()}`},
           'settlement', ${id}, ${cropYear}, ${s.crop}, true
@@ -122,7 +119,6 @@ export async function POST(
 
       let sortOrder = 1;
 
-      // Line 1: Debit Cash — net payable (what hits the bank)
       await sql`
         INSERT INTO journal_lines (
           journal_entry_id, account_id, description, debit, credit,
@@ -134,9 +130,8 @@ export async function POST(
         )
       `;
 
-      // Line 2: Debit Adjustments/Deductions (if any) — these are expenses
       if (totalAdjustments < 0) {
-        const expenseCode = "5090"; // Grain Marketing Expenses
+        const expenseCode = "5090";
         if (acctMap[expenseCode]) {
           await sql`
             INSERT INTO journal_lines (
@@ -149,7 +144,6 @@ export async function POST(
             )
           `;
         } else {
-          // No expense account — put deductions against revenue as a contra
           await sql`
             INSERT INTO journal_lines (
               journal_entry_id, account_id, description, debit, credit,
@@ -163,7 +157,6 @@ export async function POST(
         }
       }
 
-      // Line 3: Credit Revenue — gross payable (full value of grain)
       await sql`
         INSERT INTO journal_lines (
           journal_entry_id, account_id, description, debit, credit,
@@ -176,7 +169,6 @@ export async function POST(
         )
       `;
 
-      // Update settlement status
       await sql`
         UPDATE settlements SET status = 'posted' WHERE id = ${id}
       `;
