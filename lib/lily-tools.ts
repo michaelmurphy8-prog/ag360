@@ -229,7 +229,7 @@ export const LILY_TOOLS = [
 export async function executeTool(
   toolName: string,
   input: Record<string, any>,
-  userId: string,
+  tenantId: string,
   baseUrl: string
 ): Promise<string> {
   try {
@@ -247,7 +247,7 @@ export async function executeTool(
                       ELSE NULL
                  END AS actual_bu
           FROM crop_plans
-          WHERE user_id = ${userId} AND crop_year = ${cropYear}
+          WHERE tenant_id = ${tenantId} AND crop_year = ${cropYear}
           ORDER BY (acres * target_yield_bu) DESC
         `;
 
@@ -259,14 +259,14 @@ export async function executeTool(
         const contracts = await sql`
           SELECT crop, quantity_bu, price_per_bu, basis, contract_type, elevator, delivery_date
           FROM inventory_contracts
-          WHERE user_id = ${userId}
+          WHERE tenant_id = ${tenantId}
         `;
 
         // 3. Deliveries
         const deliveries = await sql`
           SELECT crop, COALESCE(SUM(net_weight_kg), 0) as total_kg
           FROM grain_loads
-          WHERE farm_id = ${userId} AND crop_year = ${cropYear} AND crop IS NOT NULL
+          WHERE tenant_id = ${tenantId} AND crop_year = ${cropYear} AND crop IS NOT NULL
           GROUP BY crop
         `;
 
@@ -372,7 +372,7 @@ ${lines.join("\n\n")}`;
                  area_harvested_ac, dry_yield_bu_per_ac, total_dry_yield_bu,
                  moisture_pct, protein_pct, test_weight_lbs_per_bu
           FROM harvest_records
-          WHERE user_id = ${userId} AND crop_year = ${input.crop_year}
+          WHERE tenant_id = ${tenantId} AND crop_year = ${input.crop_year}
           ORDER BY dry_yield_bu_per_ac DESC
         `;
         const records = await query;
@@ -418,7 +418,7 @@ ${lines.join("\n\n")}`;
           SELECT crop, variety, external_field_name as field_name,
                  area_seeded_ac, seeding_date, seed_rate, seed_rate_unit
           FROM seeding_records
-          WHERE user_id = ${userId} AND crop_year = ${input.crop_year}
+          WHERE tenant_id = ${tenantId} AND crop_year = ${input.crop_year}
           ORDER BY seeding_date ASC
         `;
 
@@ -446,7 +446,7 @@ ${lines.join("\n\n")}`;
           SELECT product_name, product_type, external_field_name as field_name,
                  area_applied_ac, application_date, rate, rate_unit, total_applied
           FROM application_records
-          WHERE user_id = ${userId} AND crop_year = ${input.crop_year}
+          WHERE tenant_id = ${tenantId} AND crop_year = ${input.crop_year}
           ORDER BY application_date ASC
         `;
 
@@ -481,7 +481,7 @@ ${lines.join("\n\n")}`;
         const records = await sql`
           SELECT crop_type, quantity, unit, bin_location, grade, notes
           FROM inventory_items
-          WHERE user_id = ${userId} AND quantity > 0
+          WHERE tenant_id = ${tenantId} AND quantity > 0
           ORDER BY crop_type ASC
         `;
 
@@ -507,7 +507,7 @@ ${lines.join("\n\n")}`;
         const records = await sql`
           SELECT crop, net_weight_kg, gross_weight_kg, grade, destination, delivery_date, ticket_number
           FROM grain_loads
-          WHERE farm_id = ${userId} AND crop_year = ${input.crop_year}
+          WHERE tenant_id = ${tenantId} AND crop_year = ${input.crop_year}
           ORDER BY delivery_date DESC
         `;
 
@@ -540,7 +540,7 @@ ${lines.join("\n\n")}`;
           SELECT crop, contract_type, quantity_bu, price_per_bu, basis,
                  elevator, delivery_date, notes, created_at
           FROM inventory_contracts
-          WHERE user_id = ${userId}
+          WHERE tenant_id = ${tenantId}
           ORDER BY created_at DESC
         `;
 
@@ -603,7 +603,7 @@ ${lines.join("\n\n")}`;
       case "get_fields": {
         const records = await sql`
           SELECT name, total_acres, legal_land_description, soil_zone, crop_type
-          FROM fields WHERE user_id = ${userId} ORDER BY name ASC
+          FROM fields WHERE tenant_id = ${tenantId} ORDER BY name ASC
         `;
         if (records.length === 0) return "No fields registered in AG360.";
 
@@ -628,7 +628,7 @@ ${lines.join("\n\n")}`;
               SELECT id, name, make, model, year, "assetClass", "assetType", status,
                      "hoursTotal", "kmTotal", "currentValue", "serialNumber",
                      "warrantyExpiry", "warrantyNotes", "dealerName", "dealerPhone", "nextService"
-              FROM "Asset" WHERE "orgId" = ${userId}
+              FROM "Asset" WHERE "orgId" = ${tenantId}
                 AND (LOWER(name) LIKE ${'%' + nameFilter.toLowerCase() + '%'} OR LOWER(make) LIKE ${'%' + nameFilter.toLowerCase() + '%'} OR LOWER(model) LIKE ${'%' + nameFilter.toLowerCase() + '%'})
               ORDER BY "assetClass" ASC
             `
@@ -636,13 +636,13 @@ ${lines.join("\n\n")}`;
               SELECT id, name, make, model, year, "assetClass", "assetType", status,
                      "hoursTotal", "kmTotal", "currentValue", "serialNumber",
                      "warrantyExpiry", "warrantyNotes", "dealerName", "dealerPhone", "nextService"
-              FROM "Asset" WHERE "orgId" = ${userId} ORDER BY "assetClass" ASC
+              FROM "Asset" WHERE "orgId" = ${tenantId} ORDER BY "assetClass" ASC
             `;
         if (records.length === 0) return "No equipment registered in AG360. Add assets in the Machinery module.";
 
         const lastServices = await sql`
           SELECT DISTINCT ON ("assetId") "assetId", date, type, cost, "hoursAtService", "kmAtService"
-          FROM "MaintenanceLog" WHERE "orgId" = ${userId}
+          FROM "MaintenanceLog" WHERE "orgId" = ${tenantId}
           ORDER BY "assetId", date DESC
         `;
         const lastServiceMap = new Map(lastServices.map((s: any) => [s.assetId, s]));
@@ -671,7 +671,7 @@ ${lines.join("\n\n")}`;
                      ml."partsUsed", ml."laborHours", ml.vendor, ml."performedBy", ml.notes,
                      a.name as asset_name, a.make, a.model
               FROM "MaintenanceLog" ml JOIN "Asset" a ON a.id = ml."assetId"
-              WHERE a."orgId" = ${userId} AND (LOWER(a.name) LIKE ${'%' + nameFilter.toLowerCase() + '%'} OR LOWER(a.make) LIKE ${'%' + nameFilter.toLowerCase() + '%'} OR LOWER(a.model) LIKE ${'%' + nameFilter.toLowerCase() + '%'})
+              WHERE a."orgId" = ${tenantId} AND (LOWER(a.name) LIKE ${'%' + nameFilter.toLowerCase() + '%'} OR LOWER(a.make) LIKE ${'%' + nameFilter.toLowerCase() + '%'} OR LOWER(a.model) LIKE ${'%' + nameFilter.toLowerCase() + '%'})
               ORDER BY ml.date DESC LIMIT 50
             `
           : await sql`
@@ -679,7 +679,7 @@ ${lines.join("\n\n")}`;
                      ml."partsUsed", ml."laborHours", ml.vendor, ml."performedBy", ml.notes,
                      a.name as asset_name, a.make, a.model
               FROM "MaintenanceLog" ml JOIN "Asset" a ON a.id = ml."assetId"
-              WHERE a."orgId" = ${userId}
+              WHERE a."orgId" = ${tenantId}
               ORDER BY ml.date DESC LIMIT 50
             `;
         if (records.length === 0) return "No service history recorded yet. Log services in Machinery > Service & Maintenance.";
@@ -702,7 +702,7 @@ ${lines.join("\n\n")}`;
         const records = await sql`
           SELECT ss.*, a.name as asset_name, a.make, a.model, a."hoursTotal"
           FROM "ServiceSchedule" ss JOIN "Asset" a ON a.id = ss."assetId"
-          WHERE ss."orgId" = ${userId}
+          WHERE ss."orgId" = ${tenantId}
           ORDER BY CASE ss.status WHEN 'OVERDUE' THEN 1 WHEN 'DUE_SOON' THEN 2 ELSE 3 END
         `;
         if (records.length === 0) return "No service schedules set up. Add them in Machinery > Service & Maintenance.";
@@ -764,7 +764,7 @@ ${lines.join("\n\n")}`;
           FROM journal_entries je
           JOIN journal_lines jl ON jl.journal_entry_id = je.id
           JOIN accounts a ON jl.account_id = a.id
-          WHERE je.user_id = ${userId} AND je.crop_year = ${input.crop_year} AND je.is_void = false
+          WHERE je.tenant_id = ${tenantId} AND je.crop_year = ${input.crop_year} AND je.is_void = false
           ORDER BY je.entry_date DESC, je.entry_number DESC
           LIMIT ${limit * 4}
         `;
