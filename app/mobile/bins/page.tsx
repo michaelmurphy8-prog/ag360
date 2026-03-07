@@ -4,6 +4,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { getCropColor as getCropColorLib } from "@/lib/crop-colors";
 
 interface Bin {
   id: string;
@@ -20,28 +21,9 @@ interface YardGroup {
   bins: Bin[];
 }
 
-const CROP_COLORS: Record<string, string> = {
-  canola:       "#C8A84B",
-  wheat:        "#E8C97A",
-  "hrs wheat":  "#E8C97A",
-  durum:        "#F0D080",
-  barley:       "#A8C870",
-  oats:         "#88B860",
-  flax:         "#8090C8",
-  lentils:      "#C89060",
-  peas:         "#90C890",
-  chickpeas:    "#D4A870",
-  mustard:      "#D4C040",
-  default:      "#60A5FA",
-};
-
 function getCropColor(crop: string | null): string {
   if (!crop) return "#2A3F5A";
-  const key = crop.toLowerCase();
-  for (const [k, v] of Object.entries(CROP_COLORS)) {
-    if (key.includes(k)) return v;
-  }
-  return CROP_COLORS.default;
+  return getCropColorLib(crop);
 }
 
 function BinGauge({ bin }: { bin: Bin }) {
@@ -53,7 +35,10 @@ function BinGauge({ bin }: { bin: Bin }) {
   const isEmpty = bin.current_bu === 0;
   const isFull = pct >= 95;
   const isNearFull = pct >= 80 && pct < 95;
-  const statusColor = isFull ? "#F97316" : isNearFull ? "#FBBF24" : color;
+  // fillColor always uses crop color — warning state shown separately
+  const fillColor = isEmpty ? "#2A3F5A" : color;
+  // warningColor used only for badge, border accent, strip
+  const warningColor = isFull ? "#F97316" : isNearFull ? "#FBBF24" : color;
 
   // SVG bin dimensions
   const W = 110;
@@ -71,7 +56,7 @@ function BinGauge({ bin }: { bin: Bin }) {
   return (
     <div style={{
       background: "#0D1726",
-      border: `1px solid ${isEmpty ? "#1A2940" : `${statusColor}35`}`,
+      border: `1px solid ${isEmpty ? "#1A2940" : `${warningColor}35`}`,
       borderRadius: "18px",
       padding: "16px",
       display: "flex",
@@ -84,8 +69,8 @@ function BinGauge({ bin }: { bin: Bin }) {
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
           <defs>
             <linearGradient id={`fg-${bin.id}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={statusColor} stopOpacity="0.9" />
-              <stop offset="100%" stopColor={statusColor} stopOpacity="0.5" />
+              <stop offset="0%" stopColor={fillColor} stopOpacity="0.9" />
+              <stop offset="100%" stopColor={fillColor} stopOpacity="0.5" />
             </linearGradient>
             <clipPath id={`bc-${bin.id}`}>
               <rect x={cx - rx} y={bodyTop} width={rx * 2} height={bodyH} />
@@ -101,9 +86,9 @@ function BinGauge({ bin }: { bin: Bin }) {
               <rect x={cx - rx} y={fillTop} width={rx * 2} height={fillH + ry}
                 fill={`url(#fg-${bin.id})`} />
               <ellipse cx={cx} cy={fillTop} rx={rx} ry={ry}
-                fill={statusColor} opacity="0.65" />
+                fill={fillColor} opacity="0.65" />
               <ellipse cx={cx} cy={fillTop} rx={rx} ry={ry}
-                fill="none" stroke={statusColor} strokeWidth="1.5" opacity="0.9" />
+                fill="none" stroke={fillColor} strokeWidth="1.5" opacity="0.9" />
             </g>
           )}
 
@@ -164,7 +149,7 @@ function BinGauge({ bin }: { bin: Bin }) {
           <div style={{
             fontFamily: "'DM Sans', sans-serif",
             fontSize: "13px",
-            color: isEmpty ? "#2A3F5A" : statusColor,
+            color: isEmpty ? "#2A3F5A" : fillColor,
             fontWeight: 500,
           }}>
             {bin.crop || "Empty"}
@@ -186,11 +171,11 @@ function BinGauge({ bin }: { bin: Bin }) {
           </div>
         </div>
 
-        {/* Fill bar */}
+        {/* Fill bar — uses warningColor so it turns orange when near/at capacity */}
         <div style={{ height: "5px", background: "#070D18", borderRadius: "3px", overflow: "hidden" }}>
           <div style={{
             height: "100%", width: `${pct}%`,
-            background: `linear-gradient(90deg, ${statusColor}80, ${statusColor})`,
+            background: `linear-gradient(90deg, ${warningColor}80, ${warningColor})`,
             borderRadius: "3px",
             transition: "width 0.8s cubic-bezier(0.22,1,0.36,1)",
           }} />
