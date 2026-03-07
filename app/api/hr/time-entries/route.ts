@@ -1,18 +1,18 @@
-import { auth } from "@clerk/nextjs/server";
 import { neon } from "@neondatabase/serverless";
 import { NextRequest, NextResponse } from "next/server";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   const { searchParams } = new URL(req.url);
-  const weekOf = searchParams.get("week_of"); // ISO date string for Monday of the week
-  const month = searchParams.get("month"); // YYYY-MM format
+  const weekOf = searchParams.get("week_of");
+  const month = searchParams.get("month");
 
-  // Monthly summary view
   if (month) {
     const summary = await sql`
       SELECT w.id AS worker_id, w.name, w.role, w.hourly_rate, w.daily_rate,
@@ -26,14 +26,13 @@ export async function GET(req: NextRequest) {
       FROM workers w
       LEFT JOIN time_entries te ON te.worker_id = w.id
         AND to_char(te.entry_date, 'YYYY-MM') = ${month}
-      WHERE w.user_id = ${userId} AND w.status = 'active'
+      WHERE w.tenant_id = ${tenantId} AND w.status = 'active'
       GROUP BY w.id, w.name, w.role, w.hourly_rate, w.daily_rate
       ORDER BY w.name
     `;
     return NextResponse.json({ summary });
   }
 
-  // Weekly detail view — default to current week
   let startDate: string;
   if (weekOf) {
     startDate = weekOf;
@@ -49,16 +48,15 @@ export async function GET(req: NextRequest) {
     SELECT te.*, w.name AS worker_name, w.role AS worker_role, w.hourly_rate, w.daily_rate
     FROM time_entries te
     JOIN workers w ON w.id = te.worker_id
-    WHERE te.user_id = ${userId}
+    WHERE te.tenant_id = ${tenantId}
       AND te.entry_date >= ${startDate}::date
       AND te.entry_date < (${startDate}::date + INTERVAL '7 days')
     ORDER BY te.entry_date ASC, w.name ASC
   `;
 
-  // Also get active workers for the time entry grid
   const workers = await sql`
     SELECT id, name, role, hourly_rate, daily_rate
-    FROM workers WHERE user_id = ${userId} AND status = 'active'
+    FROM workers WHERE tenant_id = ${tenantId} AND status = 'active'
     ORDER BY name
   `;
 
@@ -66,28 +64,26 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   const body = await req.json();
 
-  // Support bulk insert (array of entries)
   if (Array.isArray(body.entries)) {
     const results = [];
     for (const e of body.entries) {
       if (!e.worker_id || !e.entry_date) continue;
       if (Number(e.hours) === 0) {
-        // Delete entry if hours = 0
         await sql`
           DELETE FROM time_entries
-          WHERE worker_id = ${e.worker_id} AND user_id = ${userId} AND entry_date = ${e.entry_date}
+          WHERE worker_id = ${e.worker_id} AND tenant_id = ${tenantId} AND entry_date = ${e.entry_date}
         `;
         continue;
       }
-      // Upsert — update if exists for same worker+date, insert otherwise
       const [entry] = await sql`
-        INSERT INTO time_entries (worker_id, user_id, entry_date, hours, description)
-        VALUES (${e.worker_id}, ${userId}, ${e.entry_date}, ${e.hours}, ${e.description || null})
+        INSERT INTO time_entries (worker_id, tenant_id, entry_date, hours, description)
+        VALUES (${e.worker_id}, ${tenantId}, ${e.entry_date}, ${e.hours}, ${e.description || null})
         ON CONFLICT (worker_id, entry_date) DO UPDATE SET
           hours = EXCLUDED.hours,
           description = EXCLUDED.description
@@ -98,15 +94,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ entries: results }, { status: 201 });
   }
 
-  // Single entry
   const { worker_id, entry_date, hours, description } = body;
   if (!worker_id || !entry_date) {
     return NextResponse.json({ error: "Worker and date are required" }, { status: 400 });
   }
 
   const [entry] = await sql`
-    INSERT INTO time_entries (worker_id, user_id, entry_date, hours, description)
-    VALUES (${worker_id}, ${userId}, ${entry_date}, ${hours || 0}, ${description || null})
+    INSERT INTO time_entries (worker_id, tenant_id, entry_date, hours, description)
+    VALUES (${worker_id}, ${tenantId}, ${entry_date}, ${hours || 0}, ${description || null})
     ON CONFLICT (worker_id, entry_date) DO UPDATE SET
       hours = EXCLUDED.hours,
       description = EXCLUDED.description
@@ -116,12 +111,13 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: "Entry ID required" }, { status: 400 });
 
-  await sql`DELETE FROM time_entries WHERE id = ${id} AND user_id = ${userId}`;
+  await sql`DELETE FROM time_entries WHERE id = ${id} AND tenant_id = ${tenantId}`;
   return NextResponse.json({ success: true });
 }

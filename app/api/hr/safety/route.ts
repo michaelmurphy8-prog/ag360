@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { neon } from "@neondatabase/serverless";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const incidents = await sql`
       SELECT s.*, w.name as worker_name, w.role as worker_role
       FROM safety_incidents s
       LEFT JOIN workers w ON s.worker_id = w.id
-      WHERE s.user_id = ${userId}
+      WHERE s.tenant_id = ${tenantId}
       ORDER BY s.incident_date DESC, s.created_at DESC
     `;
     return NextResponse.json({ incidents });
@@ -23,18 +24,25 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const body = await req.json();
     const { worker_id, incident_date, incident_type, severity, field, description, corrective_action } = body;
-
     if (!incident_type) return NextResponse.json({ error: "Incident type is required" }, { status: 400 });
 
     const result = await sql`
-      INSERT INTO safety_incidents (user_id, worker_id, incident_date, incident_type, severity, field, description, corrective_action)
-      VALUES (${userId}, ${worker_id || null}, ${incident_date || new Date().toISOString().slice(0, 10)}, ${incident_type}, ${severity || 'low'}, ${field || null}, ${description || null}, ${corrective_action || null})
+      INSERT INTO safety_incidents (
+        tenant_id, worker_id, incident_date, incident_type,
+        severity, field, description, corrective_action
+      ) VALUES (
+        ${tenantId}, ${worker_id || null},
+        ${incident_date || new Date().toISOString().slice(0, 10)},
+        ${incident_type}, ${severity || 'low'},
+        ${field || null}, ${description || null}, ${corrective_action || null}
+      )
       RETURNING *
     `;
     return NextResponse.json({ incident: result[0] });
@@ -44,8 +52,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const body = await req.json();
@@ -61,7 +70,7 @@ export async function PUT(req: NextRequest) {
         field = ${field || null},
         description = ${description || null},
         corrective_action = ${corrective_action || null}
-      WHERE id = ${id} AND user_id = ${userId}
+      WHERE id = ${id} AND tenant_id = ${tenantId}
     `;
     return NextResponse.json({ success: true });
   } catch (err: any) {
@@ -70,13 +79,15 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
-    await sql`DELETE FROM safety_incidents WHERE id = ${id} AND user_id = ${userId}`;
+
+    await sql`DELETE FROM safety_incidents WHERE id = ${id} AND tenant_id = ${tenantId}`;
     return NextResponse.json({ success: true });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
