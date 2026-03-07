@@ -1246,32 +1246,58 @@ export default function LandingPage() {
       </section>
 
       {/* ─── FOOTER ──────────────────────────────────────────────────── */}
-      <footer style={{
-        padding: "48px 40px", borderTop: "1px solid rgba(255,255,255,0.04)",
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        flexWrap: "wrap", gap: 20, maxWidth: 1280, margin: "0 auto",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 15, color: "var(--ag-text-secondary)", letterSpacing: -0.5 }}>AG</span>
-          <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.15)", transform: "rotate(15deg)" }} />
-          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 400, fontSize: 13, color: "var(--ag-green)", letterSpacing: 0.5 }}>360</span>
-        </div>
-        <div style={{ display: "flex", gap: 32 }}>
-          {/* CHANGED: Platform links to #ecosystem, Docs/Pricing greyed out, Contact mailto updated */}
-          <a href="#ecosystem" style={{ color: "var(--ag-text-dim)", fontSize: 13, textDecoration: "none", cursor: "pointer" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "var(--ag-text-secondary)")}
-            onMouseLeave={e => (e.currentTarget.style.color = "var(--ag-text-dim)")}>Platform</a>
-          <span style={{ color: "#1E293B", fontSize: 13, cursor: "default" }} title="Coming soon">Documentation</span>
-          <span style={{ color: "#1E293B", fontSize: 13, cursor: "default" }} title="Coming soon">Pricing</span>
-          <a href="mailto:hello@ag360.farm" style={{ color: "var(--ag-text-dim)", fontSize: 13, textDecoration: "none", cursor: "pointer" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "var(--ag-text-secondary)")}
-            onMouseLeave={e => (e.currentTarget.style.color = "var(--ag-text-dim)")}>Contact</a>
-        </div>
-        {/* CHANGED: © 2025 → © 2026 */}
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#334155" }}>
-          © 2026 AG360. Built in Saskatchewan.
-        </span>
-      </footer>
+<footer style={{
+  borderTop: "1px solid rgba(255,255,255,0.04)",
+  padding: "48px 40px 32px",
+  maxWidth: 1280,
+  margin: "0 auto",
+}}>
+  {/* Top row — logo + nav links */}
+  <div style={{
+    display: "flex", justifyContent: "space-between", alignItems: "center",
+    flexWrap: "wrap", gap: 20, marginBottom: 32,
+  }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 15, color: "var(--ag-text-secondary)", letterSpacing: -0.5 }}>AG</span>
+      <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.15)", transform: "rotate(15deg)" }} />
+      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 400, fontSize: 13, color: "var(--ag-green)", letterSpacing: 0.5 }}>360</span>
+    </div>
+    <div style={{ display: "flex", gap: 32 }}>
+      <a href="#ecosystem" style={{ color: "var(--ag-text-dim)", fontSize: 13, textDecoration: "none" }}
+        onMouseEnter={e => (e.currentTarget.style.color = "var(--ag-text-secondary)")}
+        onMouseLeave={e => (e.currentTarget.style.color = "var(--ag-text-dim)")}>Platform</a>
+      <span style={{ color: "#1E293B", fontSize: 13, cursor: "default" }} title="Coming soon">Documentation</span>
+      <span style={{ color: "#1E293B", fontSize: 13, cursor: "default" }} title="Coming soon">Pricing</span>
+      <a href="mailto:hello@ag360.farm" style={{ color: "var(--ag-text-dim)", fontSize: 13, textDecoration: "none" }}
+        onMouseEnter={e => (e.currentTarget.style.color = "var(--ag-text-secondary)")}
+        onMouseLeave={e => (e.currentTarget.style.color = "var(--ag-text-dim)")}>Contact</a>
+    </div>
+  </div>
+
+  {/* Divider */}
+  <div style={{ borderTop: "1px solid rgba(255,255,255,0.04)", marginBottom: 24 }} />
+
+  {/* Legal block */}
+  <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center", textAlign: "center" }}>
+    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#334155" }}>
+      © 2026 AG360 Technologies Inc. All rights reserved. Built in Saskatchewan.
+    </span>
+    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#334155", maxWidth: 680, lineHeight: 1.6 }}>
+      AG360™ is a trademark of AG360 Technologies Inc. All platform concepts, product designs, and intellectual
+      property displayed on this website are proprietary and may not be reproduced without permission.
+    </span>
+    {/* Policy links */}
+    <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 4 }}>
+      <a href="/privacy" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "var(--ag-green)", textDecoration: "none", opacity: 0.8 }}
+        onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+        onMouseLeave={e => (e.currentTarget.style.opacity = "0.8")}>Privacy Policy</a>
+      <span style={{ color: "#334155", fontSize: 11 }}>|</span>
+      <a href="/terms" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "var(--ag-green)", textDecoration: "none", opacity: 0.8 }}
+        onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+        onMouseLeave={e => (e.currentTarget.style.opacity = "0.8")}>Terms of Use</a>
+    </div>
+  </div>
+</footer>
     </div>
   );
 }
