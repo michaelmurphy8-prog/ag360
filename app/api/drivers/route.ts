@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { auth } from "@clerk/nextjs/server";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET() {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const drivers = await sql`
       SELECT * FROM drivers
-      WHERE farm_id = ${userId} AND active = TRUE
+      WHERE tenant_id = ${tenantId} AND active = TRUE
       ORDER BY driver_name ASC
     `;
     return NextResponse.json({ drivers });
@@ -22,16 +23,17 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const body = await req.json();
     const { driver_name, driver_id, phone, notes } = body;
 
     const result = await sql`
-      INSERT INTO drivers (farm_id, driver_name, driver_id, phone, notes)
-      VALUES (${userId}, ${driver_name}, ${driver_id || null}, ${phone || null}, ${notes || null})
+      INSERT INTO drivers (tenant_id, driver_name, driver_id, phone, notes)
+      VALUES (${tenantId}, ${driver_name}, ${driver_id || null}, ${phone || null}, ${notes || null})
       RETURNING *
     `;
     return NextResponse.json({ driver: result[0] });
