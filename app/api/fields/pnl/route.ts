@@ -1,15 +1,16 @@
-import { auth } from '@clerk/nextjs/server';
 import { neon } from '@neondatabase/serverless';
 import { NextResponse } from 'next/server';
+import { getTenantAuth } from '@/lib/tenant-auth';
+
+const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   const { searchParams } = new URL(request.url);
   const cropYear = searchParams.get('cropYear') || new Date().getFullYear().toString();
-
-  const sql = neon(process.env.DATABASE_URL!);
 
   const rows = await sql`
     SELECT
@@ -44,7 +45,7 @@ export async function GET(request: Request) {
       FROM field_revenue
       GROUP BY field_crop_id
     ) revenue ON revenue.field_crop_id = fc.id
-    WHERE f.farm_id = ${userId}
+    WHERE f.tenant_id = ${tenantId}
     ORDER BY (COALESCE(revenue.total, 0) - COALESCE(costs.total, 0)) DESC
   `;
 

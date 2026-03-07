@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { auth } from "@clerk/nextjs/server";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
@@ -8,9 +8,9 @@ export async function GET(
   _req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
   const { id } = await context.params;
 
   try {
@@ -18,7 +18,7 @@ export async function GET(
       SELECT fc.* FROM field_crops fc
       JOIN fields f ON f.id = fc.field_id
       WHERE fc.field_id = ${id}
-      AND f.farm_id = ${userId}
+      AND f.tenant_id = ${tenantId}
       ORDER BY fc.crop_year DESC
     `;
     return NextResponse.json({ crops });
@@ -32,12 +32,18 @@ export async function POST(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
   const { id } = await context.params;
 
   try {
+    // Verify field belongs to this tenant
+    const field = await sql`
+      SELECT id FROM fields WHERE id = ${id} AND tenant_id = ${tenantId}
+    `;
+    if (field.length === 0) return NextResponse.json({ error: "Field not found" }, { status: 404 });
+
     const body = await req.json();
     const {
       crop_year, crop_type, variety,
@@ -61,16 +67,20 @@ export async function POST(
     return NextResponse.json({ error: "Failed to add crop" }, { status: 500 });
   }
 }
+
 export async function PATCH(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
   const { id } = await context.params;
+
   try {
     const { crop_id, status, seeding_date, seeded_acres } = await req.json();
     if (!crop_id) return NextResponse.json({ error: "crop_id required" }, { status: 400 });
+
     const result = await sql`
       UPDATE field_crops fc
       SET
@@ -81,7 +91,7 @@ export async function PATCH(
       WHERE fc.id = ${crop_id}
         AND fc.field_id = ${id}
         AND f.id = fc.field_id
-        AND f.farm_id = ${userId}
+        AND f.tenant_id = ${tenantId}
       RETURNING fc.*
     `;
     if (result.length === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { auth } from "@clerk/nextjs/server";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
@@ -8,15 +8,15 @@ export async function GET(
   _req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
   const { id } = await context.params;
 
   try {
     const result = await sql`
       SELECT * FROM fields
-      WHERE id = ${id} AND farm_id = ${userId}
+      WHERE id = ${id} AND tenant_id = ${tenantId}
     `;
     return NextResponse.json({ field: result[0] });
   } catch (error) {
@@ -29,9 +29,9 @@ export async function PATCH(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
   const { id } = await context.params;
 
   try {
@@ -53,7 +53,7 @@ export async function PATCH(
         lld_province = ${lld_province},
         notes = ${notes},
         updated_at = NOW()
-      WHERE id = ${id} AND farm_id = ${userId}
+      WHERE id = ${id} AND tenant_id = ${tenantId}
       RETURNING *
     `;
     return NextResponse.json({ field: result[0] });
@@ -67,15 +67,15 @@ export async function DELETE(
   _req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
   const { id } = await context.params;
 
   try {
     await sql`
       DELETE FROM fields
-      WHERE id = ${id} AND farm_id = ${userId}
+      WHERE id = ${id} AND tenant_id = ${tenantId}
     `;
     return NextResponse.json({ success: true });
   } catch (error) {

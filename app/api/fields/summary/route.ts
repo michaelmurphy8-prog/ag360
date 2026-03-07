@@ -1,20 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { auth } from "@clerk/nextjs/server";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId, userId } = tenantAuth;
 
   const { searchParams } = new URL(req.url);
   const cropYear = parseInt(searchParams.get("crop_year") || new Date().getFullYear().toString());
 
   try {
-    // Single query: fields + current year crop + cost/revenue summaries
     const fields = await sql`
       SELECT
         f.id,
@@ -64,16 +62,15 @@ export async function GET(req: NextRequest) {
       LEFT JOIN LATERAL (
         SELECT seeding_date
         FROM agronomy_seeding_log asl
-        WHERE asl.clerk_user_id = ${userId}
+        WHERE asl.tenant_id = ${tenantId}
           AND LOWER(asl.field_name) = LOWER(f.field_name)
         ORDER BY asl.seeding_date DESC
         LIMIT 1
       ) seed_log ON true
-      WHERE f.farm_id = ${userId}
+      WHERE f.tenant_id = ${tenantId}
       ORDER BY f.field_name ASC
     `;
 
-    // Aggregate KPIs
     let totalAcres = 0;
     let seededAcres = 0;
     let totalBudgetCost = 0;
@@ -106,7 +103,7 @@ export async function GET(req: NextRequest) {
         }
       }
     }
-    
+
     return NextResponse.json({
       fields,
       kpis: {

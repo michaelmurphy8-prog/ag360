@@ -1,29 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { auth } from "@clerk/nextjs/server";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET() {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
+
   const alerts = await sql`
     SELECT * FROM field_alerts
-    WHERE user_id = ${userId} AND read_at IS NULL
+    WHERE tenant_id = ${tenantId} AND read_at IS NULL
     ORDER BY created_at DESC
   `;
   return NextResponse.json({ alerts });
 }
 
 export async function PATCH(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
+
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+
   await sql`
     UPDATE field_alerts
     SET read_at = NOW()
-    WHERE id = ${id} AND user_id = ${userId}
+    WHERE id = ${id} AND tenant_id = ${tenantId}
   `;
   return NextResponse.json({ success: true });
 }

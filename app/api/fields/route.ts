@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { auth } from "@clerk/nextjs/server";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET() {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const fields = await sql`
       SELECT * FROM fields
-      WHERE farm_id = ${userId}
+      WHERE tenant_id = ${tenantId}
       ORDER BY created_at DESC
     `;
     return NextResponse.json({ fields });
@@ -24,41 +23,33 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const body = await req.json();
     const {
-      field_name,
-      acres,
-      lld_quarter,
-      lld_section,
-      lld_township,
-      lld_range,
-      lld_meridian,
-      lld_province,
-      latitude,
-      longitude,
-      notes,
+      field_name, acres,
+      lld_quarter, lld_section, lld_township,
+      lld_range, lld_meridian, lld_province,
+      latitude, longitude, notes,
     } = body;
+
     const result = await sql`
       INSERT INTO fields (
-        farm_id, field_name, acres,
+        tenant_id, field_name, acres,
         lld_quarter, lld_section, lld_township,
         lld_range, lld_meridian, lld_province,
         latitude, longitude, notes
       ) VALUES (
-        ${userId}, ${field_name}, ${acres},
+        ${tenantId}, ${field_name}, ${acres},
         ${lld_quarter}, ${lld_section}, ${lld_township},
         ${lld_range}, ${lld_meridian}, ${lld_province || "SK"},
         ${latitude || null}, ${longitude || null}, ${notes}
       )
       RETURNING *
     `;
-
     return NextResponse.json({ field: result[0] });
   } catch (error) {
     console.error("Error creating field:", error);

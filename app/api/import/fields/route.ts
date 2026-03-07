@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { neon } from "@neondatabase/serverless";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
@@ -22,8 +22,9 @@ interface FieldImportRow {
 }
 
 export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   try {
     const { rows, crop_year } = (await req.json()) as { rows: FieldImportRow[]; crop_year: number };
@@ -32,10 +33,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No rows provided" }, { status: 400 });
     }
 
-    // Fetch existing fields for duplicate detection
     const existingFields = await sql`
       SELECT id, LOWER(TRIM(field_name)) as field_name_lower, field_name
-      FROM fields WHERE farm_id = ${userId}
+      FROM fields WHERE tenant_id = ${tenantId}
     `;
     const existingMap = new Map(existingFields.map((f: any) => [f.field_name_lower, f]));
 
@@ -55,7 +55,6 @@ export async function POST(req: Request) {
         let fieldId: string;
 
         if (existing) {
-          // Update existing field
           await sql`
             UPDATE fields SET
               acres = COALESCE(${row.acres}, acres),
@@ -68,24 +67,30 @@ export async function POST(req: Request) {
               longitude = COALESCE(${row.longitude || null}, longitude),
               lld_province = COALESCE(${row.province || null}, lld_province),
               notes = COALESCE(${row.notes || null}, notes)
-            WHERE id = ${existing.id} AND farm_id = ${userId}
+            WHERE id = ${existing.id} AND tenant_id = ${tenantId}
           `;
           fieldId = existing.id;
           results.updated++;
         } else {
-          // Create new field
           const inserted = await sql`
-            INSERT INTO fields (farm_id, field_name, acres, lld_quarter, lld_section, lld_township, lld_range, lld_meridian, latitude, longitude, lld_province, notes)
-            VALUES (${userId}, ${row.field_name.trim()}, ${row.acres}, ${row.quarter?.toUpperCase() || null}, ${row.section || null}, ${row.township || null}, ${row.range || null}, ${row.meridian || null}, ${row.latitude || null}, ${row.longitude || null}, ${row.province || "SK"}, ${row.notes || null})
+            INSERT INTO fields (
+              tenant_id, field_name, acres, lld_quarter, lld_section,
+              lld_township, lld_range, lld_meridian, latitude, longitude,
+              lld_province, notes
+            ) VALUES (
+              ${tenantId}, ${row.field_name.trim()}, ${row.acres},
+              ${row.quarter?.toUpperCase() || null}, ${row.section || null},
+              ${row.township || null}, ${row.range || null}, ${row.meridian || null},
+              ${row.latitude || null}, ${row.longitude || null},
+              ${row.province || "SK"}, ${row.notes || null}
+            )
             RETURNING id
           `;
           fieldId = inserted[0].id;
           results.created++;
         }
 
-        // Create crop assignment if crop_type provided
         if (row.crop_type) {
-          // Check for existing crop assignment this year
           const existingCrop = await sql`
             SELECT id FROM field_crops
             WHERE field_id = ${fieldId} AND crop_year = ${crop_year}
@@ -104,7 +109,10 @@ export async function POST(req: Request) {
           } else {
             await sql`
               INSERT INTO field_crops (field_id, crop_year, crop_type, variety, seeded_acres, status)
-              VALUES (${fieldId}, ${crop_year}, ${row.crop_type}, ${row.variety || null}, ${row.seeded_acres || row.acres}, 'planned')
+              VALUES (
+                ${fieldId}, ${crop_year}, ${row.crop_type},
+                ${row.variety || null}, ${row.seeded_acres || row.acres}, 'planned'
+              )
             `;
           }
           results.cropsCreated++;
