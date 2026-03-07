@@ -1,41 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { neon } from '@neondatabase/serverless'
+import { getTenantAuth } from '@/lib/tenant-auth'
 
 const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET() {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const tenantAuth = await getTenantAuth()
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status })
+  const { tenantId } = tenantAuth
 
   const rows = await sql`
     SELECT * FROM scout_entries
-    WHERE clerk_user_id = ${userId}
+    WHERE tenant_id = ${tenantId}
     ORDER BY date DESC, created_at DESC
   `
   return NextResponse.json({ entries: rows })
 }
 
 export async function POST(req: NextRequest) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const tenantAuth = await getTenantAuth()
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status })
+  const { tenantId } = tenantAuth
 
   const body = await req.json()
   const { date, field_name, crop, growth_stage, issue_type, severity, symptoms, notes, recommendation } = body
-
   if (!date) return NextResponse.json({ error: 'Date is required' }, { status: 400 })
 
   const rows = await sql`
-    INSERT INTO scout_entries (clerk_user_id, date, field_name, crop, growth_stage, issue_type, severity, symptoms, notes, recommendation)
-    VALUES (${userId}, ${date}, ${field_name || null}, ${crop || null}, ${growth_stage || null}, ${issue_type || null}, ${severity || null}, ${symptoms || null}, ${notes || null}, ${recommendation || null})
+    INSERT INTO scout_entries (
+      tenant_id, date, field_name, crop, growth_stage,
+      issue_type, severity, symptoms, notes, recommendation
+    ) VALUES (
+      ${tenantId}, ${date}, ${field_name || null}, ${crop || null}, ${growth_stage || null},
+      ${issue_type || null}, ${severity || null}, ${symptoms || null}, ${notes || null}, ${recommendation || null}
+    )
     RETURNING *
   `
-  // Auto-create field alert for scout report
+
   if (field_name) {
     await sql`
-      INSERT INTO field_alerts (user_id, field_name, alert_type, message, severity)
+      INSERT INTO field_alerts (tenant_id, field_name, alert_type, message, severity)
       VALUES (
-        ${userId},
+        ${tenantId},
         ${field_name},
         'scout_report',
         ${`Scout report filed: ${issue_type || "issue"} (${severity || "medium"}) on ${field_name}`},
@@ -43,16 +49,17 @@ export async function POST(req: NextRequest) {
       )
     `
   }
+
   return NextResponse.json({ entry: rows[0] }, { status: 201 })
 }
 
 export async function PUT(req: NextRequest) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const tenantAuth = await getTenantAuth()
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status })
+  const { tenantId } = tenantAuth
 
   const body = await req.json()
   const { id, date, field_name, crop, growth_stage, issue_type, severity, symptoms, notes, recommendation } = body
-
   if (!id) return NextResponse.json({ error: 'Entry ID is required' }, { status: 400 })
 
   const rows = await sql`
@@ -62,7 +69,7 @@ export async function PUT(req: NextRequest) {
         severity = ${severity || null}, symptoms = ${symptoms || null},
         notes = ${notes || null}, recommendation = ${recommendation || null},
         updated_at = NOW()
-    WHERE id = ${id} AND clerk_user_id = ${userId}
+    WHERE id = ${id} AND tenant_id = ${tenantId}
     RETURNING *
   `
   if (rows.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -70,16 +77,14 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const tenantAuth = await getTenantAuth()
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status })
+  const { tenantId } = tenantAuth
 
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'Entry ID is required' }, { status: 400 })
 
-  await sql`
-    DELETE FROM scout_entries
-    WHERE id = ${id} AND clerk_user_id = ${userId}
-  `
+  await sql`DELETE FROM scout_entries WHERE id = ${id} AND tenant_id = ${tenantId}`
   return NextResponse.json({ success: true })
 }

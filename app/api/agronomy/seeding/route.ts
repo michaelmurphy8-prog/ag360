@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
+import { getTenantAuth } from '@/lib/tenant-auth'
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export async function GET(req: NextRequest) {
-  const userId = req.headers.get('x-user-id')
-  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+export async function GET() {
+  const tenantAuth = await getTenantAuth()
+  if (tenantAuth.error) return NextResponse.json({ success: false, error: tenantAuth.error }, { status: tenantAuth.status })
+  const { tenantId } = tenantAuth
 
   try {
     const records = await sql`
       SELECT * FROM agronomy_seeding_log
-      WHERE clerk_user_id = ${userId}
+      WHERE tenant_id = ${tenantId}
       ORDER BY seeding_date DESC
     `
     return NextResponse.json({ success: true, records })
@@ -21,8 +23,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const userId = req.headers.get('x-user-id')
-  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  const tenantAuth = await getTenantAuth()
+  if (tenantAuth.error) return NextResponse.json({ success: false, error: tenantAuth.error }, { status: tenantAuth.status })
+  const { tenantId } = tenantAuth
 
   try {
     const { crop, seeding_date, acres, field_name, notes } = await req.json()
@@ -31,8 +34,8 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await sql`
-      INSERT INTO agronomy_seeding_log (clerk_user_id, crop, seeding_date, acres, field_name, notes)
-      VALUES (${userId}, ${crop}, ${seeding_date}, ${acres ?? null}, ${field_name ?? null}, ${notes ?? null})
+      INSERT INTO agronomy_seeding_log (tenant_id, crop, seeding_date, acres, field_name, notes)
+      VALUES (${tenantId}, ${crop}, ${seeding_date}, ${acres ?? null}, ${field_name ?? null}, ${notes ?? null})
       RETURNING *
     `
     return NextResponse.json({ success: true, record: result[0] })
@@ -43,14 +46,15 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const userId = req.headers.get('x-user-id')
-  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  const tenantAuth = await getTenantAuth()
+  if (tenantAuth.error) return NextResponse.json({ success: false, error: tenantAuth.error }, { status: tenantAuth.status })
+  const { tenantId } = tenantAuth
 
   try {
     const { id } = await req.json()
     await sql`
       DELETE FROM agronomy_seeding_log
-      WHERE id = ${id} AND clerk_user_id = ${userId}
+      WHERE id = ${id} AND tenant_id = ${tenantId}
     `
     return NextResponse.json({ success: true })
   } catch (err) {
