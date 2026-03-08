@@ -249,15 +249,15 @@ export default function MapsPage() {
       el.onmouseleave = () => { dot.style.transform = "scale(1)"; };
 
       const popupHTML = `
-          <div style="font-family:system-ui;color:var(--ag-text-primary);padding:4px 0;">
+          <div style="font-family:system-ui;color:#111827;padding:4px 0;">
             <div style="font-size:13px;font-weight:700;margin-bottom:4px;">${r.title}</div>
             <div style="display:flex;gap:8px;margin-bottom:4px;">
               <span style="font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:2px 6px;border-radius:4px;background:${color}20;color:${color};">${r.report_type}</span>
               <span style="font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:2px 6px;border-radius:4px;background:${r.severity==='high'?'rgba(232,84,84,0.2)':r.severity==='medium'?'rgba(232,168,56,0.2)':'rgba(74,158,107,0.2)'};color:${r.severity==='high'?'#E85454':r.severity==='medium'?'#E8A838':'#4A9E6B'};">${r.severity}</span>
             </div>
-            ${r.notes ? `<p style="font-size:11px;color:#94A3B8;margin:4px 0 0;line-height:1.4;">${r.notes}</p>` : ""}
-            ${r.field_name ? `<div style="font-size:10px;color:var(--ag-text-muted);margin-top:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ag-text-muted)" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>${r.field_name}</div>` : ""}
-            <div style="font-size:10px;color:#374151;margin-top:4px;">${new Date(r.scouted_at).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}</div>
+            ${r.notes ? `<p style="font-size:11px;color:#4B5563 !important;margin:4px 0 0;line-height:1.4;">${r.notes}</p>` : ""}
+            ${r.field_name ? `<div style="font-size:10px;color:#4B5563;margin-top:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>${r.field_name}</div>` : ""}
+            <div style="font-size:10px;color:#374151 !important;margin-top:4px;">${new Date(r.scouted_at).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}</div>
           </div>
         `;
 
