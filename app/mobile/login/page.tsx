@@ -20,29 +20,23 @@ export default function MobileLogin() {
     setLoading(true);
 
     try {
-      // Step 1: identify the user
-      const attempt = await signIn.create({
-        identifier: email.trim(),
+      const res = await fetch("/api/mobile/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
       });
 
-      // Step 2: attempt password factor
-      const result = await attempt.attemptFirstFactor({
-        strategy: "password",
-        password,
-      });
+      const data = await res.json();
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        router.push("/mobile/pillars");
-      } else {
-        setError(`Sign in incomplete. Status: ${result.status}`);
+      if (!res.ok) {
+        setError(data.error || "Invalid email or password.");
+        return;
       }
+
+      await setActive({ session: data.sessionId });
+      router.push("/mobile/pillars");
     } catch (err: any) {
-      const msg =
-        err?.errors?.[0]?.longMessage ||
-        err?.errors?.[0]?.message ||
-        "Invalid email or password.";
-      setError(msg);
+      setError("Sign in failed. Please try again.");
     } finally {
       setLoading(false);
     }
