@@ -45,17 +45,19 @@ export async function POST(req: NextRequest) {
               text: `This is a grain elevator ticket or scale ticket from a Canadian prairie grain elevator.
 Extract the following fields and return ONLY valid JSON, no markdown, no backticks, nothing else:
 {
-  "ticket_number": "string or null",
+  "ticket_number": "string or null — look for Receipt No., Ticket No., or similar",
   "crop": "string or null — use one of: HRS Wheat, Durum, Canola, Barley, Oats, Flax, Large Green Lentils, Small Green Lentils, Small Red Lentils, Peas, Chickpeas, Mustard — match closest crop name on the ticket",
-  "gross_weight_kg": "number or null — if in lbs divide by 2.20462, if in tonnes multiply by 1000",
-  "tare_weight_kg": "number or null — same conversion",
-  "net_weight_kg": "number or null — same conversion",
-  "dockage_percent": "number or null",
-  "destination": "elevator company name or buyer name or null",
+  "gross_weight_kg": "number or null — this is the LOADED TRUCK weight. Look for: Vehicle Full Weight, Truck Full Weight, Gross Vehicle Weight, or Gross Weight. Do NOT use Gross Before Waste Loss or Accountable Gross — those are grain weights, not vehicle weights.",
+  "tare_weight_kg": "number or null — this is the EMPTY TRUCK weight. Look for: Vehicle Empty Weight, Truck Empty Weight, Tare Weight.",
+  "net_weight_kg": "number or null — the final net grain weight after dockage. Look for: Net, Net Weight, Net Imperial Bushels converted to kg.",
+  "dockage_percent": "number or null — look for Dockage % field",
+  "destination": "elevator company name and location or null — look for Station Name or elevator address",
   "date": "YYYY-MM-DD or null",
-  "grade": "grain grade string or null",
-  "notes": "any other relevant info such as moisture, protein, or special conditions, or null"
+  "grade": "grain grade string or null — e.g. 1 Canada, No. 1 CWRS",
+  "moisture_percent": "number or null — look for MST or Moisture %",
+  "notes": "any other relevant info such as shipment number, receipt number, or special conditions, or null"
 }
+If weights are already in kg use as-is. If in lbs divide by 2.20462. If in tonnes multiply by 1000.
 Be precise with numbers. If a value is not visible or legible, use null.`,
             },
           ],

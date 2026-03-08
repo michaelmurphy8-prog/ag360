@@ -121,8 +121,12 @@ export default function MobileTicket() {
       if (parsed.dockage_percent) setDockage(String(parsed.dockage_percent));
       if (parsed.destination)     setDestination(parsed.destination);
       if (parsed.date)            setDate(parsed.date);
-      // Combine grade + notes
-      const noteParts = [parsed.grade, parsed.notes].filter(Boolean).join(" · ");
+      // Combine grade + moisture + notes
+      const noteParts = [
+        parsed.grade,
+        parsed.moisture_percent ? `MST ${parsed.moisture_percent}%` : null,
+        parsed.notes,
+      ].filter(Boolean).join(" · ");
       if (noteParts) setNotes(noteParts);
 
     } catch (e: any) {
