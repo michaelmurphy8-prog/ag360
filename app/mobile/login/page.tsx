@@ -7,7 +7,7 @@ import { useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
 export default function MobileLogin() {
-  const { signIn, isLoaded } = useSignIn();
+  const { signIn, setActive, isLoaded } = useSignIn();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,6 +26,7 @@ export default function MobileLogin() {
       });
 
       if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
         router.push("/mobile/pillars");
       } else {
         setError("Sign in incomplete. Please try again.");
