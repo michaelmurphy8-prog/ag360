@@ -6,32 +6,38 @@ export async function POST(req: NextRequest) {
     const { email, password } = await req.json();
     const clerk = await clerkClient();
 
-    // Verify credentials by checking the user exists and password is valid
     const users = await clerk.users.getUserList({ emailAddress: [email] });
     if (!users.data.length) {
-      return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
+      return NextResponse.json({ error: "No account found for that email." }, { status: 401 });
     }
 
     const user = users.data[0];
 
-    // Use Clerk's verifyPassword
-    const verified = await clerk.users.verifyPassword({
-      userId: user.id,
-      password,
-    });
-
-    if (!verified) {
-      return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
+    try {
+      const verified = await clerk.users.verifyPassword({
+        userId: user.id,
+        password,
+      });
+      
+      if (!verified) {
+        return NextResponse.json({ error: "Wrong password." }, { status: 401 });
+      }
+    } catch (pwErr: any) {
+      return NextResponse.json({ 
+        error: `Password error: ${pwErr?.message || pwErr?.errors?.[0]?.message || JSON.stringify(pwErr)}` 
+      }, { status: 401 });
     }
 
-    // Create a session token
-    const token = await clerk.sessions.createSession({ userId: user.id });
+    const session = await clerk.sessions.createSession({ userId: user.id });
 
     return NextResponse.json({ 
-      sessionId: token.id,
+      sessionId: session.id,
       userId: user.id,
     });
+
   } catch (err: any) {
-    return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
+    return NextResponse.json({ 
+      error: `Server error: ${err?.message || JSON.stringify(err)}` 
+    }, { status: 500 });
   }
 }
