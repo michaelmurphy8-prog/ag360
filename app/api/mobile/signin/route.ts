@@ -6,6 +6,7 @@ export async function POST(req: NextRequest) {
     const { email, password } = await req.json();
     const clerk = await clerkClient();
 
+    // Find user
     const users = await clerk.users.getUserList({ emailAddress: [email] });
     if (!users.data.length) {
       return NextResponse.json({ error: "No account found for that email." }, { status: 401 });
@@ -13,27 +14,20 @@ export async function POST(req: NextRequest) {
 
     const user = users.data[0];
 
+    // Verify password
     try {
-      const verified = await clerk.users.verifyPassword({
-        userId: user.id,
-        password,
-      });
-      
-      if (!verified) {
-        return NextResponse.json({ error: "Wrong password." }, { status: 401 });
-      }
-    } catch (pwErr: any) {
-      return NextResponse.json({ 
-        error: `Password error: ${pwErr?.message || pwErr?.errors?.[0]?.message || JSON.stringify(pwErr)}` 
-      }, { status: 401 });
+      await clerk.users.verifyPassword({ userId: user.id, password });
+    } catch (err: any) {
+      return NextResponse.json({ error: "Wrong password." }, { status: 401 });
     }
 
-    const session = await clerk.sessions.createSession({ userId: user.id });
-
-    return NextResponse.json({ 
-      sessionId: session.id,
+    // Create a sign-in token the client can redeem
+    const signInToken = await clerk.signInTokens.createSignInToken({
       userId: user.id,
+      expiresInSeconds: 60,
     });
+
+    return NextResponse.json({ token: signInToken.token });
 
   } catch (err: any) {
     return NextResponse.json({ 

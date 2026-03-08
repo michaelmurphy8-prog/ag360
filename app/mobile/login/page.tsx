@@ -33,8 +33,16 @@ export default function MobileLogin() {
         return;
       }
 
-      await setActive({ session: data.sessionId });
-      router.push("/mobile/pillars");
+      const result = await signIn.create({
+        strategy: "ticket",
+        ticket: data.token,
+      });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        router.push("/mobile/pillars");
+      } else {
+        setError(`Unexpected status: ${result.status}`);
+      }
     } catch (err: any) {
       setError("Sign in failed. Please try again.");
     } finally {
