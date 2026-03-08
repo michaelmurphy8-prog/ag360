@@ -28,6 +28,14 @@ export default function MobileLogin() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         router.push("/mobile/pillars");
+      } else if ((result.status as string) === "needs_client_trust") {
+        const reloaded = await signIn.reload();
+        if (reloaded.status === "complete") {
+          await setActive({ session: reloaded.createdSessionId });
+          router.push("/mobile/pillars");
+        } else {
+          setError(`Still needs trust. Status: ${reloaded.status}`);
+        }
       } else {
         setError(`Sign in incomplete. Status: ${result.status}`);
       }
