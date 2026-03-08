@@ -20,22 +20,20 @@ export default function MobileLogin() {
     setLoading(true);
 
     try {
-      const result = await signIn.create({
+      // Step 1: identify the user
+      const attempt = await signIn.create({
         identifier: email.trim(),
+      });
+
+      // Step 2: attempt password factor
+      const result = await attempt.attemptFirstFactor({
+        strategy: "password",
         password,
       });
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         router.push("/mobile/pillars");
-      } else if ((result.status as string) === "needs_client_trust") {
-        const reloaded = await signIn.reload();
-        if (reloaded.status === "complete") {
-          await setActive({ session: reloaded.createdSessionId });
-          router.push("/mobile/pillars");
-        } else {
-          setError(`Still needs trust. Status: ${reloaded.status}`);
-        }
       } else {
         setError(`Sign in incomplete. Status: ${result.status}`);
       }
