@@ -29,7 +29,7 @@ export default function MobileLogin() {
         await setActive({ session: result.createdSessionId });
         router.push("/mobile/pillars");
       } else {
-        setError("Sign in incomplete. Please try again.");
+        setError(`Sign in incomplete. Status: ${result.status}`);
       }
     } catch (err: any) {
       const msg =
