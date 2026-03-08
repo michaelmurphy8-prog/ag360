@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 const LAST_UPDATED = "March 8, 2026";
-const CONTACT_EMAIL = "mike@ag360tech.com";
+const CONTACT_EMAIL = "mike@ag360.farm";
 const APP_NAME = "AG360";
 const COMPANY = "AG360 Technologies Inc.";
 

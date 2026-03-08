@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
         const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
         from: "AG360 Waitlist <hello@ag360.farm>",
-        to: "hello@ag360.farm",
+        to: process.env.ALERT_EMAIL || "mike@ag360.farm",
         subject: `New Waitlist Signup — ${name ?? email}`,
         html: `<h2>New Signup</h2><p><b>Name:</b> ${name ?? "—"}<br/><b>Email:</b> ${email}<br/><b>Farm Size:</b> ${farmSize ?? "—"}<br/><b>Province:</b> ${province ?? "—"}</p>`,
       });
