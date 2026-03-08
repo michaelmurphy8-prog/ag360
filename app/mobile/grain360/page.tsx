@@ -28,7 +28,7 @@ const FEATURES = [
     id: "map",
     route: "/mobile/map",
     label: "Field Map",
-    description: "Field boundaries & NDVI",
+    description: "Field boundaries & Weather",
     icon: (
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
