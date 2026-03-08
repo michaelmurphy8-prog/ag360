@@ -12,6 +12,7 @@ const isPublicRoute = createRouteMatcher([
   "/pricing(.*)",
   "/api/webhooks(.*)",
   "/api/waitlist",
+  "/api/mobile(.*)",
   "/mobile(.*)",
 ]);
 
