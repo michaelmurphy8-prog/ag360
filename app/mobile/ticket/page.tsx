@@ -571,7 +571,13 @@ export default function MobileTicket() {
                   <select
                     className="field-input"
                     value={contractRef}
-                    onChange={e => setContractRef(e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setContractRef(val);
+                      // Auto-fill destination from contract elevator
+                      const matched = contracts.find(c => (c.contract_number || c.id) === val);
+                      if (matched?.elevator) setDestination(matched.elevator);
+                    }}
                   >
                     <option value="">No contract (spot)</option>
                     {contracts
