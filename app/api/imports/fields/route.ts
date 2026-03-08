@@ -1,36 +1,33 @@
 // app/api/imports/fields/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { neon } from "@neondatabase/serverless";
+import { getTenantAuth } from "@/lib/tenant-auth";
 
 const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const tenantAuth = await getTenantAuth();
+  if (tenantAuth.error) return NextResponse.json({ error: tenantAuth.error }, { status: tenantAuth.status });
+  const { tenantId } = tenantAuth;
 
   const provider = req.nextUrl.searchParams.get("provider") || "";
 
   try {
-    // Get user's fields from the fields table
-    // Adjust this query to match your actual fields table structure
     const fields = await sql`
       SELECT id, name, total_acres, legal_land_description
       FROM fields
-      WHERE user_id = ${userId}
+      WHERE tenant_id = ${tenantId}
       ORDER BY name ASC
     `;
 
-    // Get saved field aliases for this provider
     const aliases = provider
       ? await sql`
           SELECT external_field_name, field_id
           FROM field_aliases
-          WHERE user_id = ${userId} AND source_provider = ${provider}
+          WHERE tenant_id = ${tenantId} AND source_provider = ${provider}
         `
       : [];
 
-    // Build alias lookup
     const aliasMap: Record<string, string> = {};
     for (const a of aliases) {
       aliasMap[a.external_field_name] = a.field_id;

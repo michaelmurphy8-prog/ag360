@@ -33,7 +33,7 @@ const T = {
 interface Position { crop: string; estimated_production: number; contracted: number; contracted_value: number; delivered: number; avg_price: number; unpriced: number; percent_contracted: number; percent_delivered: number; contracts: any[]; }
 interface Totals { production: number; contracted: number; contracted_value: number; unpriced: number; delivered: number; avg_price: number; percent_contracted: number; }
 interface MarketingData { success: boolean; cropYear: number; totals: Totals; positions: Position[]; }
-interface ContractRow { id: string; crop: string; contract_type: string | null; quantity_bu: number; price_per_bu: number; basis: number; elevator: string | null; delivery_date: string | null; notes: string | null; created_at: string; }
+interface ContractRow { id: string; crop: string; contract_type: string | null; quantity_bu: number; price_per_bu: number; basis: number; elevator: string | null; delivery_date: string | null; notes: string | null; contract_number: string | null; created_at: string; }
 interface FuturesQuote { symbol: string; name: string; lastPrice: number; priceChange: number; percentChange: number; tradeTime: string; unitCode: string; }
 interface CashBid { id: string; commodity: string; location: string; cashPrice: number; basis: number; deliveryStart: string; deliveryEnd: string; }
 interface PriceHistoryPoint { date: string; price: number; }
@@ -116,6 +116,7 @@ const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
   const [formBasis, setFormBasis] = useState("");
   const [formElevator, setFormElevator] = useState("");
   const [formDelivery, setFormDelivery] = useState("");
+  const [formContractNumber, setFormContractNumber] = useState("");
   const [formNotes, setFormNotes] = useState("");
 
   // Price Tracker
@@ -194,14 +195,14 @@ const [prodView, setProdView] = useState<"forecast" | "actual">("forecast");
   }, [selectedSymbol]);
 
   // ── Contract form helpers ─────────────────────────────
-  const resetForm = () => { setFormCrop(""); setFormType(""); setFormQty(""); setFormPrice(""); setFormBasis(""); setFormElevator(""); setFormDelivery(""); setFormNotes(""); setEditingId(null); };
+  const resetForm = () => { setFormCrop(""); setFormType(""); setFormQty(""); setFormPrice(""); setFormBasis(""); setFormElevator(""); setFormDelivery(""); setFormNotes(""); setFormContractNumber(""); setEditingId(null); };
   const openNew = () => { resetForm(); setShowModal(true); };
-  const openEdit = (c: ContractRow) => { setEditingId(c.id); setFormCrop(c.crop || ""); setFormType(c.contract_type || ""); setFormQty(String(c.quantity_bu || "")); setFormPrice(String(c.price_per_bu || "")); setFormBasis(String(c.basis || "")); setFormElevator(c.elevator || ""); setFormDelivery(c.delivery_date ? c.delivery_date.slice(0, 10) : ""); setFormNotes(c.notes || ""); setShowModal(true); };
+  const openEdit = (c: ContractRow) => { setEditingId(c.id); setFormCrop(c.crop || ""); setFormType(c.contract_type || ""); setFormQty(String(c.quantity_bu || "")); setFormPrice(String(c.price_per_bu || "")); setFormBasis(String(c.basis || "")); setFormElevator(c.elevator || ""); setFormDelivery(c.delivery_date ? c.delivery_date.slice(0, 10) : ""); setFormNotes(c.notes || ""); setFormContractNumber(c.contract_number || ""); setShowModal(true); };
 
   const handleSave = async () => {
     if (!user?.id || !formCrop || !formQty) return;
     setSaving(true);
-    const body = { ...(editingId ? { id: editingId } : {}), crop: formCrop, contract_type: formType || null, quantity_bu: Number(formQty), price_per_bu: Number(formPrice) || 0, basis: Number(formBasis) || 0, elevator: formElevator || null, delivery_date: formDelivery || null, notes: formNotes || null };
+    const body = { ...(editingId ? { id: editingId } : {}), crop: formCrop, contract_type: formType || null, quantity_bu: Number(formQty), price_per_bu: Number(formPrice) || 0, basis: Number(formBasis) || 0, elevator: formElevator || null, delivery_date: formDelivery || null, notes: formNotes || null, contract_number: formContractNumber || null };
     try {
       const res = await fetch("/api/marketing/contracts", { method: editingId ? "PUT" : "POST", headers: { "Content-Type": "application/json", "x-user-id": user.id }, body: JSON.stringify(body) });
       if (res.ok) { setShowModal(false); resetForm(); fetchContracts(); fetch(`/api/marketing/positions?cropYear=${cropYear}&view=${prodView}`, { headers: { "x-user-id": user.id } }).then((r) => r.json()).then((d) => { if (d.success) setData(d); }); }
@@ -496,7 +497,7 @@ async function saveCanolaSpot() {
             ) : filteredContracts.length === 0 ? (<div style={{ textAlign: "center", padding: 50 }}><FileText size={28} style={{ color: T.text4, margin: "0 auto 10px" }} /><p style={{ color: T.text2, fontSize: 14, marginBottom: 4 }}>No contracts found</p><p style={{ color: T.text4, fontSize: 12 }}>Click &quot;New Contract&quot; to add your first grain sales contract.</p></div>
             ) : (
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead><tr style={{ borderBottom: `1px solid ${T.border}` }}>{["Crop", "Type", `Qty (${unitLabel})`, "Price", "Basis", "Elevator", "Delivery", "Value", ""].map((h) => (<th key={h} style={{ textAlign: "left", padding: "10px 14px", fontSize: 10, fontWeight: 600, color: T.text4, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</th>))}</tr></thead>
+                <thead><tr style={{ borderBottom: `1px solid ${T.border}` }}>{["Crop", "Type", `Qty (${unitLabel})`, "Price", "Basis", "Elevator", "Contract #", "Delivery", "Value", ""].map((h) => (<th key={h} style={{ textAlign: "left", padding: "10px 14px", fontSize: 10, fontWeight: 600, color: T.text4, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</th>))}</tr></thead>
                 <tbody>{filteredContracts.map((c) => { const qty = unit === "mt" ? buToMt(Number(c.quantity_bu), c.crop) : Number(c.quantity_bu); const value = Number(c.quantity_bu) * Number(c.price_per_bu); return (
                   <tr key={c.id} style={{ borderBottom: `1px solid ${T.border}` }} onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                     <td style={{ padding: "12px 14px" }}><div style={{ display: "flex", alignItems: "center", gap: 8 }}><div style={{ width: 8, height: 8, borderRadius: "50%", background: getCropColor(c.crop), flexShrink: 0 }} /><span style={{ fontSize: 13, color: T.text, fontWeight: 500, textTransform: "capitalize" }}>{c.crop}</span></div></td>
@@ -505,6 +506,7 @@ async function saveCanolaSpot() {
                     <td style={{ padding: "12px 14px", fontSize: 13, color: T.green, fontWeight: 600 }}>{Number(c.price_per_bu) > 0 ? fmtPrice(Number(c.price_per_bu)) : "—"}</td>
                     <td style={{ padding: "12px 14px", fontSize: 12, color: T.text2 }}>{Number(c.basis) !== 0 ? `${Number(c.basis) > 0 ? "+" : ""}${c.basis}` : "—"}</td>
                     <td style={{ padding: "12px 14px", fontSize: 12, color: T.text2 }}>{c.elevator || "—"}</td>
+                    <td style={{ padding: "12px 14px", fontSize: 12, color: T.text2 }}>{c.contract_number || "—"}</td>
                     <td style={{ padding: "12px 14px", fontSize: 12, color: T.text2 }}>{fmtDate(c.delivery_date)}</td>
                     <td style={{ padding: "12px 14px", fontSize: 13, color: T.text, fontWeight: 600 }}>{value > 0 ? fmtDollar(value) : "—"}</td>
                     <td style={{ padding: "12px 14px", textAlign: "right" }}><div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}><button onClick={() => openEdit(c)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}><Edit2 size={14} style={{ color: T.text3 }} /></button><button onClick={() => handleDelete(c.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}><Trash2 size={14} style={{ color: T.red }} /></button></div></td>
@@ -961,7 +963,8 @@ async function saveCanolaSpot() {
               <Field label="Basis ($/BU)"><input type="number" step="0.01" value={formBasis} onChange={(e) => setFormBasis(e.target.value)} placeholder="e.g. -0.35" style={inputStyle} /></Field>
               <Field label="Elevator"><input value={formElevator} onChange={(e) => setFormElevator(e.target.value)} placeholder="e.g. Viterra Swift Current" style={inputStyle} /></Field>
             </div>
-            <Field label="Delivery Date"><input type="date" value={formDelivery} onChange={(e) => setFormDelivery(e.target.value)} style={inputStyle} /></Field>
+            <Field label="Contract #"><input value={formContractNumber} onChange={(e) => setFormContractNumber(e.target.value)} placeholder="e.g. C-2026-001" style={inputStyle} /></Field>
+<Field label="Delivery Date"><input type="date" value={formDelivery} onChange={(e) => setFormDelivery(e.target.value)} style={inputStyle} /></Field>
             <Field label="Notes"><textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="Optional notes..." rows={2} style={{ ...inputStyle, resize: "vertical" }} /></Field>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}>
               <button onClick={() => { setShowModal(false); resetForm(); }} style={{ padding: "9px 20px", borderRadius: 8, border: `1px solid ${T.border}`, background: "transparent", color: T.text2, fontSize: 13, cursor: "pointer" }}>Cancel</button>
