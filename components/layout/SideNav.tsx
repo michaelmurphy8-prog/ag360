@@ -226,6 +226,7 @@ export default function SideNav() {
               { label: "Notifications", href: "/settings/notifications", icon: Bell },
               { label: "Data & Privacy", href: "/settings/privacy", icon: Shield },
 { label: "Feedback", href: "/settings/feedback", icon: MessageSquare },
+{ label: "Team", href: "/settings/team", icon: Users },
             ].map((item) => {
               const active = pathname === item.href;
               return (
