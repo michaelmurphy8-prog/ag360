@@ -920,7 +920,7 @@ fetch("/api/finance/accounts", { headers: { "x-user-id": user.id } }).then((r) =
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: meta.bg }}>
                     <Icon size={14} style={{ color: meta.color }} />
                   </div>
-                  <h3 className="text-sm font-bold" style={{ color: T.text1 }}>{type}s</h3>
+                  <h3 className="text-sm font-bold" style={{ color: T.text1 }}>{type === "Liability" ? "Liabilities" : `${type}s`}</h3>
                   <span className="text-xs font-mono" style={{ color: T.text4 }}>{accts.length} accounts</span>
                 </div>
                 <div className="divide-y divide-[var(--ag-border)]">
