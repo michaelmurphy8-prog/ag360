@@ -21,7 +21,23 @@ function migrateCropName(name: string): string {
   return CROP_NAME_MAP[name] || name;
 }
 
-const PROVINCES = ["Alberta", "Saskatchewan", "Manitoba", "Ontario"];
+const CANADIAN_PROVINCES = [
+  "Alberta", "British Columbia", "Manitoba", "New Brunswick",
+  "Newfoundland and Labrador", "Northwest Territories", "Nova Scotia",
+  "Nunavut", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan", "Yukon",
+];
+
+const US_STATES = [
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
+  "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho",
+  "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana",
+  "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi",
+  "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey",
+  "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma",
+  "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota",
+  "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington",
+  "West Virginia", "Wisconsin", "Wyoming",
+];
 const SOIL_ZONES = ["Dark Brown", "Brown", "Black", "Grey", "Thin Black"];
 const RISK_PROFILES = ["Conservative", "Balanced", "Aggressive"];
 
@@ -54,6 +70,7 @@ type CropEntry = {
 
 type FarmProfile = {
   farmName: string;
+  nearestTown: string;
   province: string;
   soilZone: string;
   totalAcres: number;
@@ -161,6 +178,7 @@ export default function FarmProfilePage() {
   const [activeTab, setActiveTab] = useState(0);
   const [profile, setProfile] = useState<FarmProfile>({
     farmName: "",
+    nearestTown: "",
     province: "Saskatchewan",
     soilZone: "Black",
     totalAcres: 0,
@@ -434,6 +452,12 @@ export default function FarmProfilePage() {
               type: "text",
               placeholder: "Viterra Yorkton",
             },
+            {
+              label: "Nearest Town / City",
+              key: "nearestTown",
+              type: "text",
+              placeholder: "Swift Current",
+            },
           ].map((f) => (
             <div key={f.key} className="space-y-1">
               <label className="text-[10px] font-semibold text-ag-muted uppercase tracking-[1.5px]">
@@ -467,9 +491,16 @@ export default function FarmProfilePage() {
               }
               className={selectClass}
             >
-              {PROVINCES.map((p) => (
-                <option key={p}>{p}</option>
-              ))}
+              <optgroup label="Canadian Provinces & Territories">
+                {CANADIAN_PROVINCES.map((p) => (
+                  <option key={p}>{p}</option>
+                ))}
+              </optgroup>
+              <optgroup label="US States">
+                {US_STATES.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </optgroup>
             </select>
           </div>
           <div className="space-y-1">

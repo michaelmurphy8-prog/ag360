@@ -443,8 +443,10 @@ export default function WeatherPage() {
       .then(d => {
         const profile = d.profile || {};
         const saved: string[] = profile.weather_locations || [];
-        const primary: string = profile.location || profile.city || "";
-        const all = saved.length > 0 ? saved : primary ? [primary] : [];
+        const primary: string = profile.location || profile.city || profile.nearestTown || "";
+        const province: string = profile.province || "SK";
+        const defaultLoc = primary || (province ? `Swift Current, ${province}` : "Swift Current, SK");
+        const all = saved.length > 0 ? saved : [defaultLoc];
         setLocations(all);
         setActiveLocation(all[0] || "");
         setProfileLoaded(true);
