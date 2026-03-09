@@ -56,6 +56,7 @@ export default function AgronomyPage() {
   const [province, setProvince] = useState('SK')
   const [zone, setZone] = useState<SoilZone>('Black')
   const [profileLoaded, setProfileLoaded] = useState(false)
+  const [regionNotice, setRegionNotice] = useState<string | null>(null)
 
   useEffect(() => {
     async function loadProfile() {
@@ -68,9 +69,17 @@ export default function AgronomyPage() {
           if (json.profile.province) {
             const provMap: Record<string, string> = {
               Saskatchewan: 'SK', Alberta: 'AB', Manitoba: 'MB',
+              'British Columbia': 'SK', 'Ontario': 'SK',
               SK: 'SK', AB: 'AB', MB: 'MB',
             }
-            setProvince(provMap[json.profile.province] ?? 'SK')
+            const mapped = provMap[json.profile.province]
+            if (mapped) {
+              setProvince(mapped)
+            } else {
+              // US state or unsupported region — default to SK with notice
+              setProvince('SK')
+              setRegionNotice(`Agronomy data is currently available for SK, AB, and MB. Showing Saskatchewan defaults for your reference.`)
+            }
           }
           if (json.profile.soilZone) setZone(json.profile.soilZone as SoilZone)
         }
@@ -144,7 +153,12 @@ export default function AgronomyPage() {
             </div>
           </div>
         </div>
-
+        {regionNotice && (
+          <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded-lg px-4 py-2 mt-2">
+            <span>⚠</span>
+            <span>{regionNotice}</span>
+          </div>
+        )}
         {/* Sub-tab Navigation */}
         <div className="flex gap-1 mt-5 overflow-x-auto">
           {TABS.map(tab => {
