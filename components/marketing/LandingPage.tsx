@@ -619,7 +619,7 @@ function WaitlistForm() {
         </p>
       )}
       <p style={{ color: "var(--ag-text-muted)", fontSize: 12, textAlign: "center", marginTop: 16 }}>
-        Western Canadian operations only. No spam, ever.
+        For farmers everywhere. No spam, ever.
       </p>
     </div>
   );
@@ -1236,8 +1236,7 @@ export default function LandingPage() {
             color: "var(--ag-text-secondary)", fontSize: 17, lineHeight: 1.7, marginBottom: 44,
             opacity: ctaInView ? 1 : 0, transition: "opacity 0.8s ease 0.2s",
           }}>
-            We&apos;re opening access to select Western Canadian operations first.
-            Drop your details and we&apos;ll be in touch when your region goes live.
+            We&apos;re opening access to select farm operations first. Drop your details and we&apos;ll be in touch when access opens in your area.
           </p>
           <div style={{ opacity: ctaInView ? 1 : 0, transition: "opacity 0.8s ease 0.3s" }}>
             <WaitlistForm />
