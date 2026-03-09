@@ -12,7 +12,7 @@ export async function GET() {
 
   try {
     let accounts = await sql`
-      SELECT * FROM accounts WHERE tenant_id = ${tenantId} ORDER BY sort_order ASC, code ASC
+      SELECT * FROM accounts WHERE tenant_id = ${tenantId} OR tenant_id IS NULL ORDER BY sort_order ASC, code ASC
     `;
 
     if (accounts.length === 0) {
@@ -22,13 +22,14 @@ export async function GET() {
             tenant_id, code, name, account_type, sub_type,
             normal_balance, description, field_allocatable, is_system, sort_order
           ) VALUES (
-            ${tenantId}, ${a.code}, ${a.name}, ${a.account_type}, ${a.sub_type},
+            NULL, ${a.code}, ${a.name}, ${a.account_type}, ${a.sub_type},
             ${a.normal_balance}, ${a.description}, ${a.field_allocatable}, true, ${a.sort_order}
           )
+            ON CONFLICT DO NOTHING
         `;
       }
       accounts = await sql`
-        SELECT * FROM accounts WHERE tenant_id = ${tenantId} ORDER BY sort_order ASC, code ASC
+        SELECT * FROM accounts WHERE tenant_id = ${tenantId} OR tenant_id IS NULL ORDER BY sort_order ASC, code ASC
       `;
     }
 
