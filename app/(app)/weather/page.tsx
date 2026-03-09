@@ -8,7 +8,7 @@ import {
   ArrowUpRight, ArrowDownRight, Minus,
   ShieldAlert, ShieldCheck, ShieldX,
   Clock, Eye, EyeOff, ChevronLeft, ChevronRight,
-  ChevronDown,
+  ChevronDown, Plus, X,
 } from "lucide-react";
 
 // ─── Config ──────────────────────────────────────────────────
@@ -335,28 +335,179 @@ function HourlyStrip({ hourly, ni }: { hourly: Hourly; ni: number }) {
     </div>
   );
 }
+// ─── Location Pill Bar ───────────────────────────────────────
+function LocationBar({
+  locations, active, onSelect, onAdd, onRemove,
+}: {
+  locations: string[];
+  active: string;
+  onSelect: (l: string) => void;
+  onAdd: (l: string) => void;
+  onRemove: (l: string) => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [input, setInput] = useState("");
 
+  const handleAdd = () => {
+    const val = input.trim();
+    if (!val || locations.includes(val)) { setAdding(false); setInput(""); return; }
+    onAdd(val);
+    setInput("");
+    setAdding(false);
+  };
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      {locations.map((l) => (
+        <div
+          key={l}
+          className="flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-medium transition-all cursor-pointer"
+          style={{
+            backgroundColor: l === active ? "var(--ag-green-dim)" : "var(--ag-bg-hover)",
+            borderColor: l === active ? "var(--ag-accent-border)" : "var(--ag-border)",
+            color: l === active ? "var(--ag-green)" : "var(--ag-text-secondary)",
+          }}
+          onClick={() => onSelect(l)}
+        >
+          <MapPin size={9} />
+          {l}
+          {locations.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onRemove(l); }}
+              className="ml-0.5 hover:opacity-70 transition-opacity"
+            >
+              <X size={9} />
+            </button>
+          )}
+        </div>
+      ))}
+      {locations.length < 4 && !adding && (
+        <button
+          onClick={() => setAdding(true)}
+          className="flex items-center gap-1 px-3 py-1 rounded-full border text-xs font-medium transition-all hover:border-[var(--ag-accent-border)]"
+          style={{ borderColor: "var(--ag-border)", color: "var(--ag-text-muted)", backgroundColor: "transparent" }}
+        >
+          <Plus size={9} /> Add Location
+        </button>
+      )}
+      {adding && (
+        <div className="flex items-center gap-1.5">
+          <input
+            autoFocus
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            placeholder="e.g. Regina, SK"
+            className="text-xs px-3 py-1 rounded-full border outline-none"
+            style={{
+              backgroundColor: "var(--ag-bg-card)",
+              borderColor: "var(--ag-accent-border)",
+              color: "var(--ag-text-primary)",
+              width: 160,
+            }}
+          />
+          <button onClick={handleAdd} className="text-xs px-2 py-1 rounded-full font-semibold"
+            style={{ backgroundColor: "var(--ag-green-dim)", color: "var(--ag-green)" }}>
+            Add
+          </button>
+          <button onClick={() => { setAdding(false); setInput(""); }}
+            className="text-xs px-2 py-1 rounded-full"
+            style={{ color: "var(--ag-text-muted)" }}>
+            Cancel
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 // ═══════════════════════════════════════════════════════════════
 //  PAGE
 // ═══════════════════════════════════════════════════════════════
 
 export default function WeatherPage() {
   const [weather, setWeather] = useState<WData | null>(null);
-  const [loc, setLoc] = useState("Swift Current, SK");
+  const [loc, setLoc] = useState("");
   const [loading, setLoading] = useState(true);
   const [activeGDD, setActiveGDD] = useState("Canola");
   const [showHourly, setShowHourly] = useState(true);
   const [expandDay, setExpandDay] = useState<number | null>(null);
   const [gddStart] = useState(new Date(new Date().getFullYear(), 3, 15));
+  const [locations, setLocations] = useState<string[]>([]);
+  const [activeLocation, setActiveLocation] = useState("");
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
+  // Load farm profile → get saved weather locations
   useEffect(() => {
-    fetch("/api/weather").then(r => r.json()).then(d => {
-      if (d.weather) { setWeather(d.weather); setLoc(d.location); }
-      setLoading(false);
-    });
+    fetch("/api/farm-profile")
+      .then(r => r.json())
+      .then(d => {
+        const profile = d.profile || {};
+        const saved: string[] = profile.weather_locations || [];
+        const primary: string = profile.location || profile.city || "";
+        const all = saved.length > 0 ? saved : primary ? [primary] : [];
+        setLocations(all);
+        setActiveLocation(all[0] || "");
+        setProfileLoaded(true);
+      })
+      .catch(() => setProfileLoaded(true));
   }, []);
 
-  if (loading) return (
+  // Fetch weather whenever active location changes
+  useEffect(() => {
+    if (!activeLocation) return;
+    setLoading(true);
+    fetch(`/api/weather?location=${encodeURIComponent(activeLocation)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.weather) { setWeather(d.weather); setLoc(d.location); }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [activeLocation]);
+
+  const saveLocations = async (locs: string[]) => {
+    setLocations(locs);
+    await fetch("/api/farm-profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ weather_locations: locs }),
+    });
+  };
+
+  const handleAddLocation = (l: string) => {
+    const updated = [...locations, l];
+    saveLocations(updated);
+    setActiveLocation(l);
+  };
+
+  const handleRemoveLocation = (l: string) => {
+    const updated = locations.filter(x => x !== l);
+    saveLocations(updated);
+    if (activeLocation === l) setActiveLocation(updated[0] || "");
+  };
+
+  // No location set — show prompt
+  if (profileLoaded && locations.length === 0) return (
+    <div className="flex flex-col items-center justify-center h-64 text-center gap-4">
+      <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+        style={{ backgroundColor: "var(--ag-bg-card)", border: "1px solid var(--ag-border)" }}>
+        <MapPin size={24} style={{ color: "var(--ag-text-muted)" }} />
+      </div>
+      <div>
+        <p className="text-base font-semibold" style={{ color: "var(--ag-text-primary)" }}>No farm location set</p>
+        <p className="text-sm mt-1" style={{ color: "var(--ag-text-muted)" }}>
+          Add your location in Farm Profile to see local weather.
+        </p>
+      </div>
+      <a href="/farm-profile"
+        className="px-5 py-2 rounded-xl text-sm font-semibold transition-colors"
+        style={{ backgroundColor: "var(--ag-green-dim)", color: "var(--ag-green)" }}>
+        Go to Farm Profile
+      </a>
+    </div>
+  );
+
+  if (loading || !profileLoaded) return (
     <div className="flex items-center justify-center h-64">
       <div className="flex gap-1.5">{[0, 150, 300].map(d => (
         <div key={d} className="w-2 h-2 rounded-full bg-[var(--ag-accent)] animate-bounce" style={{ animationDelay: `${d}ms` }} />
@@ -415,10 +566,15 @@ export default function WeatherPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[28px] font-bold text-ag-primary tracking-tight">Weather</h1>
-          <div className="flex items-center gap-1.5 mt-1">
-            <MapPin size={12} style={{ color: "var(--ag-green)" }} />
-            <p className="text-[13px] text-ag-muted">{loc}</p>
-            <span className="text-[11px] font-mono ml-2" style={{ color: "var(--ag-green)" }}>LIVE</span>
+          <div className="flex items-center gap-2 mt-1.5">
+            <LocationBar
+              locations={locations}
+              active={activeLocation}
+              onSelect={setActiveLocation}
+              onAdd={handleAddLocation}
+              onRemove={handleRemoveLocation}
+            />
+            <span className="text-[11px] font-mono" style={{ color: "var(--ag-green)" }}>LIVE</span>
           </div>
         </div>
         <button onClick={() => setShowHourly(!showHourly)}
