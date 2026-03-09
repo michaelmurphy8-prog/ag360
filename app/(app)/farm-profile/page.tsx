@@ -43,6 +43,14 @@ const RISK_PROFILES = ["Conservative", "Balanced", "Aggressive"];
 
 type InventoryMode = "on_hand" | "forecast";
 
+type FixedCosts = {
+  landRent: number;
+  equipmentDepreciation: number;
+  insurance: number;
+  propertyTax: number;
+  overhead: number;
+};
+
 type CropEntry = {
   crop: string;
   mode: InventoryMode;
@@ -50,11 +58,6 @@ type CropEntry = {
   acres: number;
   aph: number;
   targetPrice: number;
-  landRent: number;
-  equipmentDepreciation: number;
-  insurance: number;
-  propertyTax: number;
-  overhead: number;
   seed: number;
   fertilizer: number;
   herbicide: number;
@@ -72,6 +75,7 @@ type FarmProfile = {
   farmName: string;
   nearestTown: string;
   province: string;
+  fixedCosts: FixedCosts;
   soilZone: string;
   totalAcres: number;
   storageCapacity: number;
@@ -81,6 +85,14 @@ type FarmProfile = {
   inventory: CropEntry[];
 };
 
+const defaultFixedCosts = (): FixedCosts => ({
+  landRent: 0,
+  equipmentDepreciation: 0,
+  insurance: 0,
+  propertyTax: 0,
+  overhead: 0,
+});
+
 const defaultCrop = (): CropEntry => ({
   crop: "",
   mode: "forecast",
@@ -88,11 +100,6 @@ const defaultCrop = (): CropEntry => ({
   acres: 0,
   aph: 0,
   targetPrice: 0,
-  landRent: 0,
-  equipmentDepreciation: 0,
-  insurance: 0,
-  propertyTax: 0,
-  overhead: 0,
   seed: 0,
   fertilizer: 0,
   herbicide: 0,
@@ -106,16 +113,16 @@ const defaultCrop = (): CropEntry => ({
   actualYield: 0,
 });
 
-function calcCrop(c: CropEntry) {
+function calcCrop(c: CropEntry, fixed: FixedCosts) {
   const bu =
     c.mode === "on_hand" ? c.bushels || 0 : (c.acres || 0) * (c.aph || 0);
   const acres = c.mode === "on_hand" ? 0 : c.acres || 0;
   const fixedPerAcre =
-    (c.landRent || 0) +
-    (c.equipmentDepreciation || 0) +
-    (c.insurance || 0) +
-    (c.propertyTax || 0) +
-    (c.overhead || 0);
+    (fixed.landRent || 0) +
+    (fixed.equipmentDepreciation || 0) +
+    (fixed.insurance || 0) +
+    (fixed.propertyTax || 0) +
+    (fixed.overhead || 0);
   const variablePerAcre =
     (c.seed || 0) +
     (c.fertilizer || 0) +
@@ -181,6 +188,7 @@ export default function FarmProfilePage() {
     nearestTown: "",
     province: "Saskatchewan",
     soilZone: "Black",
+    fixedCosts: defaultFixedCosts(),
     totalAcres: 0,
     storageCapacity: 0,
     primaryElevator: "",
@@ -196,8 +204,18 @@ export default function FarmProfilePage() {
       .then((data) => {
         if (data.profile) {
           // Migrate legacy crop names
+          // Migrate fixed costs from first crop entry to farm-level if not already migrated
+          const firstCrop = data.profile.inventory?.[0] || {};
+          const migratedFixedCosts = data.profile.fixedCosts || {
+            landRent: firstCrop.landRent || 0,
+            equipmentDepreciation: firstCrop.equipmentDepreciation || 0,
+            insurance: firstCrop.insurance || 0,
+            propertyTax: firstCrop.propertyTax || 0,
+            overhead: firstCrop.overhead || 0,
+          };
           const migratedProfile = {
             ...data.profile,
+            fixedCosts: migratedFixedCosts,
             cropYear: data.profile.cropYear || currentYear,
             inventory: (data.profile.inventory || [defaultCrop()]).map(
               (c: CropEntry) => ({
@@ -303,11 +321,11 @@ export default function FarmProfilePage() {
   }
 
   const totalGross = profile.inventory.reduce(
-    (sum, c) => sum + calcCrop(c).grossRevenue,
+    (sum, c) => sum + calcCrop(c, profile.fixedCosts).grossRevenue,
     0
   );
   const totalCost = profile.inventory.reduce(
-    (sum, c) => sum + calcCrop(c).totalCost,
+    (sum, c) => sum + calcCrop(c, profile.fixedCosts).totalCost,
     0
   );
   const totalNet = totalGross - totalCost;
@@ -316,7 +334,7 @@ export default function FarmProfilePage() {
     0
   );
   const totalProduction = profile.inventory.reduce(
-    (sum, c) => sum + calcCrop(c).bu,
+    (sum, c) => sum + calcCrop(c, profile.fixedCosts).bu,
     0
   );
 
@@ -600,7 +618,7 @@ export default function FarmProfilePage() {
 
         {profile.inventory.map((crop, index) => {
           if (index !== activeTab) return null;
-          const calc = calcCrop(crop);
+          const calc = calcCrop(crop, profile.fixedCosts);
           return (
             <div key={index} className="p-6 space-y-6">
               {/* Crop Header */}
@@ -738,35 +756,36 @@ export default function FarmProfilePage() {
 
               {/* Costs */}
               <div className="grid grid-cols-2 gap-6">
-                {/* Fixed Costs */}
+                {/* Fixed Costs — farm-level, shared across all crops */}
                 <div className="space-y-3">
-                  <h3 className="font-mono text-[10px] font-bold text-ag-secondary uppercase tracking-[1.5px]">
-                    Fixed Costs ($/acre)
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-mono text-[10px] font-bold text-ag-secondary uppercase tracking-[1.5px]">
+                      Fixed Costs ($/acre)
+                    </h3>
+                    <span className="text-[10px] text-ag-muted italic">Applies to all crops</span>
+                  </div>
                   {[
                     { label: "Land Rent / Mortgage", key: "landRent" },
-                    {
-                      label: "Equipment Depreciation",
-                      key: "equipmentDepreciation",
-                    },
+                    { label: "Equipment Depreciation", key: "equipmentDepreciation" },
                     { label: "Insurance", key: "insurance" },
                     { label: "Property Tax", key: "propertyTax" },
                     { label: "Overhead / Admin", key: "overhead" },
                   ].map((f) => (
-                    <div
-                      key={f.key}
-                      className="flex items-center justify-between gap-4"
-                    >
-                      <label className="text-xs text-ag-muted flex-1">
-                        {f.label}
-                      </label>
+                    <div key={f.key} className="flex items-center justify-between gap-4">
+                      <label className="text-xs text-ag-muted flex-1">{f.label}</label>
                       <div className="flex items-center gap-1">
                         <span className="text-xs text-ag-muted">$</span>
                         <input
                           type="number"
-                          value={(crop as never)[f.key] || ""}
+                          value={(profile.fixedCosts as never)[f.key] || ""}
                           onChange={(e) =>
-                            updateCrop(index, f.key, Number(e.target.value))
+                            setProfile({
+                              ...profile,
+                              fixedCosts: {
+                                ...profile.fixedCosts,
+                                [f.key]: Number(e.target.value),
+                              },
+                            })
                           }
                           placeholder="0"
                           className={costInputClass}
@@ -775,9 +794,7 @@ export default function FarmProfilePage() {
                     </div>
                   ))}
                   <div className="flex items-center justify-between pt-2 border-t border-[var(--ag-border)]">
-                    <span className="text-xs font-bold text-ag-primary">
-                      Total Fixed
-                    </span>
+                    <span className="text-xs font-bold text-ag-primary">Total Fixed</span>
                     <span className="text-sm font-bold text-ag-primary">
                       {fmt(calc.fixedPerAcre)}/ac
                     </span>
