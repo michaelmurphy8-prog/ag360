@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
           COALESCE(SUM(jl.credit), 0) as total_credit
         FROM journal_entries je
         JOIN journal_lines jl ON jl.journal_entry_id = je.id
-        JOIN accounts a ON a.id = jl.account_id AND a.tenant_id = ${tenantId}
+        JOIN accounts a ON a.id = jl.account_id AND (a.tenant_id = ${tenantId} OR a.tenant_id IS NULL)
         WHERE je.tenant_id = ${tenantId}
           AND je.crop_year = ${cropYear}
           AND je.is_void = false
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
           COALESCE(SUM(jl.credit), 0) as total_credit
         FROM journal_entries je
         JOIN journal_lines jl ON jl.journal_entry_id = je.id
-        JOIN accounts a ON a.id = jl.account_id AND a.tenant_id = ${tenantId}
+        JOIN accounts a ON a.id = jl.account_id AND (a.tenant_id = ${tenantId} OR a.tenant_id IS NULL)
         WHERE je.tenant_id = ${tenantId}
           AND je.crop_year = ${cropYear}
           AND je.is_void = false
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
           COALESCE(SUM(jl.credit), 0) as total_credit
         FROM journal_entries je
         JOIN journal_lines jl ON jl.journal_entry_id = je.id
-        JOIN accounts a ON a.id = jl.account_id AND a.tenant_id = ${tenantId}
+        JOIN accounts a ON a.id = jl.account_id AND (a.tenant_id = ${tenantId} OR a.tenant_id IS NULL)
         WHERE je.tenant_id = ${tenantId}
           AND je.crop_year = ${cropYear}
           AND je.is_void = false

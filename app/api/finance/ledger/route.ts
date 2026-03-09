@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
         ) AS lines
       FROM journal_entries je
       LEFT JOIN journal_lines jl ON jl.journal_entry_id = je.id
-      LEFT JOIN accounts a ON a.id = jl.account_id AND a.tenant_id = ${tenantId}
+      LEFT JOIN accounts a ON a.id = jl.account_id AND (a.tenant_id = ${tenantId} OR a.tenant_id IS NULL)
       WHERE je.tenant_id = ${tenantId}
         AND je.crop_year = ${cropYear}
         AND je.is_void = false
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
         COALESCE(SUM(CASE WHEN a.account_type = 'expense' THEN jl.debit - jl.credit ELSE 0 END), 0) as total_expenses
       FROM journal_entries je
       JOIN journal_lines jl ON jl.journal_entry_id = je.id
-      JOIN accounts a ON a.id = jl.account_id AND a.tenant_id = ${tenantId}
+      JOIN accounts a ON a.id = jl.account_id AND (a.tenant_id = ${tenantId} OR a.tenant_id IS NULL)
       WHERE je.tenant_id = ${tenantId}
         AND je.crop_year = ${cropYear}
         AND je.is_void = false
