@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import {
   TrendingUp, TrendingDown, DollarSign, Percent, ChevronDown,
   ChevronRight, Loader2, BarChart3, BookOpen, ArrowUpRight,
-  ArrowDownRight, Minus, Layers,
+  ArrowDownRight, Minus, Layers, FileText, X, Download,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -612,7 +612,242 @@ function PnLStatement({
     </div>
   );
 }
+// ─── Professional P&L Drawer ─────────────────────────────────
+function PnLDrawer({ data, onClose }: { data: PnLData; onClose: () => void }) {
+  const fmt = (n: number) =>
+    `$${Math.abs(n).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  // Derive EBITDA components
+  const depreciation = Object.entries(data.expensesByCategory)
+    .filter(([k]) => k.toLowerCase().includes("depreciat"))
+    .reduce((s, [, v]) => s + v.total, 0);
+
+  const interest = Object.entries(data.expensesByCategory)
+    .filter(([k]) => k.toLowerCase().includes("interest"))
+    .reduce((s, [, v]) => s + v.total, 0);
+
+  const ebitda = data.netIncome + depreciation + interest;
+  const ebit = ebitda - depreciation;
+
+  const handleExportPDF = async () => {
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
+
+    const pageW = 215.9;
+    const margin = 20;
+    const colRight = pageW - margin;
+    let y = 20;
+
+    const line = () => { doc.setDrawColor(220, 220, 220); doc.line(margin, y, colRight, y); y += 5; };
+    const thickLine = () => { doc.setDrawColor(40, 40, 40); doc.setLineWidth(0.5); doc.line(margin, y, colRight, y); doc.setLineWidth(0.2); y += 5; };
+    const row = (label: string, value: string, bold = false, color = [30, 30, 30] as [number,number,number]) => {
+      doc.setFontSize(bold ? 10 : 9.5);
+      doc.setFont("helvetica", bold ? "bold" : "normal");
+      doc.setTextColor(...color);
+      doc.text(label, margin, y);
+      doc.text(value, colRight, y, { align: "right" });
+      y += 6;
+    };
+    const section = (title: string) => {
+      y += 3;
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(120, 120, 120);
+      doc.text(title.toUpperCase(), margin, y);
+      y += 5;
+      line();
+    };
+
+    // Header
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(20, 20, 20);
+    doc.text("AG/360", margin, y);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Statement of Farm Income — ${data.cropYear} Crop Year`, margin, y + 7);
+    doc.text(`Generated ${new Date().toLocaleDateString("en-CA")}  ·  All figures in CAD`, margin, y + 13);
+    y += 22;
+    thickLine();
+
+    // Revenue
+    section("Revenue");
+    data.revenueLines.forEach((l) => row(`  ${l.name}`, fmt(l.balance)));
+    y += 1; line();
+    row("Total Revenue", fmt(data.totalRevenue), true, [34, 197, 94]);
+    y += 2;
+
+    // Expenses
+    section("Operating Expenses");
+    Object.entries(data.expensesByCategory)
+      .sort(([, a], [, b]) => b.total - a.total)
+      .forEach(([, cat]) => row(`  ${cat.label}`, fmt(cat.total)));
+    y += 1; line();
+    row("Total Operating Expenses", fmt(data.totalExpenses), true, [239, 68, 68]);
+    y += 2;
+
+    // EBITDA block
+    section("Profitability");
+    thickLine();
+    row("EBITDA", fmt(ebitda), true, [20, 20, 20]);
+    row("  Depreciation & Amortization", depreciation > 0 ? `(${fmt(depreciation)})` : "$0.00");
+    line();
+    row("EBIT", fmt(ebit), true);
+    row("  Interest Expense", interest > 0 ? `(${fmt(interest)})` : "$0.00");
+    line();
+    row("NET FARM INCOME", fmt(data.netIncome), true, data.netIncome >= 0 ? [34,197,94] : [239,68,68]);
+    y += 2;
+    row("Profit Margin", `${data.margin}%`, false, [100,100,100]);
+
+    // Footer
+    y = 265;
+    doc.setFontSize(7.5);
+    doc.setTextColor(160, 160, 160);
+    doc.text("AG/360 — For the Farmer  ·  ag360.farm  ·  Confidential", margin, y);
+    doc.text(`Page 1`, colRight, y, { align: "right" });
+
+    doc.save(`AG360_PnL_${data.cropYear}.pdf`);
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      {/* Drawer */}
+      <div
+        className="fixed top-0 right-0 h-full w-[520px] z-50 flex flex-col"
+        style={{ background: "var(--ag-bg-base)", borderLeft: "1px solid rgba(255,255,255,0.08)" }}
+      >
+        {/* Drawer Header */}
+        <div
+          className="flex items-center justify-between px-6 py-4 border-b"
+          style={{ borderColor: "rgba(255,255,255,0.06)" }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: T.greenDim }}>
+              <FileText size={14} style={{ color: T.green }} />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold" style={{ color: T.text1 }}>P&L Statement</h2>
+              <p className="text-xs" style={{ color: T.text4 }}>{data.cropYear} Crop Year · CAD</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportPDF}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+              style={{ backgroundColor: T.greenDim, color: T.green }}
+            >
+              <Download size={12} />
+              Export PDF
+            </button>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/[0.06] transition-colors"
+            >
+              <X size={15} style={{ color: T.text3 }} />
+            </button>
+          </div>
+        </div>
+
+        {/* Drawer Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-0">
+
+          {/* Revenue Section */}
+          <div className="mb-4">
+            <p className="text-[10px] uppercase tracking-[2px] font-mono font-bold mb-3" style={{ color: T.green }}>Revenue</p>
+            {data.revenueLines.map((l, i) => (
+              <div key={i} className="flex justify-between py-1.5 text-sm border-b" style={{ borderColor: "rgba(255,255,255,0.03)" }}>
+                <span style={{ color: T.text2 }}>{l.name}</span>
+                <span className="font-mono" style={{ color: T.text1 }}>{fmt(l.balance)}</span>
+              </div>
+            ))}
+            <div className="flex justify-between py-2.5 mt-1">
+              <span className="text-sm font-bold" style={{ color: T.text1 }}>Total Revenue</span>
+              <span className="text-sm font-bold font-mono" style={{ color: T.green }}>{fmt(data.totalRevenue)}</span>
+            </div>
+          </div>
+
+          <div className="border-t mb-4" style={{ borderColor: "rgba(255,255,255,0.06)" }} />
+
+          {/* Expenses Section */}
+          <div className="mb-4">
+            <p className="text-[10px] uppercase tracking-[2px] font-mono font-bold mb-3" style={{ color: T.red }}>Operating Expenses</p>
+            {Object.entries(data.expensesByCategory)
+              .sort(([, a], [, b]) => b.total - a.total)
+              .map(([key, cat]) => (
+                <div key={key} className="flex justify-between py-1.5 text-sm border-b" style={{ borderColor: "rgba(255,255,255,0.03)" }}>
+                  <span style={{ color: T.text2 }}>{cat.label}</span>
+                  <span className="font-mono" style={{ color: T.text1 }}>{fmt(cat.total)}</span>
+                </div>
+              ))}
+            <div className="flex justify-between py-2.5 mt-1">
+              <span className="text-sm font-bold" style={{ color: T.text1 }}>Total Expenses</span>
+              <span className="text-sm font-bold font-mono" style={{ color: T.red }}>{fmt(data.totalExpenses)}</span>
+            </div>
+          </div>
+
+          <div className="border-t mb-4" style={{ borderColor: "rgba(255,255,255,0.06)" }} />
+
+          {/* EBITDA Block */}
+          <div className="mb-4">
+            <p className="text-[10px] uppercase tracking-[2px] font-mono font-bold mb-3" style={{ color: T.text3 }}>Profitability</p>
+
+            {/* EBITDA */}
+            <div className="flex justify-between py-2.5 px-4 rounded-lg mb-1" style={{ backgroundColor: "rgba(255,255,255,0.03)" }}>
+              <span className="text-sm font-bold" style={{ color: T.text1 }}>EBITDA</span>
+              <span className="text-sm font-bold font-mono" style={{ color: ebitda >= 0 ? T.green : T.red }}>{fmt(ebitda)}</span>
+            </div>
+            <div className="flex justify-between py-1.5 px-4 text-sm">
+              <span style={{ color: T.text3 }}>Depreciation & Amortization</span>
+              <span className="font-mono" style={{ color: T.text3 }}>({fmt(depreciation)})</span>
+            </div>
+
+            <div className="border-t my-2" style={{ borderColor: "rgba(255,255,255,0.06)" }} />
+
+            {/* EBIT */}
+            <div className="flex justify-between py-2 px-4">
+              <span className="text-sm font-semibold" style={{ color: T.text1 }}>EBIT</span>
+              <span className="text-sm font-semibold font-mono" style={{ color: T.text1 }}>{fmt(ebit)}</span>
+            </div>
+            <div className="flex justify-between py-1.5 px-4 text-sm">
+              <span style={{ color: T.text3 }}>Interest Expense</span>
+              <span className="font-mono" style={{ color: T.text3 }}>({fmt(interest)})</span>
+            </div>
+
+            <div className="border-t my-2" style={{ borderColor: "rgba(255,255,255,0.06)" }} />
+
+            {/* Net Income */}
+            <div
+              className="flex justify-between py-3 px-4 rounded-xl mt-1"
+              style={{ backgroundColor: data.netIncome >= 0 ? T.greenDim : T.redDim }}
+            >
+              <div>
+                <p className="text-sm font-bold" style={{ color: T.text1 }}>Net Farm Income</p>
+                <p className="text-xs mt-0.5" style={{ color: T.text3 }}>Profit Margin: {data.margin}%</p>
+              </div>
+              <span
+                className="text-lg font-bold font-mono self-center"
+                style={{ color: data.netIncome >= 0 ? T.green : T.red }}
+              >
+                {fmt(data.netIncome)}
+              </span>
+            </div>
+          </div>
+
+          {/* Footer note */}
+          <p className="text-[10px] text-center font-mono mt-4" style={{ color: T.text4 }}>
+            AG/360 · ag360.farm · For the Farmer
+          </p>
+        </div>
+      </div>
+    </>
+  );
+}
 // ═════════════════════════════════════════════════════════════
 //  P&L PAGE — FINTECH GRADE
 // ═════════════════════════════════════════════════════════════
@@ -623,6 +858,7 @@ export default function PnLPage() {
   const [cropYear, setCropYear] = useState("2025");
   const [view, setView] = useState("farm");
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+const [showBreakdown, setShowBreakdown] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -687,8 +923,18 @@ export default function PnLPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <select
-            value={cropYear}
+  {data && (
+    <button
+      onClick={() => setShowBreakdown(true)}
+      className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors"
+      style={{ backgroundColor: T.greenDim, color: T.green, border: `1px solid ${T.green}30` }}
+    >
+      <FileText size={13} />
+      Breakdown
+    </button>
+  )}
+  <select
+    value={cropYear}
             onChange={(e) => setCropYear(e.target.value)}
             className="bg-[var(--ag-bg-card)] border border-[var(--ag-border-solid)] rounded-lg px-3 py-1.5 text-sm text-ag-primary focus:outline-none focus:border-[var(--ag-accent)]/50 transition-colors"
           >
@@ -817,6 +1063,9 @@ export default function PnLPage() {
           </div>
         </>
       ) : null}
+      {showBreakdown && data && (
+        <PnLDrawer data={data} onClose={() => setShowBreakdown(false)} />
+      )}
     </div>
   );
 }
