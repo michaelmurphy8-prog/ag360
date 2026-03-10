@@ -117,7 +117,10 @@ const COUNTRIES = ['All', 'Canada', 'USA', 'International']
 export default function Connect360Page() {
   const [providers, setProviders] = useState<AnyProvider[]>([])
   const [loading, setLoading] = useState(true)
-  const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [typeFilter, setTypeFilter] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'all'
+    return new URLSearchParams(window.location.search).get('type') ?? 'all'
+  })
   const [provinceFilter, setProvinceFilter] = useState('All')
   const [countryFilter, setCountryFilter] = useState('All')
   const [availabilityFilter, setAvailabilityFilter] = useState('all')
