@@ -187,10 +187,7 @@ const isAdmin = isLoaded && [
       .finally(() => setBidsLoading(false))
   }, [bidTypeFilter, bidProvinceFilter, bidCountryFilter, bidStartDateFilter, showMyBids])
 
-  useEffect(() => {
-    if (!showBidsPanel) return
-    fetchBids()
-  }, [showBidsPanel, fetchBids])
+  useEffect(() => { fetchBids() }, [fetchBids])
 
   // Load existing connections
   useEffect(() => {
