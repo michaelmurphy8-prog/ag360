@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Globe, Truck, Sprout, Users, ChevronLeft,
-  CheckCircle, Upload, AlertCircle, MapPin, Briefcase
+  CheckCircle, Upload, AlertCircle, Briefcase
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -24,13 +24,18 @@ interface FormData {
   base_province: string
   base_city: string
   base_country: string
+  base_country_other: string
   service_radius_km: number
+  worldwide: boolean
+  province_other: string
   open_to_relocation: boolean
   work_countries: string[]
   bio: string
   years_experience: number | ''
   equipment_owned: string
   crops_experienced: string[]
+  operations_experience: string[]
+  equipment_brands: string[]
   availability: string
 }
 
@@ -56,7 +61,7 @@ const TYPE_OPTIONS = [
   },
   {
     value: 'worker',
-    label: 'Seasonal Worker',
+    label: 'Full Time & Seasonal Worker',
     icon: Users,
     desc: 'Harvest labour, seeding crews, general farm work',
     color: 'text-amber-400',
@@ -71,9 +76,59 @@ const CROP_OPTIONS = [
   'Flax', 'Mustard', 'Soybeans', 'Corn', 'Other',
 ]
 
+const OPERATIONS_OPTIONS = [
+  'Seeding',
+  'Spraying / Chemical Application',
+  'Haying & Baling',
+  'Swathing',
+  'Combine Harvesting',
+  'Grain Cart Operation',
+  'Land Rolling & Rock Picking',
+  'Grain Hauling & Trucking',
+  'Fabricating & Mechanical',
+  'Chemical Mixing / Water Tender',
+  'Fencing',
+  'Irrigation',
+  'Livestock Handling',
+  'Silage & Forage',
+  'General Yard & Field Work',
+  'Other',
+]
+
+const EQUIPMENT_BRAND_OPTIONS = [
+  // Manufacturers
+  'John Deere',
+  'Case IH',
+  'New Holland',
+  'AGCO / Fendt',
+  'Claas',
+  'Versatile',
+  'MacDon',
+  'Bourgault',
+  'Morris Industries',
+  'Horsch',
+  'Seed Hawk',
+  'Salford',
+  'Buhler / Farm King',
+  // GPS & Precision Ag
+  'John Deere Operations Center',
+  'CNH AFS',
+  'Trimble',
+  'AgLeader',
+  'Raven',
+  'Topcon',
+  'Precision Planting',
+  // Mobile / Software
+  'Climate FieldView',
+  'Bushel Farm',
+  'Granular',
+  'AG360',
+  'FarmLogs',
+]
+
 const CANADIAN_PROVINCES = ['AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT']
 const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
-const WORK_COUNTRY_OPTIONS = ['Canada', 'USA', 'Australia', 'New Zealand', 'UK', 'Other']
+const WORK_COUNTRY_OPTIONS = ['Canada', 'USA', 'Australia', 'New Zealand', 'UK', 'Germany', 'France', 'Ireland', 'Colombia', 'Brazil', 'Other']
 
 const inputClass = `w-full px-3 py-2.5 rounded-lg border text-sm text-ag-primary outline-none transition-all
   focus:border-[var(--ag-accent)] placeholder:text-ag-muted`
@@ -95,11 +150,15 @@ export default function RegisterProviderPage() {
     insurance_confirmed: false,
     licence_number: '', licence_province: '',
     base_province: '', base_city: '', base_country: 'Canada',
+    base_country_other: '',
     service_radius_km: 250,
+    worldwide: false,
+    province_other: '',
     open_to_relocation: false,
     work_countries: ['Canada'],
     bio: '', years_experience: '',
     equipment_owned: '', crops_experienced: [],
+    operations_experience: [], equipment_brands: [],
     availability: 'immediate',
   })
 
@@ -107,26 +166,16 @@ export default function RegisterProviderPage() {
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  function toggleCrop(crop: string) {
-    set('crops_experienced',
-      form.crops_experienced.includes(crop)
-        ? form.crops_experienced.filter(c => c !== crop)
-        : [...form.crops_experienced, crop]
-    )
-  }
-
-  function toggleWorkCountry(country: string) {
-    set('work_countries',
-      form.work_countries.includes(country)
-        ? form.work_countries.filter(c => c !== country)
-        : [...form.work_countries, country]
-    )
+  function toggleItem(key: 'crops_experienced' | 'operations_experience' | 'equipment_brands' | 'work_countries', val: string) {
+    const arr = form[key] as string[]
+    set(key, arr.includes(val) ? arr.filter(c => c !== val) : [...arr, val])
   }
 
   function canAdvance() {
     if (step === 1) return !!form.type
     if (step === 2) return !!(form.first_name && form.last_name && form.email)
-    if (step === 3) return !!(form.base_city && form.base_province)
+    if (step === 3) return !!(form.base_city && (form.base_province || form.province_other || !['Canada', 'USA'].includes(form.base_country)))
+    if (step === 4) return !!form.bio.trim()
     return true
   }
 
@@ -134,7 +183,6 @@ export default function RegisterProviderPage() {
     setSubmitting(true)
     setError(null)
     try {
-      // Upload CV if provided
       let cv_url: string | null = null
       if (cvFile) {
         const fd = new FormData()
@@ -154,6 +202,8 @@ export default function RegisterProviderPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
+          base_country: form.base_country === 'Other' ? form.base_country_other : form.base_country,
+          base_province: form.base_province === 'Other' ? form.province_other : form.base_province,
           years_experience: form.years_experience === '' ? null : Number(form.years_experience),
           cv_url,
         }),
@@ -239,9 +289,7 @@ export default function RegisterProviderPage() {
               <button
                 key={opt.value}
                 onClick={() => set('type', opt.value)}
-                className={`w-full flex items-center gap-4 p-4 rounded-xl border text-left transition-all ${
-                  selected ? `${opt.border} ${opt.bg}` : ''
-                }`}
+                className={`w-full flex items-center gap-4 p-4 rounded-xl border text-left transition-all ${selected ? `${opt.border} ${opt.bg}` : ''}`}
                 style={{
                   borderColor: selected ? undefined : 'var(--ag-border)',
                   backgroundColor: selected ? undefined : 'var(--ag-bg-card)',
@@ -294,52 +342,53 @@ export default function RegisterProviderPage() {
               placeholder="+1 (306) 555-0000" />
           </div>
 
-          <div>
-            <label className="block text-xs text-ag-muted mb-1.5">Business / Company Name</label>
-            <input className={inputClass} style={inputStyle}
-              value={form.business_name} onChange={e => set('business_name', e.target.value)}
-              placeholder="Smith Trucking Ltd." />
-          </div>
-
-          <div>
-            <label className="block text-xs text-ag-muted mb-1.5">Business Registration Number</label>
-            <input className={inputClass} style={inputStyle}
-              value={form.business_number} onChange={e => set('business_number', e.target.value)}
-              placeholder="GST / HST / BN" />
-          </div>
-
+          {/* Business fields — truckers and applicators only */}
           {(form.type === 'trucker' || form.type === 'applicator') && (
-            <div className="grid grid-cols-2 gap-3">
+            <>
               <div>
-                <label className="block text-xs text-ag-muted mb-1.5">
-                  {form.type === 'applicator' ? 'Pesticide Licence #' : 'Commercial Licence #'}
-                </label>
+                <label className="block text-xs text-ag-muted mb-1.5">Business / Company Name</label>
                 <input className={inputClass} style={inputStyle}
-                  value={form.licence_number} onChange={e => set('licence_number', e.target.value)}
-                  placeholder="Licence number" />
+                  value={form.business_name} onChange={e => set('business_name', e.target.value)}
+                  placeholder="Smith Trucking Ltd." />
               </div>
-              <div>
-                <label className="block text-xs text-ag-muted mb-1.5">Issuing Province</label>
-                <select className={inputClass} style={inputStyle}
-                  value={form.licence_province} onChange={e => set('licence_province', e.target.value)}>
-                  <option value="">Select province</option>
-                  {CANADIAN_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-            </div>
-          )}
 
-          {(form.type === 'trucker' || form.type === 'applicator') && (
-            <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer"
-              style={{ borderColor: form.insurance_confirmed ? 'var(--ag-accent-border)' : 'var(--ag-border)', backgroundColor: 'var(--ag-bg-card)' }}>
-              <input type="checkbox" className="mt-0.5"
-                checked={form.insurance_confirmed}
-                onChange={e => set('insurance_confirmed', e.target.checked)} />
               <div>
-                <div className="text-sm text-ag-primary font-medium">Insurance Confirmed</div>
-                <div className="text-xs text-ag-muted">I confirm I carry adequate commercial insurance for the services I provide</div>
+                <label className="block text-xs text-ag-muted mb-1.5">Business Registration Number</label>
+                <input className={inputClass} style={inputStyle}
+                  value={form.business_number} onChange={e => set('business_number', e.target.value)}
+                  placeholder="GST / HST / BN" />
               </div>
-            </label>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-ag-muted mb-1.5">
+                    {form.type === 'applicator' ? 'Pesticide Licence #' : 'Commercial Licence #'}
+                  </label>
+                  <input className={inputClass} style={inputStyle}
+                    value={form.licence_number} onChange={e => set('licence_number', e.target.value)}
+                    placeholder="Licence number" />
+                </div>
+                <div>
+                  <label className="block text-xs text-ag-muted mb-1.5">Issuing Province</label>
+                  <select className={inputClass} style={inputStyle}
+                    value={form.licence_province} onChange={e => set('licence_province', e.target.value)}>
+                    <option value="">Select province</option>
+                    {CANADIAN_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer"
+                style={{ borderColor: form.insurance_confirmed ? 'var(--ag-accent-border)' : 'var(--ag-border)', backgroundColor: 'var(--ag-bg-card)' }}>
+                <input type="checkbox" className="mt-0.5"
+                  checked={form.insurance_confirmed}
+                  onChange={e => set('insurance_confirmed', e.target.checked)} />
+                <div>
+                  <div className="text-sm text-ag-primary font-medium">Insurance Confirmed</div>
+                  <div className="text-xs text-ag-muted">I confirm I carry adequate commercial insurance for the services I provide</div>
+                </div>
+              </label>
+            </>
           )}
         </div>
       )}
@@ -347,6 +396,7 @@ export default function RegisterProviderPage() {
       {/* Step 3 — Location & Availability */}
       {step === 3 && (
         <div className="space-y-4">
+          {/* Base Country */}
           <div>
             <label className="block text-xs text-ag-muted mb-1.5">Base Country *</label>
             <select className={inputClass} style={inputStyle}
@@ -356,11 +406,25 @@ export default function RegisterProviderPage() {
               <option value="Australia">Australia</option>
               <option value="New Zealand">New Zealand</option>
               <option value="UK">United Kingdom</option>
+              <option value="Germany">Germany</option>
+              <option value="France">France</option>
+              <option value="Ireland">Ireland</option>
+              <option value="Wales">Wales</option>
+              <option value="Scotland">Scotland</option>
+              <option value="Colombia">Colombia</option>
+              <option value="Brazil">Brazil</option>
               <option value="South Africa">South Africa</option>
               <option value="Other">Other</option>
             </select>
+            {form.base_country === 'Other' && (
+              <input className={`${inputClass} mt-2`} style={inputStyle}
+                value={form.base_country_other}
+                onChange={e => set('base_country_other', e.target.value)}
+                placeholder="Specify your country" />
+            )}
           </div>
 
+          {/* City + Province/State */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-ag-muted mb-1.5">Base City / Town *</label>
@@ -369,39 +433,69 @@ export default function RegisterProviderPage() {
                 placeholder="Swift Current" />
             </div>
             <div>
-              <label className="block text-xs text-ag-muted mb-1.5">Province / State *</label>
-              <select className={inputClass} style={inputStyle}
-                value={form.base_province} onChange={e => set('base_province', e.target.value)}>
-                <option value="">Select...</option>
-                <optgroup label="Canadian Provinces">
-                  {CANADIAN_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
-                </optgroup>
-                <optgroup label="US States">
-                  {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                </optgroup>
-              </select>
+              <label className="block text-xs text-ag-muted mb-1.5">
+                {['Canada', 'USA'].includes(form.base_country) ? 'Province / State *' : 'Region / County'}
+              </label>
+              {['Canada', 'USA'].includes(form.base_country) ? (
+                <select className={inputClass} style={inputStyle}
+                  value={form.base_province} onChange={e => set('base_province', e.target.value)}>
+                  <option value="">Select...</option>
+                  <optgroup label="Canadian Provinces">
+                    {CANADIAN_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                  </optgroup>
+                  <optgroup label="US States">
+                    {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </optgroup>
+                  <option value="Other">Other</option>
+                </select>
+              ) : (
+                <input className={inputClass} style={inputStyle}
+                  value={form.province_other} onChange={e => set('province_other', e.target.value)}
+                  placeholder="Region / County (optional)" />
+              )}
+              {form.base_province === 'Other' && ['Canada', 'USA'].includes(form.base_country) && (
+                <input className={`${inputClass} mt-2`} style={inputStyle}
+                  value={form.province_other} onChange={e => set('province_other', e.target.value)}
+                  placeholder="Specify your region" />
+              )}
             </div>
           </div>
 
+          {/* Service Radius */}
           <div>
-            <label className="block text-xs text-ag-muted mb-1.5">
-              Service Radius — <span className="text-ag-primary font-medium">{form.service_radius_km} km</span>
-            </label>
-            <input type="range" min={50} max={2000} step={50}
-              value={form.service_radius_km}
-              onChange={e => set('service_radius_km', Number(e.target.value))}
-              className="w-full accent-[var(--ag-accent)]" />
-            <div className="flex justify-between text-[10px] text-ag-muted mt-1">
-              <span>50 km</span><span>500 km</span><span>1,000 km</span><span>2,000 km</span>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs text-ag-muted">
+                Service Radius —{' '}
+                <span className="text-ag-primary font-medium">
+                  {form.worldwide ? 'Worldwide' : `${form.service_radius_km} km`}
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={form.worldwide}
+                  onChange={e => set('worldwide', e.target.checked)} />
+                <span className="text-xs text-ag-muted">Worldwide</span>
+              </label>
             </div>
+            {!form.worldwide && (
+              <>
+                <input type="range" min={50} max={2000} step={50}
+                  value={form.service_radius_km}
+                  onChange={e => set('service_radius_km', Number(e.target.value))}
+                  className="w-full accent-[var(--ag-accent)]" />
+                <div className="flex justify-between text-[10px] text-ag-muted mt-1">
+                  <span>50 km</span><span>500 km</span><span>1,000 km</span><span>2,000 km</span>
+                </div>
+              </>
+            )}
           </div>
 
+          {/* Work countries */}
           <div>
             <label className="block text-xs text-ag-muted mb-2">Countries I'm willing to work in</label>
             <div className="flex flex-wrap gap-2">
               {WORK_COUNTRY_OPTIONS.map(c => (
                 <button key={c} type="button"
-                  onClick={() => toggleWorkCountry(c)}
+                  onClick={() => toggleItem('work_countries', c)}
                   className="px-3 py-1.5 rounded-full border text-xs font-medium transition-all"
                   style={{
                     borderColor: form.work_countries.includes(c) ? 'var(--ag-accent-border)' : 'var(--ag-border)',
@@ -414,6 +508,7 @@ export default function RegisterProviderPage() {
             </div>
           </div>
 
+          {/* Open to relocation */}
           <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer"
             style={{ borderColor: form.open_to_relocation ? 'var(--ag-accent-border)' : 'var(--ag-border)', backgroundColor: 'var(--ag-bg-card)' }}>
             <input type="checkbox" checked={form.open_to_relocation}
@@ -424,6 +519,7 @@ export default function RegisterProviderPage() {
             </div>
           </label>
 
+          {/* Availability */}
           <div>
             <label className="block text-xs text-ag-muted mb-1.5">Current Availability</label>
             <div className="grid grid-cols-2 gap-2">
@@ -453,7 +549,8 @@ export default function RegisterProviderPage() {
 
       {/* Step 4 — Experience & Details */}
       {step === 4 && (
-        <div className="space-y-4">
+        <div className="space-y-5">
+          {/* Years + Bio */}
           <div>
             <label className="block text-xs text-ag-muted mb-1.5">Years of Experience</label>
             <input className={inputClass} style={inputStyle} type="number" min={0} max={60}
@@ -463,12 +560,18 @@ export default function RegisterProviderPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-ag-muted mb-1.5">Bio / About You</label>
-            <textarea className={inputClass} style={inputStyle} rows={3}
+            <label className="block text-xs text-ag-muted mb-1.5">
+              Bio / About You <span className="text-red-400">*</span>
+            </label>
+            <textarea className={inputClass} style={inputStyle} rows={4}
               value={form.bio} onChange={e => set('bio', e.target.value)}
-              placeholder="Briefly describe your experience, what you offer, and what makes you a great hire..." />
+              placeholder="Describe your experience, what you offer, and what makes you a great hire. This is what farmers see first — make it count." />
+            {!form.bio.trim() && (
+              <p className="text-xs text-ag-muted mt-1">Required before submitting.</p>
+            )}
           </div>
 
+          {/* Equipment owned — truckers + applicators */}
           {(form.type === 'trucker' || form.type === 'applicator') && (
             <div>
               <label className="block text-xs text-ag-muted mb-1.5">Equipment Owned</label>
@@ -478,12 +581,13 @@ export default function RegisterProviderPage() {
             </div>
           )}
 
+          {/* Crops Experienced */}
           <div>
             <label className="block text-xs text-ag-muted mb-2">Crops Experienced With</label>
             <div className="flex flex-wrap gap-2">
               {CROP_OPTIONS.map(crop => (
                 <button key={crop} type="button"
-                  onClick={() => toggleCrop(crop)}
+                  onClick={() => toggleItem('crops_experienced', crop)}
                   className="px-3 py-1.5 rounded-full border text-xs font-medium transition-all"
                   style={{
                     borderColor: form.crops_experienced.includes(crop) ? 'var(--ag-accent-border)' : 'var(--ag-border)',
@@ -496,6 +600,47 @@ export default function RegisterProviderPage() {
             </div>
           </div>
 
+          {/* Operations Experience */}
+          <div>
+            <label className="block text-xs text-ag-muted mb-1">Operations Experience</label>
+            <p className="text-[11px] text-ag-dim mb-2">Select all that apply</p>
+            <div className="flex flex-wrap gap-2">
+              {OPERATIONS_OPTIONS.map(op => (
+                <button key={op} type="button"
+                  onClick={() => toggleItem('operations_experience', op)}
+                  className="px-3 py-1.5 rounded-full border text-xs font-medium transition-all"
+                  style={{
+                    borderColor: form.operations_experience.includes(op) ? 'var(--ag-accent-border)' : 'var(--ag-border)',
+                    backgroundColor: form.operations_experience.includes(op) ? 'var(--ag-bg-active)' : 'var(--ag-bg-hover)',
+                    color: form.operations_experience.includes(op) ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
+                  }}>
+                  {op}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Equipment & Brand Experience */}
+          <div>
+            <label className="block text-xs text-ag-muted mb-1">Equipment & Brand Experience</label>
+            <p className="text-[11px] text-ag-dim mb-2">Manufacturers, GPS systems, and farm software</p>
+            <div className="flex flex-wrap gap-2">
+              {EQUIPMENT_BRAND_OPTIONS.map(brand => (
+                <button key={brand} type="button"
+                  onClick={() => toggleItem('equipment_brands', brand)}
+                  className="px-3 py-1.5 rounded-full border text-xs font-medium transition-all"
+                  style={{
+                    borderColor: form.equipment_brands.includes(brand) ? 'var(--ag-accent-border)' : 'var(--ag-border)',
+                    backgroundColor: form.equipment_brands.includes(brand) ? 'var(--ag-bg-active)' : 'var(--ag-bg-hover)',
+                    color: form.equipment_brands.includes(brand) ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
+                  }}>
+                  {brand}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* CV Upload — workers only */}
           {form.type === 'worker' && (
             <div>
               <label className="block text-xs text-ag-muted mb-1.5">
@@ -561,9 +706,13 @@ export default function RegisterProviderPage() {
         ) : (
           <button
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || !canAdvance()}
             className="px-6 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
-            style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}
+            style={{
+              backgroundColor: canAdvance() ? 'var(--ag-accent)' : 'var(--ag-bg-hover)',
+              color: canAdvance() ? 'var(--ag-bg-primary)' : 'var(--ag-text-muted)',
+              cursor: canAdvance() ? 'pointer' : 'not-allowed',
+            }}
           >
             {submitting ? 'Submitting...' : 'Submit for Review'}
           </button>
