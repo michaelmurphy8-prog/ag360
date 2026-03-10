@@ -5,7 +5,8 @@ import { useUser } from '@clerk/nextjs'
 import {
   Globe, Search, Filter, MapPin, Truck, Sprout,
   Users, ChevronDown, CheckCircle, Clock, Phone,
-  Mail, Building2, Star, RefreshCw, UserPlus, X, Shield
+  Mail, Building2, Star, RefreshCw, UserPlus, X, Shield,
+  Briefcase, Calendar, Wheat, ChevronRight, Plus
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -51,6 +52,32 @@ interface DirectoryEntry {
 }
 
 type AnyProvider = ConnectProfile | DirectoryEntry
+
+interface ConnectBid {
+  id: string
+  farm_name: string
+  contact_name: string
+  contact_phone?: string
+  contact_email: string
+  province?: string
+  city?: string
+  country: string
+  bid_type: 'worker' | 'applicator' | 'trucker'
+  title: string
+  description?: string
+  acres?: number
+  crop_types?: string[]
+  equipment_required?: string
+  start_date?: string
+  end_date?: string
+  duration_notes?: string
+  pay_rate?: string
+  housing_provided: boolean
+  meals_provided: boolean
+  status: string
+  created_at: string
+  expires_at: string
+}
 
 interface ConnectedProvider {
   profile_id: string
@@ -100,6 +127,10 @@ export default function Connect360Page() {
   const [connectingId, setConnectingId] = useState<string | null>(null)
   const [revealedProvider, setRevealedProvider] = useState<ConnectedProvider | null>(null)
   const [showRevealModal, setShowRevealModal] = useState(false)
+  const [bids, setBids] = useState<ConnectBid[]>([])
+  const [bidsLoading, setBidsLoading] = useState(false)
+  const [showBidsPanel, setShowBidsPanel] = useState(false)
+  const [showPostBidModal, setShowPostBidModal] = useState(false)
   const { user, isLoaded } = useUser()
 const isAdmin = isLoaded && [
   'user_3AfgiCDtz0gHx4WMcLx4bBtrSIY',
@@ -133,6 +164,17 @@ const isAdmin = isLoaded && [
   }, [typeFilter, provinceFilter, countryFilter, availabilityFilter, openToRelocation, search])
 
   useEffect(() => { fetchProviders() }, [fetchProviders])
+
+  // Load bids
+  useEffect(() => {
+    if (!showBidsPanel) return
+    setBidsLoading(true)
+    fetch('/api/connect360/bids')
+      .then(r => r.json())
+      .then(data => setBids(data.bids ?? []))
+      .catch(() => setBids([]))
+      .finally(() => setBidsLoading(false))
+  }, [showBidsPanel])
 
   // Load existing connections
   useEffect(() => {
@@ -236,6 +278,24 @@ const isAdmin = isLoaded && [
             </button>
           )
         })}
+
+        {/* Bids card — gold */}
+        <button
+          onClick={() => setShowBidsPanel(true)}
+          className="flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
+          style={{
+            backgroundColor: showBidsPanel ? 'rgba(212,175,55,0.08)' : 'var(--ag-bg-card)',
+            borderColor: showBidsPanel ? 'rgba(212,175,55,0.4)' : 'var(--ag-border)',
+          }}
+        >
+          <Briefcase size={16} style={{ color: 'var(--ag-accent)' }} />
+          <div>
+            <div className="text-lg font-bold" style={{ color: 'var(--ag-accent)' }}>
+              {bids.length > 0 ? bids.length : '—'}
+            </div>
+            <div className="text-[10px] text-ag-muted uppercase tracking-wide">Active Bids</div>
+          </div>
+        </button>
       </div>
 
       {/* Filters */}
@@ -343,6 +403,188 @@ const isAdmin = isLoaded && [
             )
           )}
         </div>
+      )}
+
+      {/* Bids slide-out panel */}
+      {showBidsPanel && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowBidsPanel(false)} />
+          <div className="relative w-full max-w-lg h-full flex flex-col border-l shadow-2xl overflow-hidden"
+            style={{ backgroundColor: 'var(--ag-bg-primary)', borderColor: 'var(--ag-border)' }}>
+
+            {/* Panel header */}
+            <div className="flex items-center justify-between p-5 border-b"
+              style={{ borderColor: 'var(--ag-border)' }}>
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <Briefcase size={16} style={{ color: 'var(--ag-accent)' }} />
+                  <h2 className="font-bold text-ag-primary">Active Bids</h2>
+                  {bids.length > 0 && (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                      style={{ backgroundColor: 'rgba(212,175,55,0.15)', color: 'var(--ag-accent)' }}>
+                      {bids.length}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-ag-muted">Farmers seeking workers, applicators & truckers</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { setShowBidsPanel(false); setShowPostBidModal(true) }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all"
+                  style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}
+                >
+                  <Plus size={12} /> Post a Bid
+                </button>
+                <button onClick={() => setShowBidsPanel(false)}>
+                  <X size={16} className="text-ag-muted hover:text-ag-primary" />
+                </button>
+              </div>
+            </div>
+
+            {/* Bid type filter */}
+            <div className="flex gap-2 px-5 py-3 border-b" style={{ borderColor: 'var(--ag-border)' }}>
+              {['all', 'worker', 'applicator', 'trucker'].map(t => (
+                <button key={t}
+                  onClick={() => {
+                    setBidsLoading(true)
+                    fetch(`/api/connect360/bids${t !== 'all' ? `?bid_type=${t}` : ''}`)
+                      .then(r => r.json())
+                      .then(data => setBids(data.bids ?? []))
+                      .catch(() => {})
+                      .finally(() => setBidsLoading(false))
+                  }}
+                  className="px-3 py-1 rounded-full text-xs font-medium border transition-all capitalize"
+                  style={{
+                    borderColor: 'var(--ag-border)',
+                    backgroundColor: 'var(--ag-bg-card)',
+                    color: 'var(--ag-text-secondary)',
+                  }}
+                >
+                  {t === 'all' ? 'All' : t === 'worker' ? 'Workers' : t === 'applicator' ? 'Applicators' : 'Truckers'}
+                </button>
+              ))}
+            </div>
+
+            {/* Bid list */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {bidsLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <RefreshCw size={18} className="animate-spin text-ag-muted" />
+                </div>
+              ) : bids.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <Briefcase size={32} className="text-ag-muted mb-3 opacity-30" />
+                  <p className="text-sm text-ag-muted">No active bids right now.</p>
+                  <button
+                    onClick={() => { setShowBidsPanel(false); setShowPostBidModal(true) }}
+                    className="mt-4 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                    style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}
+                  >
+                    Post the First Bid
+                  </button>
+                </div>
+              ) : (
+                bids.map(bid => (
+                  <div key={bid.id} className="p-4 rounded-xl border transition-all hover:border-[var(--ag-accent-border)]"
+                    style={{ backgroundColor: 'var(--ag-bg-card)', borderColor: 'var(--ag-border)' }}>
+
+                    {/* Bid header */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div>
+                        <div className="font-semibold text-sm text-ag-primary">{bid.title}</div>
+                        <div className="text-xs text-ag-muted mt-0.5">{bid.farm_name}</div>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full border capitalize flex-shrink-0"
+                        style={{
+                          color: bid.bid_type === 'worker' ? '#f59e0b' : bid.bid_type === 'applicator' ? '#34d399' : '#60a5fa',
+                          borderColor: bid.bid_type === 'worker' ? 'rgba(245,158,11,0.3)' : bid.bid_type === 'applicator' ? 'rgba(52,211,153,0.3)' : 'rgba(96,165,250,0.3)',
+                          backgroundColor: bid.bid_type === 'worker' ? 'rgba(245,158,11,0.08)' : bid.bid_type === 'applicator' ? 'rgba(52,211,153,0.08)' : 'rgba(96,165,250,0.08)',
+                        }}>
+                        {bid.bid_type}
+                      </span>
+                    </div>
+
+                    {/* Location + dates */}
+                    <div className="flex flex-wrap gap-3 mb-2">
+                      {(bid.city || bid.province) && (
+                        <div className="flex items-center gap-1 text-xs text-ag-muted">
+                          <MapPin size={10} />
+                          {[bid.city, bid.province, bid.country].filter(Boolean).join(', ')}
+                        </div>
+                      )}
+                      {(bid.start_date || bid.duration_notes) && (
+                        <div className="flex items-center gap-1 text-xs text-ag-muted">
+                          <Calendar size={10} />
+                          {bid.duration_notes ?? new Date(bid.start_date!).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
+                        </div>
+                      )}
+                      {bid.acres && (
+                        <div className="flex items-center gap-1 text-xs text-ag-muted">
+                          <Wheat size={10} /> {bid.acres.toLocaleString()} acres
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    {bid.description && (
+                      <p className="text-xs text-ag-muted line-clamp-2 mb-2">{bid.description}</p>
+                    )}
+
+                    {/* Perks */}
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {bid.pay_rate && (
+                        <span className="text-[10px] px-2 py-0.5 rounded border text-ag-muted"
+                          style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)' }}>
+                          💰 {bid.pay_rate}
+                        </span>
+                      )}
+                      {bid.housing_provided && (
+                        <span className="text-[10px] px-2 py-0.5 rounded border text-ag-muted"
+                          style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)' }}>
+                          🏠 Housing
+                        </span>
+                      )}
+                      {bid.meals_provided && (
+                        <span className="text-[10px] px-2 py-0.5 rounded border text-ag-muted"
+                          style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)' }}>
+                          🍽️ Meals
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Contact */}
+                    <div className="flex gap-2 pt-3 border-t" style={{ borderColor: 'var(--ag-border)' }}>
+                      {bid.contact_phone && (
+                        <a href={`tel:${bid.contact_phone}`}
+                          className="flex items-center gap-1.5 flex-1 justify-center py-2 rounded-lg text-xs font-medium border transition-all hover:border-[var(--ag-accent-border)]"
+                          style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)' }}>
+                          <Phone size={11} /> Call
+                        </a>
+                      )}
+                      <a href={`mailto:${bid.contact_email}`}
+                        className="flex items-center gap-1.5 flex-1 justify-center py-2 rounded-lg text-xs font-medium transition-all"
+                        style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}>
+                        <Mail size={11} /> Email
+                      </a>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Post Bid Modal */}
+      {showPostBidModal && (
+        <PostBidModal
+          onClose={() => setShowPostBidModal(false)}
+          onSuccess={() => {
+            setShowPostBidModal(false)
+            setShowBidsPanel(true)
+          }}
+        />
       )}
 
       {/* Contact reveal modal */}
@@ -588,6 +830,257 @@ function DirectoryCard({ entry }: { entry: DirectoryEntry }) {
             <Mail size={11} /> Email
           </a>
         )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Post Bid Modal ───────────────────────────────────────────
+function PostBidModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [step, setStep] = useState(1)
+  const [submitting, setSubmitting] = useState(false)
+  const [form, setForm] = useState({
+    farm_name: '', contact_name: '', contact_phone: '', contact_email: '',
+    city: '', province: '', country: 'Canada',
+    bid_type: 'worker', title: '', description: '',
+    acres: '', crop_types: [] as string[],
+    equipment_required: '', start_date: '', end_date: '',
+    duration_notes: '', pay_rate: '',
+    housing_provided: false, meals_provided: false,
+  })
+
+  const set = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }))
+
+  const CROPS = ['Canola', 'Wheat', 'Barley', 'Oats', 'Flax', 'Lentils', 'Peas', 'Soybeans', 'Corn', 'Other']
+
+  async function handleSubmit() {
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/connect360/bids', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, acres: form.acres ? parseInt(form.acres) : null }),
+      })
+      const data = await res.json()
+      if (data.success) onSuccess()
+    } catch {
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const inputClass = "w-full px-3 py-2.5 rounded-lg border text-sm text-ag-primary outline-none transition-all focus:border-[var(--ag-accent-border)]"
+  const inputStyle = { borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }
+  const labelClass = "block text-xs text-ag-muted mb-1.5 font-medium"
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="w-full max-w-lg rounded-2xl border shadow-2xl flex flex-col max-h-[90vh]"
+        style={{ backgroundColor: 'var(--ag-bg-card)', borderColor: 'var(--ag-border)' }}>
+
+        {/* Modal header */}
+        <div className="flex items-center justify-between p-5 border-b flex-shrink-0"
+          style={{ borderColor: 'var(--ag-border)' }}>
+          <div>
+            <h2 className="font-bold text-ag-primary">Post a Bid</h2>
+            <p className="text-xs text-ag-muted mt-0.5">Step {step} of 2</p>
+          </div>
+          <button onClick={onClose}><X size={16} className="text-ag-muted hover:text-ag-primary" /></button>
+        </div>
+
+        {/* Step indicator */}
+        <div className="flex gap-1.5 px-5 pt-4 flex-shrink-0">
+          {[1, 2].map(s => (
+            <div key={s} className="flex-1 h-1 rounded-full transition-all"
+              style={{ backgroundColor: s <= step ? 'var(--ag-accent)' : 'var(--ag-border)' }} />
+          ))}
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {step === 1 ? (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className={labelClass}>Farm Name *</label>
+                  <input value={form.farm_name} onChange={e => set('farm_name', e.target.value)}
+                    placeholder="Murphy Farms" className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className={labelClass}>Your Name *</label>
+                  <input value={form.contact_name} onChange={e => set('contact_name', e.target.value)}
+                    placeholder="Mike Murphy" className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className={labelClass}>Phone</label>
+                  <input value={form.contact_phone} onChange={e => set('contact_phone', e.target.value)}
+                    placeholder="+1 306 555 0000" className={inputClass} style={inputStyle} />
+                </div>
+                <div className="col-span-2">
+                  <label className={labelClass}>Email *</label>
+                  <input value={form.contact_email} onChange={e => set('contact_email', e.target.value)}
+                    placeholder="mike@farm.com" className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className={labelClass}>City</label>
+                  <input value={form.city} onChange={e => set('city', e.target.value)}
+                    placeholder="Swift Current" className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className={labelClass}>Province</label>
+                  <select value={form.province} onChange={e => set('province', e.target.value)}
+                    className={inputClass} style={inputStyle}>
+                    <option value="">Select</option>
+                    {['SK', 'AB', 'MB', 'BC', 'ON', 'Other'].map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className={labelClass}>Looking for *</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { v: 'worker', label: 'Worker', icon: '👷' },
+                    { v: 'applicator', label: 'Applicator', icon: '🌿' },
+                    { v: 'trucker', label: 'Trucker', icon: '🚛' },
+                  ].map(({ v, label, icon }) => (
+                    <button key={v} type="button"
+                      onClick={() => set('bid_type', v)}
+                      className="py-2.5 rounded-lg border text-xs font-medium transition-all"
+                      style={{
+                        borderColor: form.bid_type === v ? 'var(--ag-accent)' : 'var(--ag-border)',
+                        backgroundColor: form.bid_type === v ? 'rgba(212,175,55,0.1)' : 'var(--ag-bg-hover)',
+                        color: form.bid_type === v ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
+                      }}>
+                      {icon} {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className={labelClass}>Job Title *</label>
+                <input value={form.title} onChange={e => set('title', e.target.value)}
+                  placeholder="Need combine operator for harvest" className={inputClass} style={inputStyle} />
+              </div>
+
+              <div>
+                <label className={labelClass}>Description / Job Details</label>
+                <textarea value={form.description} onChange={e => set('description', e.target.value)}
+                  rows={3} placeholder="Describe the work, conditions, expectations..."
+                  className={inputClass} style={inputStyle} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>Acres</label>
+                  <input value={form.acres} onChange={e => set('acres', e.target.value)}
+                    type="number" placeholder="5000" className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className={labelClass}>Pay Rate</label>
+                  <input value={form.pay_rate} onChange={e => set('pay_rate', e.target.value)}
+                    placeholder="$25/hr or Competitive" className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className={labelClass}>Start Date</label>
+                  <input value={form.start_date} onChange={e => set('start_date', e.target.value)}
+                    type="date" className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className={labelClass}>End Date</label>
+                  <input value={form.end_date} onChange={e => set('end_date', e.target.value)}
+                    type="date" className={inputClass} style={inputStyle} />
+                </div>
+                <div className="col-span-2">
+                  <label className={labelClass}>Duration Notes</label>
+                  <input value={form.duration_notes} onChange={e => set('duration_notes', e.target.value)}
+                    placeholder="Approx 3 weeks during harvest" className={inputClass} style={inputStyle} />
+                </div>
+                <div className="col-span-2">
+                  <label className={labelClass}>Equipment Required</label>
+                  <input value={form.equipment_required} onChange={e => set('equipment_required', e.target.value)}
+                    placeholder="Must have Class 1A, combine experience" className={inputClass} style={inputStyle} />
+                </div>
+              </div>
+
+              {/* Crops */}
+              <div>
+                <label className={labelClass}>Crop Types</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {CROPS.map(c => (
+                    <button key={c} type="button"
+                      onClick={() => set('crop_types', form.crop_types.includes(c)
+                        ? form.crop_types.filter(x => x !== c)
+                        : [...form.crop_types, c])}
+                      className="px-2.5 py-1 rounded-full border text-xs transition-all"
+                      style={{
+                        borderColor: form.crop_types.includes(c) ? 'var(--ag-accent)' : 'var(--ag-border)',
+                        backgroundColor: form.crop_types.includes(c) ? 'rgba(212,175,55,0.1)' : 'var(--ag-bg-hover)',
+                        color: form.crop_types.includes(c) ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
+                      }}>
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Perks */}
+              <div>
+                <label className={labelClass}>Perks Included</label>
+                <div className="flex gap-2">
+                  {[
+                    { k: 'housing_provided', label: '🏠 Housing' },
+                    { k: 'meals_provided', label: '🍽️ Meals' },
+                  ].map(({ k, label }) => (
+                    <button key={k} type="button"
+                      onClick={() => set(k, !form[k as keyof typeof form])}
+                      className="px-3 py-2 rounded-lg border text-xs font-medium transition-all"
+                      style={{
+                        borderColor: form[k as keyof typeof form] ? 'var(--ag-accent)' : 'var(--ag-border)',
+                        backgroundColor: form[k as keyof typeof form] ? 'rgba(212,175,55,0.1)' : 'var(--ag-bg-hover)',
+                        color: form[k as keyof typeof form] ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
+                      }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-3 p-5 border-t flex-shrink-0" style={{ borderColor: 'var(--ag-border)' }}>
+          {step === 2 && (
+            <button onClick={() => setStep(1)}
+              className="px-4 py-2.5 rounded-lg border text-sm font-medium transition-all"
+              style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)' }}>
+              Back
+            </button>
+          )}
+          {step === 1 ? (
+            <button
+              onClick={() => setStep(2)}
+              disabled={!form.farm_name || !form.contact_name || !form.contact_email}
+              className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-40"
+              style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}>
+              Next →
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={submitting || !form.title}
+              className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+              style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}>
+              {submitting ? <><RefreshCw size={13} className="animate-spin" /> Posting...</> : 'Post Bid'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
