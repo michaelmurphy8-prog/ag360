@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
       equipment_owned,
       crops_experienced,
       availability,
+      cv_url,
     } = body
 
     if (!type || !first_name || !last_name || !email) {
@@ -117,7 +118,7 @@ export async function POST(req: NextRequest) {
         licence_number, licence_province, base_province, base_city,
         base_country, service_radius_km, open_to_relocation,
         work_countries, bio, years_experience, equipment_owned,
-        crops_experienced, availability, status
+        crops_experienced, availability, cv_url, status
       ) VALUES (
         ${clerk_user_id ?? null}, ${type}, ${first_name}, ${last_name},
         ${email}, ${phone ?? null}, ${photo_url ?? null},
@@ -129,7 +130,7 @@ export async function POST(req: NextRequest) {
         ${work_countries ?? ['Canada']}, ${bio ?? null},
         ${years_experience ?? null}, ${equipment_owned ?? null},
         ${crops_experienced ?? []}, ${availability ?? 'immediate'},
-        'pending'
+        ${cv_url ?? null}, 'pending'
       )
       RETURNING id, status, created_at
     `

@@ -86,6 +86,7 @@ export default function RegisterProviderPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [cvFile, setCvFile] = useState<File | null>(null)
 
   const [form, setForm] = useState<FormData>({
     type: '',
@@ -133,12 +134,28 @@ export default function RegisterProviderPage() {
     setSubmitting(true)
     setError(null)
     try {
+      // Upload CV if provided
+      let cv_url: string | null = null
+      if (cvFile) {
+        const fd = new FormData()
+        fd.append('file', cvFile)
+        const uploadRes = await fetch('/api/connect360/upload-cv', { method: 'POST', body: fd })
+        const uploadData = await uploadRes.json()
+        if (!uploadRes.ok) {
+          setError(uploadData.error ?? 'CV upload failed. Please try again.')
+          setSubmitting(false)
+          return
+        }
+        cv_url = uploadData.url
+      }
+
       const res = await fetch('/api/connect360/profiles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
           years_experience: form.years_experience === '' ? null : Number(form.years_experience),
+          cv_url,
         }),
       })
       const data = await res.json()
@@ -478,6 +495,36 @@ export default function RegisterProviderPage() {
               ))}
             </div>
           </div>
+
+          {form.type === 'worker' && (
+            <div>
+              <label className="block text-xs text-ag-muted mb-1.5">
+                CV / Résumé <span className="text-ag-dim">(Optional — PDF, DOC, DOCX, max 5MB)</span>
+              </label>
+              {cvFile ? (
+                <div className="flex items-center justify-between p-3 rounded-lg border"
+                  style={{ borderColor: 'var(--ag-accent-border)', backgroundColor: 'var(--ag-bg-active)' }}>
+                  <div className="flex items-center gap-2">
+                    <Briefcase size={14} className="text-ag-accent" />
+                    <span className="text-sm text-ag-primary truncate max-w-[200px]">{cvFile.name}</span>
+                    <span className="text-xs text-ag-muted">({(cvFile.size / 1024).toFixed(0)} KB)</span>
+                  </div>
+                  <button type="button" onClick={() => setCvFile(null)}
+                    className="text-xs text-ag-muted hover:text-red-400 transition-all">
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-3 p-4 rounded-lg border border-dashed cursor-pointer transition-all hover:border-[var(--ag-accent-border)]"
+                  style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-card)' }}>
+                  <Upload size={16} className="text-ag-muted" />
+                  <span className="text-sm text-ag-muted">Click to upload your CV</span>
+                  <input type="file" accept=".pdf,.doc,.docx" className="hidden"
+                    onChange={e => setCvFile(e.target.files?.[0] ?? null)} />
+                </label>
+              )}
+            </div>
+          )}
 
           {error && (
             <div className="flex items-center gap-2 p-3 rounded-lg border border-red-400/30 bg-red-400/10">
