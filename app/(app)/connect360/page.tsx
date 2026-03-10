@@ -7,7 +7,7 @@ import {
   Users, CheckCircle, Phone,
   Mail, Building2, RefreshCw, UserPlus, X, Shield,
   Briefcase, Calendar, Wheat, Plus, Pencil, Trash2,
-  Scale, Languages, BadgeCheck, AlertTriangle, Star,
+  Scale, Languages, BadgeCheck, AlertTriangle, Star, Bookmark,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -177,6 +177,9 @@ export default function Connect360Page() {
   ].includes(user?.id ?? '')
 
   const [typeCounts, setTypeCounts] = useState<Record<string, number>>({})
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+  const [showSavedOnly, setShowSavedOnly] = useState(false)
+  const [savingId, setSavingId] = useState<string | null>(null)
 
   const fetchCounts = useCallback(async () => {
     try {
@@ -189,6 +192,34 @@ export default function Connect360Page() {
       setTypeCounts(counts)
     } catch {}
   }, [])
+
+  const fetchSaved = useCallback(async () => {
+    try {
+      const res = await fetch('/api/connect360/saved')
+      const data = await res.json()
+      setSavedIds(new Set(data.saved_ids ?? []))
+    } catch {}
+  }, [])
+
+  async function handleToggleSave(profileId: string) {
+    setSavingId(profileId)
+    const isSaved = savedIds.has(profileId)
+    try {
+      await fetch('/api/connect360/saved', {
+        method: isSaved ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile_id: profileId }),
+      })
+      setSavedIds(prev => {
+        const next = new Set(prev)
+        isSaved ? next.delete(profileId) : next.add(profileId)
+        return next
+      })
+    } catch {
+    } finally {
+      setSavingId(null)
+    }
+  }
 
   const fetchProviders = useCallback(async () => {
     setLoading(true)
@@ -213,6 +244,7 @@ export default function Connect360Page() {
 
   useEffect(() => { fetchProviders() }, [fetchProviders])
   useEffect(() => { fetchCounts() }, [])
+  useEffect(() => { fetchSaved() }, [])
 
   const fetchBids = useCallback(async () => {
     setBidsLoading(true)
@@ -366,6 +398,15 @@ export default function Connect360Page() {
           <option value="worker">Workers</option>
           <option value="professional">Professionals</option>
         </select>
+        <button
+          onClick={() => setShowSavedOnly(s => !s)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all"
+          style={showSavedOnly
+            ? { backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)', borderColor: 'var(--ag-accent)' }
+            : { borderColor: 'var(--ag-border)', color: 'var(--ag-text-muted)' }}>
+          <Bookmark size={12} fill={showSavedOnly ? 'currentColor' : 'none'} />
+          My Crew {savedIds.size > 0 && `(${savedIds.size})`}
+        </button>
 
         <select value={provinceFilter} onChange={e => setProvinceFilter(e.target.value)}
           className="px-3 py-2 rounded-lg border text-sm text-ag-primary outline-none"
@@ -423,7 +464,9 @@ export default function Connect360Page() {
         <EmptyState typeFilter={typeFilter} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {providers.map(provider =>
+          {providers.filter(provider =>
+            !showSavedOnly || (provider.source === 'profile' && savedIds.has(provider.id))
+          ).map(provider =>
             provider.source === 'profile' ? (
               <ProfileCard
                 key={provider.id}
@@ -431,6 +474,9 @@ export default function Connect360Page() {
                 connected={connectedIds.has(provider.id)}
                 connecting={connectingId === provider.id}
                 onConnect={handleConnect}
+                savedIds={savedIds}
+                savingId={savingId}
+                handleToggleSave={handleToggleSave}
               />
             ) : (
               <DirectoryCard key={provider.id} entry={provider as DirectoryEntry} />
@@ -700,12 +746,15 @@ export default function Connect360Page() {
 
 // ─── Profile Card ─────────────────────────────────────────────
 function ProfileCard({
-  provider, connected, connecting, onConnect
+  provider, connected, connecting, onConnect, savedIds, savingId, handleToggleSave
 }: {
   provider: ConnectProfile
   connected: boolean
   connecting: boolean
   onConnect: (id: string) => void
+  savedIds: Set<string>
+  savingId: string | null
+  handleToggleSave: (id: string) => void
 }) {
   const isProfessional = provider.type === 'professional'
   const cfg = TYPE_CONFIG[provider.type] ?? TYPE_CONFIG.worker
@@ -897,6 +946,16 @@ function ProfileCard({
 
       {/* Actions */}
       <div className="flex items-center gap-2 mt-3 pt-3 border-t" style={{ borderColor: 'var(--ag-border)' }}>
+        <button
+          onClick={e => { e.stopPropagation(); handleToggleSave(provider.id); }}
+          disabled={savingId === provider.id}
+          className="p-2 rounded-lg border transition-all flex-shrink-0"
+          title={savedIds.has(provider.id) ? 'Remove from My Crew' : 'Save to My Crew'}
+          style={savedIds.has(provider.id)
+            ? { borderColor: 'var(--ag-accent)', backgroundColor: 'rgba(212,175,55,0.1)', color: 'var(--ag-accent)' }
+            : { borderColor: 'var(--ag-border)', color: 'var(--ag-text-dim)' }}>
+          <Bookmark size={13} fill={savedIds.has(provider.id) ? 'currentColor' : 'none'} />
+        </button>
         <a href={`/connect360/profile/${provider.id}`}
           className="flex-1 text-center py-2 rounded-lg text-xs font-medium border transition-all hover:border-[var(--ag-accent-border)]"
           style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)' }}>
