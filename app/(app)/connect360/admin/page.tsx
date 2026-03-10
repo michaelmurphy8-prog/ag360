@@ -37,6 +37,9 @@ interface ConnectProfile {
   equipment_brands?: string[]
   worldwide?: boolean
   cv_url?: string
+  holds_licence?: boolean
+  driver_licence_type?: string
+  driver_licence_province?: string
   availability: string
   verified_at?: string
   verified_by?: string
@@ -294,11 +297,11 @@ export default function Connect360AdminPage() {
                         <div className="text-ag-primary">{profile.base_country}</div>
                       </div>
                       <div>
-                        <div className="text-ag-muted mb-0.5">CDL / Truck Licence</div>
-                        <div className={profile.licence_number ? 'text-green-400' : 'text-ag-muted'}>
-                          {profile.licence_number
-                            ? `${profile.licence_number}${profile.licence_province ? ` (${profile.licence_province})` : ''}`
-                            : 'Not provided'}
+                        <div className="text-ag-muted mb-0.5">Commercial Licence</div>
+                        <div className={profile.holds_licence ? 'text-green-400' : 'text-ag-muted'}>
+                          {profile.holds_licence
+                            ? `${profile.driver_licence_type ?? 'Yes'}${profile.driver_licence_province ? ` — ${profile.driver_licence_province}` : ''}`
+                            : 'None declared'}
                         </div>
                       </div>
                       {profile.cv_url && (

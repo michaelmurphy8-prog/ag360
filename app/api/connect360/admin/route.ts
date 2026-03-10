@@ -32,7 +32,8 @@ export async function GET(req: NextRequest) {
         service_radius_km, open_to_relocation, work_countries,
         bio, years_experience, equipment_owned,
         crops_experienced, operations_experience, equipment_brands,
-        worldwide, cv_url, availability,
+        worldwide, cv_url, holds_licence, driver_licence_type,
+        driver_licence_province, availability,
         verified_at, verified_by, created_at
       FROM connect_profiles
       WHERE status = ${status}
