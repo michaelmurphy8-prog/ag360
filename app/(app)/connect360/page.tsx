@@ -6,7 +6,7 @@ import {
   Globe, Search, Filter, MapPin, Truck, Sprout,
   Users, ChevronDown, CheckCircle, Clock, Phone,
   Mail, Building2, Star, RefreshCw, UserPlus, X, Shield,
-  Briefcase, Calendar, Wheat, ChevronRight, Plus
+  Briefcase, Calendar, Wheat, ChevronRight, Plus, Pencil, Trash2
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -131,6 +131,12 @@ export default function Connect360Page() {
   const [bidsLoading, setBidsLoading] = useState(false)
   const [showBidsPanel, setShowBidsPanel] = useState(false)
   const [showPostBidModal, setShowPostBidModal] = useState(false)
+  const [editingBid, setEditingBid] = useState<ConnectBid | null>(null)
+  const [bidTypeFilter, setBidTypeFilter] = useState('all')
+  const [bidProvinceFilter, setBidProvinceFilter] = useState('All')
+  const [bidCountryFilter, setBidCountryFilter] = useState('All')
+  const [bidStartDateFilter, setBidStartDateFilter] = useState('')
+  const [showMyBids, setShowMyBids] = useState(false)
   const { user, isLoaded } = useUser()
 const isAdmin = isLoaded && [
   'user_3AfgiCDtz0gHx4WMcLx4bBtrSIY',
@@ -166,15 +172,25 @@ const isAdmin = isLoaded && [
   useEffect(() => { fetchProviders() }, [fetchProviders])
 
   // Load bids
-  useEffect(() => {
-    if (!showBidsPanel) return
+  const fetchBids = useCallback(async () => {
     setBidsLoading(true)
-    fetch('/api/connect360/bids')
+    const params = new URLSearchParams()
+    if (bidTypeFilter !== 'all') params.set('bid_type', bidTypeFilter)
+    if (bidProvinceFilter !== 'All') params.set('province', bidProvinceFilter)
+    if (bidCountryFilter !== 'All') params.set('country', bidCountryFilter)
+    if (bidStartDateFilter) params.set('start_date_from', bidStartDateFilter)
+    if (showMyBids) params.set('mine', 'true')
+    fetch(`/api/connect360/bids?${params.toString()}`)
       .then(r => r.json())
       .then(data => setBids(data.bids ?? []))
       .catch(() => setBids([]))
       .finally(() => setBidsLoading(false))
-  }, [showBidsPanel])
+  }, [bidTypeFilter, bidProvinceFilter, bidCountryFilter, bidStartDateFilter, showMyBids])
+
+  useEffect(() => {
+    if (!showBidsPanel) return
+    fetchBids()
+  }, [showBidsPanel, fetchBids])
 
   // Load existing connections
   useEffect(() => {
@@ -442,28 +458,71 @@ const isAdmin = isLoaded && [
               </div>
             </div>
 
-            {/* Bid type filter */}
-            <div className="flex gap-2 px-5 py-3 border-b" style={{ borderColor: 'var(--ag-border)' }}>
-              {['all', 'worker', 'applicator', 'trucker'].map(t => (
-                <button key={t}
-                  onClick={() => {
-                    setBidsLoading(true)
-                    fetch(`/api/connect360/bids${t !== 'all' ? `?bid_type=${t}` : ''}`)
-                      .then(r => r.json())
-                      .then(data => setBids(data.bids ?? []))
-                      .catch(() => {})
-                      .finally(() => setBidsLoading(false))
-                  }}
-                  className="px-3 py-1 rounded-full text-xs font-medium border transition-all capitalize"
+            {/* Bid filters */}
+            <div className="px-4 py-3 border-b space-y-2" style={{ borderColor: 'var(--ag-border)' }}>
+              {/* Type tabs */}
+              <div className="flex gap-1.5 flex-wrap">
+                {['all', 'worker', 'applicator', 'trucker'].map(t => (
+                  <button key={t}
+                    onClick={() => setBidTypeFilter(t)}
+                    className="px-3 py-1 rounded-full text-xs font-medium border transition-all"
+                    style={{
+                      borderColor: bidTypeFilter === t ? 'var(--ag-accent)' : 'var(--ag-border)',
+                      backgroundColor: bidTypeFilter === t ? 'rgba(212,175,55,0.1)' : 'var(--ag-bg-card)',
+                      color: bidTypeFilter === t ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
+                    }}
+                  >
+                    {t === 'all' ? 'All' : t === 'worker' ? 'Workers' : t === 'applicator' ? 'Applicators' : 'Truckers'}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setShowMyBids(!showMyBids)}
+                  className="ml-auto px-3 py-1 rounded-full text-xs font-medium border transition-all"
                   style={{
-                    borderColor: 'var(--ag-border)',
-                    backgroundColor: 'var(--ag-bg-card)',
-                    color: 'var(--ag-text-secondary)',
+                    borderColor: showMyBids ? 'var(--ag-accent)' : 'var(--ag-border)',
+                    backgroundColor: showMyBids ? 'rgba(212,175,55,0.1)' : 'var(--ag-bg-card)',
+                    color: showMyBids ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
                   }}
                 >
-                  {t === 'all' ? 'All' : t === 'worker' ? 'Workers' : t === 'applicator' ? 'Applicators' : 'Truckers'}
+                  My Bids
                 </button>
-              ))}
+              </div>
+              {/* Location + date filters */}
+              <div className="flex gap-2 flex-wrap">
+                <select
+                  value={bidProvinceFilter}
+                  onChange={e => setBidProvinceFilter(e.target.value)}
+                  className="px-2 py-1.5 rounded-lg border text-xs text-ag-primary outline-none flex-1 min-w-[90px]"
+                  style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}
+                >
+                  {PROVINCES.map(p => <option key={p} value={p}>{p === 'All' ? 'All Provinces' : p}</option>)}
+                </select>
+                <select
+                  value={bidCountryFilter}
+                  onChange={e => setBidCountryFilter(e.target.value)}
+                  className="px-2 py-1.5 rounded-lg border text-xs text-ag-primary outline-none flex-1 min-w-[90px]"
+                  style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}
+                >
+                  {COUNTRIES.map(c => <option key={c} value={c}>{c === 'All' ? 'All Countries' : c}</option>)}
+                </select>
+                <input
+                  type="date"
+                  value={bidStartDateFilter}
+                  onChange={e => setBidStartDateFilter(e.target.value)}
+                  className="px-2 py-1.5 rounded-lg border text-xs text-ag-primary outline-none flex-1 min-w-[110px]"
+                  style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}
+                  title="Start date on or after"
+                />
+                {(bidProvinceFilter !== 'All' || bidCountryFilter !== 'All' || bidStartDateFilter) && (
+                  <button
+                    onClick={() => { setBidProvinceFilter('All'); setBidCountryFilter('All'); setBidStartDateFilter('') }}
+                    className="px-2 py-1.5 rounded-lg border text-xs transition-all"
+                    style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)' }}
+                  >
+                    <X size={11} />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Bid list */}
@@ -568,6 +627,30 @@ const isAdmin = isLoaded && [
                         <Mail size={11} /> Email
                       </a>
                     </div>
+
+                    {/* Owner controls — visible in My Bids mode */}
+                    {showMyBids && (
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          onClick={() => { setEditingBid(bid); setShowBidsPanel(false) }}
+                          className="flex items-center gap-1.5 flex-1 justify-center py-1.5 rounded-lg text-xs font-medium border transition-all hover:border-[var(--ag-accent-border)]"
+                          style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)' }}
+                        >
+                          <Pencil size={10} /> Edit
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!confirm('Mark this bid as filled and remove it?')) return
+                            await fetch(`/api/connect360/bids?id=${bid.id}`, { method: 'DELETE' })
+                            fetchBids()
+                          }}
+                          className="flex items-center gap-1.5 flex-1 justify-center py-1.5 rounded-lg text-xs font-medium border transition-all hover:border-red-400/40"
+                          style={{ borderColor: 'var(--ag-border)', color: '#f87171' }}
+                        >
+                          <Trash2 size={10} /> Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -582,6 +665,19 @@ const isAdmin = isLoaded && [
           onClose={() => setShowPostBidModal(false)}
           onSuccess={() => {
             setShowPostBidModal(false)
+            setShowBidsPanel(true)
+          }}
+        />
+      )}
+
+      {/* Edit Bid Modal */}
+      {editingBid && (
+        <PostBidModal
+          initialData={editingBid}
+          bidId={editingBid.id}
+          onClose={() => { setEditingBid(null); setShowBidsPanel(true) }}
+          onSuccess={() => {
+            setEditingBid(null)
             setShowBidsPanel(true)
           }}
         />
@@ -836,17 +932,37 @@ function DirectoryCard({ entry }: { entry: DirectoryEntry }) {
 }
 
 // ─── Post Bid Modal ───────────────────────────────────────────
-function PostBidModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+function PostBidModal({
+  onClose, onSuccess, initialData, bidId
+}: {
+  onClose: () => void
+  onSuccess: () => void
+  initialData?: ConnectBid
+  bidId?: string
+}) {
+  const isEdit = !!bidId
   const [step, setStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState({
-    farm_name: '', contact_name: '', contact_phone: '', contact_email: '',
-    city: '', province: '', country: 'Canada',
-    bid_type: 'worker', title: '', description: '',
-    acres: '', crop_types: [] as string[],
-    equipment_required: '', start_date: '', end_date: '',
-    duration_notes: '', pay_rate: '',
-    housing_provided: false, meals_provided: false,
+    farm_name: initialData?.farm_name ?? '',
+    contact_name: initialData?.contact_name ?? '',
+    contact_phone: initialData?.contact_phone ?? '',
+    contact_email: initialData?.contact_email ?? '',
+    city: initialData?.city ?? '',
+    province: initialData?.province ?? '',
+    country: initialData?.country ?? 'Canada',
+    bid_type: initialData?.bid_type ?? 'worker',
+    title: initialData?.title ?? '',
+    description: initialData?.description ?? '',
+    acres: initialData?.acres?.toString() ?? '',
+    crop_types: initialData?.crop_types ?? [] as string[],
+    equipment_required: initialData?.equipment_required ?? '',
+    start_date: initialData?.start_date?.slice(0, 10) ?? '',
+    end_date: initialData?.end_date?.slice(0, 10) ?? '',
+    duration_notes: initialData?.duration_notes ?? '',
+    pay_rate: initialData?.pay_rate ?? '',
+    housing_provided: initialData?.housing_provided ?? false,
+    meals_provided: initialData?.meals_provided ?? false,
   })
 
   const set = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }))
@@ -856,10 +972,11 @@ function PostBidModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
   async function handleSubmit() {
     setSubmitting(true)
     try {
+      const payload = { ...form, acres: form.acres ? parseInt(form.acres) : null }
       const res = await fetch('/api/connect360/bids', {
-        method: 'POST',
+        method: isEdit ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, acres: form.acres ? parseInt(form.acres) : null }),
+        body: JSON.stringify(isEdit ? { id: bidId, ...payload } : payload),
       })
       const data = await res.json()
       if (data.success) onSuccess()
@@ -882,7 +999,7 @@ function PostBidModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
         <div className="flex items-center justify-between p-5 border-b flex-shrink-0"
           style={{ borderColor: 'var(--ag-border)' }}>
           <div>
-            <h2 className="font-bold text-ag-primary">Post a Bid</h2>
+            <h2 className="font-bold text-ag-primary">{isEdit ? 'Edit Bid' : 'Post a Bid'}</h2>
             <p className="text-xs text-ag-muted mt-0.5">Step {step} of 2</p>
           </div>
           <button onClick={onClose}><X size={16} className="text-ag-muted hover:text-ag-primary" /></button>
@@ -1077,7 +1194,9 @@ function PostBidModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
               disabled={submitting || !form.title}
               className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-40 flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}>
-              {submitting ? <><RefreshCw size={13} className="animate-spin" /> Posting...</> : 'Post Bid'}
+              {submitting
+                ? <><RefreshCw size={13} className="animate-spin" /> {isEdit ? 'Saving...' : 'Posting...'}</>
+                : isEdit ? 'Save Changes' : 'Post Bid'}
             </button>
           )}
         </div>
