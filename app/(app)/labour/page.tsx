@@ -468,6 +468,29 @@ export default function LabourPage() {
         </div>
       )}
 
+      {/* Connect360 Professional Services Banner — show when seasonal workers are present */}
+      {seasonalWorkers > 0 && (
+        <div className="rounded-xl border px-4 py-3 flex items-center justify-between gap-4"
+          style={{ backgroundColor: 'rgba(167,139,250,0.04)', borderColor: 'rgba(167,139,250,0.25)' }}>
+          <div className="flex items-start gap-3">
+            <Briefcase size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#A78BFA' }} />
+            <div>
+              <p className="text-[12px] font-bold" style={{ color: '#A78BFA' }}>
+                Hiring seasonal or TFW workers? Get the paperwork right.
+              </p>
+              <p className="text-[11px]" style={{ color: 'var(--ag-text-muted)' }}>
+                Connect with verified immigration consultants, ag accountants, and crop advisors on Connect360.
+              </p>
+            </div>
+          </div>
+          <a href="/connect360?type=professional"
+            className="flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap"
+            style={{ backgroundColor: 'rgba(167,139,250,0.12)', color: '#A78BFA', border: '1px solid rgba(167,139,250,0.25)' }}>
+            Find Professionals
+          </a>
+        </div>
+      )}
+
       {/* KPI Ribbon — 5 cards including Cost/Acre */}
       <div className="grid grid-cols-5 gap-3">
         {[

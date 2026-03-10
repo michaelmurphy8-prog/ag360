@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   ChevronLeft, CheckCircle, MapPin, Truck, Sprout,
   Users, Globe, Phone, Mail, Building2, Calendar,
-  Wheat, RefreshCw, AlertCircle, Shield, FileText
+  Wheat, RefreshCw, AlertCircle, Shield, FileText,
+  Briefcase, BadgeCheck, Languages, Scale
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -38,6 +39,18 @@ interface ConnectProfile {
   cv_url?: string
   operations_experience?: string[]
   equipment_brands?: string[]
+  // Professional fields
+  professional_sub_type?: string
+  licence_verified?: boolean
+  services_offered?: string[]
+  languages_spoken?: string[]
+  remote_service?: boolean
+  countries_served?: string[]
+  worker_origin_countries?: string[]
+  // Worker sponsorship fields
+  seeking_tfw_sponsorship?: boolean
+  seeking_h2a_sponsorship?: boolean
+  citizenship_country?: string
 }
 
 // ─── Constants ────────────────────────────────────────────────
@@ -46,6 +59,7 @@ const TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType; colo
   applicator: { label: 'Custom Applicator', icon: Sprout,  color: 'text-green-400' },
   worker:     { label: 'Seasonal Worker',   icon: Users,   color: 'text-amber-400' },
   farmer:     { label: 'Farmer',            icon: Globe,   color: 'text-ag-accent' },
+  professional: { label: 'Professional Services', icon: Briefcase, color: 'text-purple-400' },
 }
 
 const AVAILABILITY_LABELS: Record<string, string> = {
@@ -193,6 +207,21 @@ export default function ProviderProfilePage() {
                   Open to Relocate
                 </span>
               )}
+              {profile.licence_verified && (
+                <span className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border text-purple-400 bg-purple-400/10 border-purple-400/20">
+                  <BadgeCheck size={9} /> Licence Verified
+                </span>
+              )}
+              {profile.seeking_tfw_sponsorship && (
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border text-sky-400 bg-sky-400/10 border-sky-400/20">
+                  Open to TFW Sponsorship
+                </span>
+              )}
+              {profile.seeking_h2a_sponsorship && (
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border text-sky-400 bg-sky-400/10 border-sky-400/20">
+                  Open to H-2A Sponsorship
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -338,6 +367,100 @@ export default function ProviderProfilePage() {
           </div>
         )}
       </Section>
+
+      {/* Professional Services */}
+      {profile.type === 'professional' && (profile.professional_sub_type || profile.services_offered?.length || profile.languages_spoken?.length) && (
+        <Section title="Professional Services">
+          <div className="space-y-4">
+            {/* Sub-type + licence */}
+            <div className="grid grid-cols-2 gap-3">
+              {profile.professional_sub_type && (
+                <Stat
+                  label="Specialization"
+                  value={
+                    profile.professional_sub_type === 'immigration_consultant' ? 'Immigration Consultant' :
+                    profile.professional_sub_type === 'ag_accountant' ? 'Agricultural Accountant' :
+                    profile.professional_sub_type === 'crop_consultant' ? 'Crop Consultant' :
+                    profile.professional_sub_type
+                  }
+                />
+              )}
+              {profile.remote_service !== undefined && (
+                <Stat label="Service Mode" value={profile.remote_service ? 'Remote & In-Person' : 'In-Person Only'} />
+              )}
+            </div>
+
+            {/* Countries served */}
+            {profile.countries_served && profile.countries_served.length > 0 && (
+              <div>
+                <div className="text-xs text-ag-muted uppercase tracking-wide mb-2">Countries Served</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.countries_served.map(c => (
+                    <span key={c} className="text-xs px-2.5 py-1 rounded-full border"
+                      style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)', color: 'var(--ag-text-secondary)' }}>
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Services offered */}
+            {profile.services_offered && profile.services_offered.length > 0 && (
+              <div>
+                <div className="text-xs text-ag-muted uppercase tracking-wide mb-2">Services Offered</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.services_offered.map(s => (
+                    <span key={s} className="text-xs px-2.5 py-1 rounded-full border"
+                      style={{ borderColor: 'rgba(167,139,250,0.3)', backgroundColor: 'rgba(167,139,250,0.08)', color: '#A78BFA' }}>
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Languages */}
+            {profile.languages_spoken && profile.languages_spoken.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 text-xs text-ag-muted uppercase tracking-wide mb-2">
+                  <Languages size={11} /> Languages
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.languages_spoken.map(l => (
+                    <span key={l} className="text-xs px-2.5 py-1 rounded-full border"
+                      style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)', color: 'var(--ag-text-secondary)' }}>
+                      {l}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Worker origin countries (immigration only) */}
+            {profile.professional_sub_type === 'immigration_consultant' && profile.worker_origin_countries && profile.worker_origin_countries.length > 0 && (
+              <div>
+                <div className="text-xs text-ag-muted uppercase tracking-wide mb-2">Worker Origin Countries</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.worker_origin_countries.map(c => (
+                    <span key={c} className="text-xs px-2.5 py-1 rounded-full border"
+                      style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)', color: 'var(--ag-text-secondary)' }}>
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Legal disclaimer */}
+            <div className="flex items-start gap-2 p-3 rounded-lg border text-xs text-ag-muted"
+              style={{ borderColor: 'rgba(167,139,250,0.2)', backgroundColor: 'rgba(167,139,250,0.04)' }}>
+              <Scale size={11} className="mt-0.5 flex-shrink-0 text-purple-400" />
+              <span>Professional service listings are for informational purposes only. AG360 does not provide legal, financial, or agronomic advice. Always verify credentials independently before engaging services.</span>
+            </div>
+          </div>
+        </Section>
+      )}
 
       {/* CV Download */}
       {profile.cv_url && (
