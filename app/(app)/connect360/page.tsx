@@ -3,14 +3,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUser } from '@clerk/nextjs'
 import {
-  Globe, Search, Filter, MapPin, Truck, Sprout,
-  Users, ChevronDown, CheckCircle, Clock, Phone,
-  Mail, Building2, Star, RefreshCw, UserPlus, X, Shield,
-  Briefcase, Calendar, Wheat, ChevronRight, Plus, Pencil, Trash2
+  Globe, Search, MapPin, Truck, Sprout,
+  Users, CheckCircle, Phone,
+  Mail, Building2, RefreshCw, UserPlus, X, Shield,
+  Briefcase, Calendar, Wheat, Plus, Pencil, Trash2,
+  Scale, Languages, BadgeCheck, AlertTriangle
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
-type ProviderType = 'trucker' | 'applicator' | 'worker' | 'farmer' | 'all'
+type ProviderType = 'trucker' | 'applicator' | 'worker' | 'farmer' | 'professional' | 'all'
 type Availability = 'immediate' | 'seasonal' | 'contract' | 'unavailable' | 'all'
 
 interface ConnectProfile {
@@ -33,6 +34,17 @@ interface ConnectProfile {
   open_to_relocation: boolean
   work_countries?: string[]
   verified_at?: string
+  // Professional
+  professional_sub_type?: string
+  services_offered?: string[]
+  languages_spoken?: string[]
+  licence_number?: string
+  licence_verified?: boolean
+  remote_service?: boolean
+  countries_served?: string[]
+  // Worker sponsorship
+  seeking_tfw_sponsorship?: boolean
+  seeking_h2a_sponsorship?: boolean
 }
 
 interface DirectoryEntry {
@@ -90,16 +102,23 @@ interface ConnectedProvider {
 
 // ─── Constants ────────────────────────────────────────────────
 const TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  trucker:    { label: 'Custom Trucker',    icon: Truck,   color: 'text-blue-400' },
-  applicator: { label: 'Custom Applicator', icon: Sprout,  color: 'text-green-400' },
-  worker:     { label: 'Seasonal Worker',   icon: Users,   color: 'text-amber-400' },
-  farmer:     { label: 'Farmer',            icon: Globe,   color: 'text-ag-accent' },
+  trucker:      { label: 'Custom Trucker',       icon: Truck,    color: 'text-blue-400' },
+  applicator:   { label: 'Custom Applicator',    icon: Sprout,   color: 'text-green-400' },
+  worker:       { label: 'Seasonal Worker',      icon: Users,    color: 'text-amber-400' },
+  farmer:       { label: 'Farmer',               icon: Globe,    color: 'text-ag-accent' },
+  professional: { label: 'Professional Services', icon: Briefcase, color: 'text-purple-400' },
+}
+
+const PROFESSIONAL_SUB_LABELS: Record<string, string> = {
+  immigration_consultant: 'Immigration Consultant',
+  ag_accountant: 'Ag Accountant',
+  crop_consultant: 'Crop Consultant',
 }
 
 const AVAILABILITY_LABELS: Record<string, string> = {
-  immediate: 'Available Now',
-  seasonal:  'Seasonal',
-  contract:  'Contract',
+  immediate:   'Available Now',
+  seasonal:    'Seasonal',
+  contract:    'Contract',
   unavailable: 'Unavailable',
 }
 
@@ -140,12 +159,13 @@ export default function Connect360Page() {
   const [bidCountryFilter, setBidCountryFilter] = useState('All')
   const [bidStartDateFilter, setBidStartDateFilter] = useState('')
   const [showMyBids, setShowMyBids] = useState(false)
+
   const { user, isLoaded } = useUser()
-const isAdmin = isLoaded && [
-  'user_3AfgiCDtz0gHx4WMcLx4bBtrSIY',
-  'user_39r0Tki0JfZnYL77EIzhcrLexio',
-].includes(user?.id ?? '')
-  console.log('user id:', user?.id, 'isAdmin:', isAdmin)
+  const isAdmin = isLoaded && [
+    'user_3AfgiCDtz0gHx4WMcLx4bBtrSIY',
+    'user_39r0Tki0JfZnYL77EIzhcrLexio',
+  ].includes(user?.id ?? '')
+
   const fetchProviders = useCallback(async () => {
     setLoading(true)
     try {
@@ -159,12 +179,7 @@ const isAdmin = isLoaded && [
 
       const res = await fetch(`/api/connect360/profiles?${params.toString()}`)
       const data = await res.json()
-
-      const combined: AnyProvider[] = [
-        ...(data.profiles ?? []),
-        ...(data.directory ?? []),
-      ]
-      setProviders(combined)
+      setProviders([...(data.profiles ?? []), ...(data.directory ?? [])])
     } catch {
       setProviders([])
     } finally {
@@ -174,7 +189,6 @@ const isAdmin = isLoaded && [
 
   useEffect(() => { fetchProviders() }, [fetchProviders])
 
-  // Load bids
   const fetchBids = useCallback(async () => {
     setBidsLoading(true)
     const params = new URLSearchParams()
@@ -192,15 +206,13 @@ const isAdmin = isLoaded && [
 
   useEffect(() => { fetchBids() }, [fetchBids])
 
-  // Load existing connections
   useEffect(() => {
     fetch('/api/connect360/requests')
       .then(r => r.json())
       .then(data => {
-        const ids = new Set<string>(
+        setConnectedIds(new Set<string>(
           (data.requests ?? []).map((r: { profile_id: string }) => r.profile_id)
-        )
-        setConnectedIds(ids)
+        ))
       })
       .catch(() => {})
   }, [])
@@ -225,12 +237,9 @@ const isAdmin = isLoaded && [
     }
   }
 
-  const totalApproved = providers.filter(p =>
-    p.source === 'profile' ? !!(p as ConnectProfile).verified_at : (p as DirectoryEntry).verified
-  ).length
-
   return (
     <div className="p-6 space-y-6">
+
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
@@ -239,63 +248,60 @@ const isAdmin = isLoaded && [
             <h1 className="text-xl font-bold text-ag-primary">Connect360</h1>
           </div>
           <p className="text-sm text-ag-muted">
-            Find verified truckers, applicators, and workers for your operation
+            Find verified truckers, applicators, workers, and professional services for your operation
           </p>
         </div>
         <div className="flex items-center gap-2">
           {isAdmin && (
-            <a
-              href="/connect360/admin"
+            <a href="/connect360/admin"
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all"
-              style={{
-                borderColor: 'var(--ag-border)',
-                color: 'var(--ag-text-secondary)',
-                backgroundColor: 'var(--ag-bg-card)',
-              }}
-            >
+              style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)', backgroundColor: 'var(--ag-bg-card)' }}>
               <Shield size={14} />
               Admin Queue
             </a>
           )}
-          <a
-            href="/connect360/register"
+          <a href="/connect360/register"
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
-            style={{
-              backgroundColor: 'var(--ag-accent)',
-              color: 'var(--ag-bg-primary)',
-            }}
-          >
+            style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}>
             <UserPlus size={14} />
             Register as Provider
           </a>
         </div>
       </div>
 
-      {/* Stats bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {Object.entries(TYPE_CONFIG).filter(([k]) => k !== 'farmer').map(([type, cfg]) => {
+      {/* Stats bar — 5 cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+        {(['trucker', 'applicator', 'worker', 'professional'] as const).map(type => {
+          const cfg = TYPE_CONFIG[type]
           const Icon = cfg.icon
           const count = providers.filter(p => p.type === type).length
+          const isPurple = type === 'professional'
           return (
             <button
               key={type}
               onClick={() => setTypeFilter(typeFilter === type ? 'all' : type)}
               className="flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
               style={{
-                backgroundColor: typeFilter === type ? 'var(--ag-bg-active)' : 'var(--ag-bg-card)',
-                borderColor: typeFilter === type ? 'var(--ag-accent-border)' : 'var(--ag-border)',
+                backgroundColor: typeFilter === type
+                  ? isPurple ? 'rgba(168,85,247,0.08)' : 'var(--ag-bg-active)'
+                  : 'var(--ag-bg-card)',
+                borderColor: typeFilter === type
+                  ? isPurple ? 'rgba(168,85,247,0.4)' : 'var(--ag-accent-border)'
+                  : 'var(--ag-border)',
               }}
             >
               <Icon size={16} className={cfg.color} />
               <div>
                 <div className="text-lg font-bold text-ag-primary">{count}</div>
-                <div className="text-[10px] text-ag-muted uppercase tracking-wide">{cfg.label}s</div>
+                <div className="text-[10px] text-ag-muted uppercase tracking-wide">
+                  {type === 'professional' ? 'Professionals' : `${cfg.label}s`}
+                </div>
               </div>
             </button>
           )
         })}
 
-        {/* Bids card — gold */}
+        {/* Bids card */}
         <button
           onClick={() => setShowBidsPanel(true)}
           className="flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
@@ -317,81 +323,71 @@ const isAdmin = isLoaded && [
       {/* Filters */}
       <div className="flex flex-wrap gap-3 p-4 rounded-xl border"
         style={{ backgroundColor: 'var(--ag-bg-card)', borderColor: 'var(--ag-border)' }}>
-        {/* Search */}
         <div className="flex items-center gap-2 flex-1 min-w-[200px] px-3 py-2 rounded-lg border"
           style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}>
           <Search size={13} className="text-ag-muted" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+          <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search by name or business..."
-            className="bg-transparent text-sm text-ag-primary placeholder:text-ag-muted outline-none flex-1"
-          />
-          {search && (
-            <button onClick={() => setSearch('')}><X size={12} className="text-ag-muted" /></button>
-          )}
+            className="bg-transparent text-sm text-ag-primary placeholder:text-ag-muted outline-none flex-1" />
+          {search && <button onClick={() => setSearch('')}><X size={12} className="text-ag-muted" /></button>}
         </div>
 
-        {/* Type */}
-        <select
-          value={typeFilter}
-          onChange={e => setTypeFilter(e.target.value)}
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
           className="px-3 py-2 rounded-lg border text-sm text-ag-primary outline-none"
-          style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}
-        >
+          style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}>
           <option value="all">All Types</option>
           <option value="trucker">Truckers</option>
           <option value="applicator">Applicators</option>
           <option value="worker">Workers</option>
+          <option value="professional">Professionals</option>
         </select>
 
-        {/* Province */}
-        <select
-          value={provinceFilter}
-          onChange={e => setProvinceFilter(e.target.value)}
+        <select value={provinceFilter} onChange={e => setProvinceFilter(e.target.value)}
           className="px-3 py-2 rounded-lg border text-sm text-ag-primary outline-none"
-          style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}
-        >
+          style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}>
           {PROVINCES.map(p => <option key={p} value={p}>{p === 'All' ? 'All Provinces' : p}</option>)}
         </select>
 
-        {/* Country */}
-        <select
-          value={countryFilter}
-          onChange={e => setCountryFilter(e.target.value)}
+        <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
           className="px-3 py-2 rounded-lg border text-sm text-ag-primary outline-none"
-          style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}
-        >
+          style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}>
           {COUNTRIES.map(c => <option key={c} value={c}>{c === 'All' ? 'All Countries' : c}</option>)}
         </select>
 
-        {/* Availability */}
-        <select
-          value={availabilityFilter}
-          onChange={e => setAvailabilityFilter(e.target.value)}
+        <select value={availabilityFilter} onChange={e => setAvailabilityFilter(e.target.value)}
           className="px-3 py-2 rounded-lg border text-sm text-ag-primary outline-none"
-          style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}
-        >
+          style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}>
           <option value="all">Any Availability</option>
           <option value="immediate">Available Now</option>
           <option value="seasonal">Seasonal</option>
           <option value="contract">Contract</option>
         </select>
 
-        {/* Open to relocation */}
-        <button
-          onClick={() => setOpenToRelocation(!openToRelocation)}
+        <button onClick={() => setOpenToRelocation(!openToRelocation)}
           className="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all"
           style={{
             borderColor: openToRelocation ? 'var(--ag-accent-border)' : 'var(--ag-border)',
             backgroundColor: openToRelocation ? 'var(--ag-accent)/10' : 'var(--ag-bg-input)',
             color: openToRelocation ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
-          }}
-        >
+          }}>
           <Globe size={13} />
           Open to Relocation
         </button>
       </div>
+
+      {/* Professional services disclaimer */}
+      {typeFilter === 'professional' && (
+        <div className="flex items-start gap-3 p-4 rounded-xl border"
+          style={{ backgroundColor: 'rgba(168,85,247,0.05)', borderColor: 'rgba(168,85,247,0.25)' }}>
+          <Scale size={15} className="text-purple-400 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-ag-muted leading-relaxed">
+            <span className="font-semibold text-ag-primary">Professional Services Directory.</span>{' '}
+            Connect360 lists these professionals as a convenience. AG360 does not endorse, guarantee, or take responsibility
+            for professional advice or outcomes. Always verify credentials independently before engaging any professional service.
+            Profiles marked <span className="text-purple-400 font-medium">Licence Verified</span> have had registration numbers confirmed by AG360 staff against the relevant regulatory body.
+          </p>
+        </div>
+      )}
 
       {/* Results */}
       {loading ? (
@@ -412,10 +408,7 @@ const isAdmin = isLoaded && [
                 onConnect={handleConnect}
               />
             ) : (
-              <DirectoryCard
-                key={provider.id}
-                entry={provider as DirectoryEntry}
-              />
+              <DirectoryCard key={provider.id} entry={provider as DirectoryEntry} />
             )
           )}
         </div>
@@ -428,9 +421,7 @@ const isAdmin = isLoaded && [
           <div className="relative w-full max-w-lg h-full flex flex-col border-l shadow-2xl overflow-hidden"
             style={{ backgroundColor: 'var(--ag-bg-primary)', borderColor: 'var(--ag-border)' }}>
 
-            {/* Panel header */}
-            <div className="flex items-center justify-between p-5 border-b"
-              style={{ borderColor: 'var(--ag-border)' }}>
+            <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'var(--ag-border)' }}>
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
                   <Briefcase size={16} style={{ color: 'var(--ag-accent)' }} />
@@ -445,11 +436,9 @@ const isAdmin = isLoaded && [
                 <p className="text-xs text-ag-muted">Farmers seeking workers, applicators & truckers</p>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => { setShowBidsPanel(false); setShowPostBidModal(true) }}
+                <button onClick={() => { setShowBidsPanel(false); setShowPostBidModal(true) }}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all"
-                  style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}
-                >
+                  style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}>
                   <Plus size={12} /> Post a Bid
                 </button>
                 <button onClick={() => setShowBidsPanel(false)}>
@@ -458,74 +447,54 @@ const isAdmin = isLoaded && [
               </div>
             </div>
 
-            {/* Bid filters */}
             <div className="px-4 py-3 border-b space-y-2" style={{ borderColor: 'var(--ag-border)' }}>
-              {/* Type tabs */}
               <div className="flex gap-1.5 flex-wrap">
                 {['all', 'worker', 'applicator', 'trucker'].map(t => (
-                  <button key={t}
-                    onClick={() => setBidTypeFilter(t)}
+                  <button key={t} onClick={() => setBidTypeFilter(t)}
                     className="px-3 py-1 rounded-full text-xs font-medium border transition-all"
                     style={{
                       borderColor: bidTypeFilter === t ? 'var(--ag-accent)' : 'var(--ag-border)',
                       backgroundColor: bidTypeFilter === t ? 'rgba(212,175,55,0.1)' : 'var(--ag-bg-card)',
                       color: bidTypeFilter === t ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
-                    }}
-                  >
+                    }}>
                     {t === 'all' ? 'All' : t === 'worker' ? 'Workers' : t === 'applicator' ? 'Applicators' : 'Truckers'}
                   </button>
                 ))}
-                <button
-                  onClick={() => setShowMyBids(!showMyBids)}
+                <button onClick={() => setShowMyBids(!showMyBids)}
                   className="ml-auto px-3 py-1 rounded-full text-xs font-medium border transition-all"
                   style={{
                     borderColor: showMyBids ? 'var(--ag-accent)' : 'var(--ag-border)',
                     backgroundColor: showMyBids ? 'rgba(212,175,55,0.1)' : 'var(--ag-bg-card)',
                     color: showMyBids ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
-                  }}
-                >
+                  }}>
                   My Bids
                 </button>
               </div>
-              {/* Location + date filters */}
               <div className="flex gap-2 flex-wrap">
-                <select
-                  value={bidProvinceFilter}
-                  onChange={e => setBidProvinceFilter(e.target.value)}
+                <select value={bidProvinceFilter} onChange={e => setBidProvinceFilter(e.target.value)}
                   className="px-2 py-1.5 rounded-lg border text-xs text-ag-primary outline-none flex-1 min-w-[90px]"
-                  style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}
-                >
+                  style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}>
                   {PROVINCES.map(p => <option key={p} value={p}>{p === 'All' ? 'All Provinces' : p}</option>)}
                 </select>
-                <select
-                  value={bidCountryFilter}
-                  onChange={e => setBidCountryFilter(e.target.value)}
+                <select value={bidCountryFilter} onChange={e => setBidCountryFilter(e.target.value)}
                   className="px-2 py-1.5 rounded-lg border text-xs text-ag-primary outline-none flex-1 min-w-[90px]"
-                  style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}
-                >
+                  style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}>
                   {COUNTRIES.map(c => <option key={c} value={c}>{c === 'All' ? 'All Countries' : c}</option>)}
                 </select>
-                <input
-                  type="date"
-                  value={bidStartDateFilter}
-                  onChange={e => setBidStartDateFilter(e.target.value)}
+                <input type="date" value={bidStartDateFilter} onChange={e => setBidStartDateFilter(e.target.value)}
                   className="px-2 py-1.5 rounded-lg border text-xs text-ag-primary outline-none flex-1 min-w-[110px]"
                   style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}
-                  title="Start date on or after"
-                />
+                  title="Start date on or after" />
                 {(bidProvinceFilter !== 'All' || bidCountryFilter !== 'All' || bidStartDateFilter) && (
-                  <button
-                    onClick={() => { setBidProvinceFilter('All'); setBidCountryFilter('All'); setBidStartDateFilter('') }}
+                  <button onClick={() => { setBidProvinceFilter('All'); setBidCountryFilter('All'); setBidStartDateFilter('') }}
                     className="px-2 py-1.5 rounded-lg border text-xs transition-all"
-                    style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)' }}
-                  >
+                    style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)' }}>
                     <X size={11} />
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Bid list */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {bidsLoading ? (
                 <div className="flex items-center justify-center py-16">
@@ -535,11 +504,9 @@ const isAdmin = isLoaded && [
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <Briefcase size={32} className="text-ag-muted mb-3 opacity-30" />
                   <p className="text-sm text-ag-muted">No active bids right now.</p>
-                  <button
-                    onClick={() => { setShowBidsPanel(false); setShowPostBidModal(true) }}
+                  <button onClick={() => { setShowBidsPanel(false); setShowPostBidModal(true) }}
                     className="mt-4 px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                    style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}
-                  >
+                    style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}>
                     Post the First Bid
                   </button>
                 </div>
@@ -547,8 +514,6 @@ const isAdmin = isLoaded && [
                 bids.map(bid => (
                   <div key={bid.id} className="p-4 rounded-xl border transition-all hover:border-[var(--ag-accent-border)]"
                     style={{ backgroundColor: 'var(--ag-bg-card)', borderColor: 'var(--ag-border)' }}>
-
-                    {/* Bid header */}
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div>
                         <div className="font-semibold text-sm text-ag-primary">{bid.title}</div>
@@ -563,8 +528,6 @@ const isAdmin = isLoaded && [
                         {bid.bid_type}
                       </span>
                     </div>
-
-                    {/* Location + dates */}
                     <div className="flex flex-wrap gap-3 mb-2">
                       {(bid.city || bid.province) && (
                         <div className="flex items-center gap-1 text-xs text-ag-muted">
@@ -584,13 +547,7 @@ const isAdmin = isLoaded && [
                         </div>
                       )}
                     </div>
-
-                    {/* Description */}
-                    {bid.description && (
-                      <p className="text-xs text-ag-muted line-clamp-2 mb-2">{bid.description}</p>
-                    )}
-
-                    {/* Perks */}
+                    {bid.description && <p className="text-xs text-ag-muted line-clamp-2 mb-2">{bid.description}</p>}
                     <div className="flex flex-wrap gap-1.5 mb-3">
                       {bid.pay_rate && (
                         <span className="text-[10px] px-2 py-0.5 rounded border text-ag-muted"
@@ -611,8 +568,6 @@ const isAdmin = isLoaded && [
                         </span>
                       )}
                     </div>
-
-                    {/* Contact */}
                     <div className="flex gap-2 pt-3 border-t" style={{ borderColor: 'var(--ag-border)' }}>
                       {bid.contact_phone && (
                         <a href={`tel:${bid.contact_phone}`}
@@ -627,26 +582,20 @@ const isAdmin = isLoaded && [
                         <Mail size={11} /> Email
                       </a>
                     </div>
-
-                    {/* Owner controls — visible in My Bids mode */}
                     {showMyBids && (
                       <div className="flex gap-2 pt-2">
-                        <button
-                          onClick={() => { setEditingBid(bid); setShowBidsPanel(false) }}
+                        <button onClick={() => { setEditingBid(bid); setShowBidsPanel(false) }}
                           className="flex items-center gap-1.5 flex-1 justify-center py-1.5 rounded-lg text-xs font-medium border transition-all hover:border-[var(--ag-accent-border)]"
-                          style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)' }}
-                        >
+                          style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)' }}>
                           <Pencil size={10} /> Edit
                         </button>
-                        <button
-                          onClick={async () => {
-                            if (!confirm('Mark this bid as filled and remove it?')) return
-                            await fetch(`/api/connect360/bids?id=${bid.id}`, { method: 'DELETE' })
-                            fetchBids()
-                          }}
+                        <button onClick={async () => {
+                          if (!confirm('Mark this bid as filled and remove it?')) return
+                          await fetch(`/api/connect360/bids?id=${bid.id}`, { method: 'DELETE' })
+                          fetchBids()
+                        }}
                           className="flex items-center gap-1.5 flex-1 justify-center py-1.5 rounded-lg text-xs font-medium border transition-all hover:border-red-400/40"
-                          style={{ borderColor: 'var(--ag-border)', color: '#f87171' }}
-                        >
+                          style={{ borderColor: 'var(--ag-border)', color: '#f87171' }}>
                           <Trash2 size={10} /> Delete
                         </button>
                       </div>
@@ -659,31 +608,21 @@ const isAdmin = isLoaded && [
         </div>
       )}
 
-      {/* Post Bid Modal */}
       {showPostBidModal && (
         <PostBidModal
           onClose={() => setShowPostBidModal(false)}
-          onSuccess={() => {
-            setShowPostBidModal(false)
-            setShowBidsPanel(true)
-          }}
+          onSuccess={() => { setShowPostBidModal(false); setShowBidsPanel(true) }}
         />
       )}
-
-      {/* Edit Bid Modal */}
       {editingBid && (
         <PostBidModal
           initialData={editingBid}
           bidId={editingBid.id}
           onClose={() => { setEditingBid(null); setShowBidsPanel(true) }}
-          onSuccess={() => {
-            setEditingBid(null)
-            setShowBidsPanel(true)
-          }}
+          onSuccess={() => { setEditingBid(null); setShowBidsPanel(true) }}
         />
       )}
 
-      {/* Contact reveal modal */}
       {showRevealModal && revealedProvider !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="w-full max-w-md p-6 rounded-2xl border shadow-xl"
@@ -700,8 +639,7 @@ const isAdmin = isLoaded && [
             <p className="text-sm text-ag-muted mb-4">
               Here is the contact information for{' '}
               <span className="text-ag-primary font-medium">
-                {revealedProvider?.business_name ||
-              `${revealedProvider?.first_name} ${revealedProvider?.last_name}`}
+                {revealedProvider?.business_name || `${revealedProvider?.first_name} ${revealedProvider?.last_name}`}
               </span>
             </p>
             <div className="space-y-3 p-4 rounded-xl border"
@@ -709,8 +647,7 @@ const isAdmin = isLoaded && [
               {revealedProvider?.phone && (
                 <div className="flex items-center gap-3">
                   <Phone size={14} className="text-ag-accent" />
-                  <a href={`tel:${revealedProvider.phone}`}
-                    className="text-sm text-ag-primary hover:text-ag-accent">
+                  <a href={`tel:${revealedProvider.phone}`} className="text-sm text-ag-primary hover:text-ag-accent">
                     {revealedProvider.phone}
                   </a>
                 </div>
@@ -718,18 +655,15 @@ const isAdmin = isLoaded && [
               {revealedProvider?.email && (
                 <div className="flex items-center gap-3">
                   <Mail size={14} className="text-ag-accent" />
-                  <a href={`mailto:${revealedProvider.email}`}
-                    className="text-sm text-ag-primary hover:text-ag-accent">
+                  <a href={`mailto:${revealedProvider.email}`} className="text-sm text-ag-primary hover:text-ag-accent">
                     {revealedProvider.email}
                   </a>
                 </div>
               )}
             </div>
-            <button
-              onClick={() => setShowRevealModal(false)}
+            <button onClick={() => setShowRevealModal(false)}
               className="w-full mt-4 py-2.5 rounded-lg text-sm font-medium transition-all"
-              style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}
-            >
+              style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}>
               Done
             </button>
           </div>
@@ -748,13 +682,20 @@ function ProfileCard({
   connecting: boolean
   onConnect: (id: string) => void
 }) {
+  const isProfessional = provider.type === 'professional'
   const cfg = TYPE_CONFIG[provider.type] ?? TYPE_CONFIG.worker
   const Icon = cfg.icon
   const initials = `${provider.first_name[0]}${provider.last_name[0]}`.toUpperCase()
+  const subLabel = provider.professional_sub_type
+    ? PROFESSIONAL_SUB_LABELS[provider.professional_sub_type] ?? provider.professional_sub_type
+    : null
 
   return (
     <div className="flex flex-col p-4 rounded-xl border transition-all hover:border-[var(--ag-accent-border)]"
-      style={{ backgroundColor: 'var(--ag-bg-card)', borderColor: 'var(--ag-border)' }}>
+      style={{
+        backgroundColor: 'var(--ag-bg-card)',
+        borderColor: isProfessional ? 'rgba(168,85,247,0.2)' : 'var(--ag-border)',
+      }}>
 
       {/* Header */}
       <div className="flex items-start gap-3 mb-3">
@@ -774,23 +715,53 @@ function ProfileCard({
             </div>
           )}
         </div>
-        {provider.verified_at && (
-          <CheckCircle size={14} className="text-green-400 flex-shrink-0 mt-0.5" />
+        {/* Verification badge */}
+        {isProfessional ? (
+          provider.licence_verified ? (
+            <div className="flex items-center gap-1 flex-shrink-0" title="Licence verified by AG360">
+              <BadgeCheck size={15} className="text-purple-400" />
+            </div>
+          ) : provider.verified_at ? (
+            <div className="flex items-center gap-1 flex-shrink-0" title="Profile approved, licence pending verification">
+              <AlertTriangle size={13} className="text-amber-400" />
+            </div>
+          ) : null
+        ) : (
+          provider.verified_at && <CheckCircle size={14} className="text-green-400 flex-shrink-0 mt-0.5" />
         )}
       </div>
 
-      {/* Type + availability badges */}
+      {/* Type + sub-type + availability badges */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <span className={`flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${cfg.color}`}
           style={{ backgroundColor: 'var(--ag-bg-hover)', borderColor: 'var(--ag-border)' }}>
-          <Icon size={9} /> {cfg.label}
+          <Icon size={9} />
+          {subLabel ?? cfg.label}
         </span>
-        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${AVAILABILITY_COLORS[provider.availability] ?? ''}`}>
-          {AVAILABILITY_LABELS[provider.availability] ?? provider.availability}
-        </span>
-        {provider.open_to_relocation && (
+        {!isProfessional && (
+          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${AVAILABILITY_COLORS[provider.availability] ?? ''}`}>
+            {AVAILABILITY_LABELS[provider.availability] ?? provider.availability}
+          </span>
+        )}
+        {isProfessional && provider.remote_service && (
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border text-purple-400 bg-purple-400/10 border-purple-400/20">
+            Remote
+          </span>
+        )}
+        {!isProfessional && provider.open_to_relocation && (
           <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border text-purple-400 bg-purple-400/10 border-purple-400/20">
             Open to Relocate
+          </span>
+        )}
+        {/* Licence verified label */}
+        {isProfessional && provider.licence_verified && (
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border text-purple-400 bg-purple-400/10 border-purple-400/20">
+            Licence Verified
+          </span>
+        )}
+        {isProfessional && !provider.licence_verified && provider.verified_at && (
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border text-amber-400 bg-amber-400/10 border-amber-400/20">
+            Pending Verification
           </span>
         )}
       </div>
@@ -799,18 +770,15 @@ function ProfileCard({
       <div className="flex items-center gap-1.5 text-xs text-ag-muted mb-2">
         <MapPin size={11} />
         <span>
-          {[provider.base_city, provider.base_province, provider.base_country]
-            .filter(Boolean).join(', ')}
+          {[provider.base_city, provider.base_province, provider.base_country].filter(Boolean).join(', ')}
         </span>
-        {provider.service_radius_km && (
+        {!isProfessional && provider.service_radius_km && (
           <span className="text-ag-dim">· {provider.service_radius_km}km radius</span>
         )}
       </div>
 
       {/* Bio */}
-      {provider.bio && (
-        <p className="text-xs text-ag-muted line-clamp-2 mb-3">{provider.bio}</p>
-      )}
+      {provider.bio && <p className="text-xs text-ag-muted line-clamp-2 mb-3">{provider.bio}</p>}
 
       {/* Experience */}
       {provider.years_experience !== undefined && (
@@ -819,8 +787,62 @@ function ProfileCard({
         </div>
       )}
 
-      {/* Work countries */}
-      {provider.work_countries && provider.work_countries.length > 0 && (
+      {/* Professional: services chips */}
+      {isProfessional && provider.services_offered && provider.services_offered.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {provider.services_offered.slice(0, 4).map(s => (
+            <span key={s} className="text-[9px] px-1.5 py-0.5 rounded border"
+              style={{ borderColor: 'rgba(168,85,247,0.3)', backgroundColor: 'rgba(168,85,247,0.06)', color: '#c084fc' }}>
+              {s}
+            </span>
+          ))}
+          {provider.services_offered.length > 4 && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded border text-ag-muted"
+              style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)' }}>
+              +{provider.services_offered.length - 4} more
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Professional: languages */}
+      {isProfessional && provider.languages_spoken && provider.languages_spoken.length > 0 && (
+        <div className="flex items-center gap-1.5 text-xs text-ag-muted mb-3">
+          <Languages size={11} className="text-ag-muted flex-shrink-0" />
+          <span>{provider.languages_spoken.join(', ')}</span>
+        </div>
+      )}
+
+      {/* Professional: countries served */}
+      {isProfessional && provider.countries_served && provider.countries_served.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {provider.countries_served.map(c => (
+            <span key={c} className="text-[9px] px-1.5 py-0.5 rounded border text-ag-muted"
+              style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)' }}>
+              {c}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Worker: sponsorship flags */}
+      {provider.type === 'worker' && (provider.seeking_tfw_sponsorship || provider.seeking_h2a_sponsorship) && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {provider.seeking_tfw_sponsorship && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded border text-sky-400 bg-sky-400/08 border-sky-400/30">
+              Seeking TFW Sponsorship
+            </span>
+          )}
+          {provider.seeking_h2a_sponsorship && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded border text-sky-400 bg-sky-400/08 border-sky-400/30">
+              Seeking H-2A Sponsorship
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Non-professional: work countries */}
+      {!isProfessional && provider.work_countries && provider.work_countries.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
           {provider.work_countries.map(c => (
             <span key={c} className="text-[9px] px-1.5 py-0.5 rounded border text-ag-muted"
@@ -834,8 +856,7 @@ function ProfileCard({
       <div className="flex-1" />
 
       {/* Actions */}
-      <div className="flex items-center gap-2 mt-3 pt-3 border-t"
-        style={{ borderColor: 'var(--ag-border)' }}>
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t" style={{ borderColor: 'var(--ag-border)' }}>
         <a href={`/connect360/profile/${provider.id}`}
           className="flex-1 text-center py-2 rounded-lg text-xs font-medium border transition-all hover:border-[var(--ag-accent-border)]"
           style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)' }}>
@@ -849,8 +870,7 @@ function ProfileCard({
             backgroundColor: connected ? 'var(--ag-bg-hover)' : 'var(--ag-accent)',
             color: connected ? 'var(--ag-text-muted)' : 'var(--ag-bg-primary)',
             cursor: connected ? 'default' : 'pointer',
-          }}
-        >
+          }}>
           {connecting ? (
             <RefreshCw size={11} className="animate-spin" />
           ) : connected ? (
@@ -872,7 +892,6 @@ function DirectoryCard({ entry }: { entry: DirectoryEntry }) {
   return (
     <div className="flex flex-col p-4 rounded-xl border transition-all"
       style={{ backgroundColor: 'var(--ag-bg-card)', borderColor: 'var(--ag-border)' }}>
-
       <div className="flex items-start gap-3 mb-3">
         <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
           style={{ backgroundColor: 'var(--ag-bg-hover)' }}>
@@ -880,38 +899,28 @@ function DirectoryCard({ entry }: { entry: DirectoryEntry }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-sm text-ag-primary truncate">{entry.business_name}</div>
-          {entry.contact_name && (
-            <div className="text-xs text-ag-muted">{entry.contact_name}</div>
-          )}
+          {entry.contact_name && <div className="text-xs text-ag-muted">{entry.contact_name}</div>}
         </div>
         <span className="text-[9px] px-1.5 py-0.5 rounded border text-ag-muted"
           style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)' }}>
           Directory
         </span>
       </div>
-
       <div className="flex items-center gap-2 mb-3">
         <span className={`flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${cfg.color}`}
           style={{ backgroundColor: 'var(--ag-bg-hover)', borderColor: 'var(--ag-border)' }}>
           <Icon size={9} /> {cfg.label}
         </span>
       </div>
-
       {(entry.city || entry.province) && (
         <div className="flex items-center gap-1.5 text-xs text-ag-muted mb-2">
           <MapPin size={11} />
           <span>{[entry.city, entry.province, entry.country].filter(Boolean).join(', ')}</span>
         </div>
       )}
-
-      {entry.description && (
-        <p className="text-xs text-ag-muted line-clamp-2 mb-3">{entry.description}</p>
-      )}
-
+      {entry.description && <p className="text-xs text-ag-muted line-clamp-2 mb-3">{entry.description}</p>}
       <div className="flex-1" />
-
-      <div className="flex items-center gap-2 mt-3 pt-3 border-t"
-        style={{ borderColor: 'var(--ag-border)' }}>
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t" style={{ borderColor: 'var(--ag-border)' }}>
         {entry.phone && (
           <a href={`tel:${entry.phone}`}
             className="flex items-center gap-1.5 flex-1 justify-center py-2 rounded-lg text-xs font-medium border transition-all hover:border-[var(--ag-accent-border)]"
@@ -966,7 +975,6 @@ function PostBidModal({
   })
 
   const set = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }))
-
   const CROPS = ['Canola', 'Wheat', 'Barley', 'Oats', 'Flax', 'Lentils', 'Peas', 'Soybeans', 'Corn', 'Other']
 
   async function handleSubmit() {
@@ -994,79 +1002,65 @@ function PostBidModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="w-full max-w-lg rounded-2xl border shadow-2xl flex flex-col max-h-[90vh]"
         style={{ backgroundColor: 'var(--ag-bg-card)', borderColor: 'var(--ag-border)' }}>
-
-        {/* Modal header */}
-        <div className="flex items-center justify-between p-5 border-b flex-shrink-0"
-          style={{ borderColor: 'var(--ag-border)' }}>
+        <div className="flex items-center justify-between p-5 border-b flex-shrink-0" style={{ borderColor: 'var(--ag-border)' }}>
           <div>
             <h2 className="font-bold text-ag-primary">{isEdit ? 'Edit Bid' : 'Post a Bid'}</h2>
             <p className="text-xs text-ag-muted mt-0.5">Step {step} of 2</p>
           </div>
           <button onClick={onClose}><X size={16} className="text-ag-muted hover:text-ag-primary" /></button>
         </div>
-
-        {/* Step indicator */}
         <div className="flex gap-1.5 px-5 pt-4 flex-shrink-0">
           {[1, 2].map(s => (
             <div key={s} className="flex-1 h-1 rounded-full transition-all"
               style={{ backgroundColor: s <= step ? 'var(--ag-accent)' : 'var(--ag-border)' }} />
           ))}
         </div>
-
-        {/* Body */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {step === 1 ? (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <label className={labelClass}>Farm Name *</label>
-                  <input value={form.farm_name} onChange={e => set('farm_name', e.target.value)}
-                    placeholder="Murphy Farms" className={inputClass} style={inputStyle} />
-                </div>
-                <div>
-                  <label className={labelClass}>Your Name *</label>
-                  <input value={form.contact_name} onChange={e => set('contact_name', e.target.value)}
-                    placeholder="Mike Murphy" className={inputClass} style={inputStyle} />
-                </div>
-                <div>
-                  <label className={labelClass}>Phone</label>
-                  <input value={form.contact_phone} onChange={e => set('contact_phone', e.target.value)}
-                    placeholder="+1 306 555 0000" className={inputClass} style={inputStyle} />
-                </div>
-                <div className="col-span-2">
-                  <label className={labelClass}>Email *</label>
-                  <input value={form.contact_email} onChange={e => set('contact_email', e.target.value)}
-                    placeholder="mike@farm.com" className={inputClass} style={inputStyle} />
-                </div>
-                <div>
-                  <label className={labelClass}>City</label>
-                  <input value={form.city} onChange={e => set('city', e.target.value)}
-                    placeholder="Swift Current" className={inputClass} style={inputStyle} />
-                </div>
-                <div>
-                  <label className={labelClass}>Province</label>
-                  <select value={form.province} onChange={e => set('province', e.target.value)}
-                    className={inputClass} style={inputStyle}>
-                    <option value="">Select</option>
-                    {['SK', 'AB', 'MB', 'BC', 'ON', 'Other'].map(p => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                  </select>
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className={labelClass}>Farm Name *</label>
+                <input value={form.farm_name} onChange={e => set('farm_name', e.target.value)}
+                  placeholder="Murphy Farms" className={inputClass} style={inputStyle} />
               </div>
-            </>
+              <div>
+                <label className={labelClass}>Your Name *</label>
+                <input value={form.contact_name} onChange={e => set('contact_name', e.target.value)}
+                  placeholder="Mike Murphy" className={inputClass} style={inputStyle} />
+              </div>
+              <div>
+                <label className={labelClass}>Phone</label>
+                <input value={form.contact_phone} onChange={e => set('contact_phone', e.target.value)}
+                  placeholder="+1 306 555 0000" className={inputClass} style={inputStyle} />
+              </div>
+              <div className="col-span-2">
+                <label className={labelClass}>Email *</label>
+                <input value={form.contact_email} onChange={e => set('contact_email', e.target.value)}
+                  placeholder="mike@farm.com" className={inputClass} style={inputStyle} />
+              </div>
+              <div>
+                <label className={labelClass}>City</label>
+                <input value={form.city} onChange={e => set('city', e.target.value)}
+                  placeholder="Swift Current" className={inputClass} style={inputStyle} />
+              </div>
+              <div>
+                <label className={labelClass}>Province</label>
+                <select value={form.province} onChange={e => set('province', e.target.value)}
+                  className={inputClass} style={inputStyle}>
+                  <option value="">Select</option>
+                  {['SK', 'AB', 'MB', 'BC', 'ON', 'Other'].map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           ) : (
             <>
               <div>
                 <label className={labelClass}>Looking for *</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { v: 'worker', label: 'Worker', icon: '👷' },
-                    { v: 'applicator', label: 'Applicator', icon: '🌿' },
-                    { v: 'trucker', label: 'Trucker', icon: '🚛' },
-                  ].map(({ v, label, icon }) => (
-                    <button key={v} type="button"
-                      onClick={() => set('bid_type', v)}
+                  {[{ v: 'worker', label: 'Worker', icon: '👷' }, { v: 'applicator', label: 'Applicator', icon: '🌿' }, { v: 'trucker', label: 'Trucker', icon: '🚛' }].map(({ v, label, icon }) => (
+                    <button key={v} type="button" onClick={() => set('bid_type', v)}
                       className="py-2.5 rounded-lg border text-xs font-medium transition-all"
                       style={{
                         borderColor: form.bid_type === v ? 'var(--ag-accent)' : 'var(--ag-border)',
@@ -1078,20 +1072,17 @@ function PostBidModal({
                   ))}
                 </div>
               </div>
-
               <div>
                 <label className={labelClass}>Job Title *</label>
                 <input value={form.title} onChange={e => set('title', e.target.value)}
                   placeholder="Need combine operator for harvest" className={inputClass} style={inputStyle} />
               </div>
-
               <div>
                 <label className={labelClass}>Description / Job Details</label>
                 <textarea value={form.description} onChange={e => set('description', e.target.value)}
                   rows={3} placeholder="Describe the work, conditions, expectations..."
                   className={inputClass} style={inputStyle} />
               </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={labelClass}>Acres</label>
@@ -1124,8 +1115,6 @@ function PostBidModal({
                     placeholder="Must have Class 1A, combine experience" className={inputClass} style={inputStyle} />
                 </div>
               </div>
-
-              {/* Crops */}
               <div>
                 <label className={labelClass}>Crop Types</label>
                 <div className="flex flex-wrap gap-1.5">
@@ -1145,17 +1134,11 @@ function PostBidModal({
                   ))}
                 </div>
               </div>
-
-              {/* Perks */}
               <div>
                 <label className={labelClass}>Perks Included</label>
                 <div className="flex gap-2">
-                  {[
-                    { k: 'housing_provided', label: '🏠 Housing' },
-                    { k: 'meals_provided', label: '🍽️ Meals' },
-                  ].map(({ k, label }) => (
-                    <button key={k} type="button"
-                      onClick={() => set(k, !form[k as keyof typeof form])}
+                  {[{ k: 'housing_provided', label: '🏠 Housing' }, { k: 'meals_provided', label: '🍽️ Meals' }].map(({ k, label }) => (
+                    <button key={k} type="button" onClick={() => set(k, !form[k as keyof typeof form])}
                       className="px-3 py-2 rounded-lg border text-xs font-medium transition-all"
                       style={{
                         borderColor: form[k as keyof typeof form] ? 'var(--ag-accent)' : 'var(--ag-border)',
@@ -1170,8 +1153,6 @@ function PostBidModal({
             </>
           )}
         </div>
-
-        {/* Footer */}
         <div className="flex gap-3 p-5 border-t flex-shrink-0" style={{ borderColor: 'var(--ag-border)' }}>
           {step === 2 && (
             <button onClick={() => setStep(1)}
@@ -1181,17 +1162,14 @@ function PostBidModal({
             </button>
           )}
           {step === 1 ? (
-            <button
-              onClick={() => setStep(2)}
+            <button onClick={() => setStep(2)}
               disabled={!form.farm_name || !form.contact_name || !form.contact_email}
               className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-40"
               style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}>
               Next →
             </button>
           ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || !form.title}
+            <button onClick={handleSubmit} disabled={submitting || !form.title}
               className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-40 flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}>
               {submitting
@@ -1213,8 +1191,8 @@ function EmptyState({ typeFilter }: { typeFilter: string }) {
       <h3 className="font-semibold text-ag-primary mb-2">No providers found</h3>
       <p className="text-sm text-ag-muted max-w-sm">
         {typeFilter !== 'all'
-          ? `No verified ${typeFilter}s match your current filters. Try adjusting your search.`
-          : 'No verified providers match your current filters. Try adjusting your search or check back soon as new providers are added.'}
+          ? `No verified ${typeFilter === 'professional' ? 'professionals' : typeFilter + 's'} match your current filters. Try adjusting your search.`
+          : 'No verified providers match your current filters. Try adjusting your search or check back soon.'}
       </p>
       <a href="/connect360/register"
         className="mt-4 px-4 py-2 rounded-lg text-sm font-medium transition-all"
