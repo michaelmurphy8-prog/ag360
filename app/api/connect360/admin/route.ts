@@ -31,7 +31,8 @@ export async function GET(req: NextRequest) {
         base_province, base_city, base_country,
         service_radius_km, open_to_relocation, work_countries,
         bio, years_experience, equipment_owned,
-        crops_experienced, availability,
+        crops_experienced, operations_experience, equipment_brands,
+        worldwide, cv_url, availability,
         verified_at, verified_by, created_at
       FROM connect_profiles
       WHERE status = ${status}
