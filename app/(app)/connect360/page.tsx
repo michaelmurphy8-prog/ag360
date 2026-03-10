@@ -110,9 +110,16 @@ const TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType; colo
 }
 
 const PROFESSIONAL_SUB_LABELS: Record<string, string> = {
-  immigration_consultant: 'Immigration Consultant',
-  ag_accountant: 'Ag Accountant',
-  crop_consultant: 'Crop Consultant',
+  immigration_consultant: 'Immigration Consultant (RCIC)',
+  ag_accountant:          'Ag Accountant / Tax Advisor',
+  crop_consultant:        'Crop Consultant',
+  agrologist:             'Agrologist (P.Ag)',
+  recruitment_agency:     'Farm Recruitment Agency',
+  farm_lawyer:            'Agricultural Lawyer',
+  ag_insurance:           'Ag Insurance Broker',
+  farm_lender:            'Farm Lender / Financial Advisor',
+  veterinarian:           'Veterinarian / Herd Health',
+  environmental:          'Environmental Consultant',
 }
 
 const AVAILABILITY_LABELS: Record<string, string> = {
@@ -166,6 +173,20 @@ export default function Connect360Page() {
     'user_39r0Tki0JfZnYL77EIzhcrLexio',
   ].includes(user?.id ?? '')
 
+  const [typeCounts, setTypeCounts] = useState<Record<string, number>>({})
+
+  const fetchCounts = useCallback(async () => {
+    try {
+      const res = await fetch('/api/connect360/profiles?limit=500')
+      const data = await res.json()
+      const counts: Record<string, number> = {}
+      for (const p of (data.profiles ?? [])) {
+        counts[p.type] = (counts[p.type] ?? 0) + 1
+      }
+      setTypeCounts(counts)
+    } catch {}
+  }, [])
+
   const fetchProviders = useCallback(async () => {
     setLoading(true)
     try {
@@ -188,6 +209,7 @@ export default function Connect360Page() {
   }, [typeFilter, provinceFilter, countryFilter, availabilityFilter, openToRelocation, search])
 
   useEffect(() => { fetchProviders() }, [fetchProviders])
+  useEffect(() => { fetchCounts() }, [])
 
   const fetchBids = useCallback(async () => {
     setBidsLoading(true)
@@ -274,7 +296,7 @@ export default function Connect360Page() {
         {(['trucker', 'applicator', 'worker', 'professional'] as const).map(type => {
           const cfg = TYPE_CONFIG[type]
           const Icon = cfg.icon
-          const count = providers.filter(p => p.type === type).length
+          const count = typeCounts[type] ?? 0
           const isPurple = type === 'professional'
           return (
             <button

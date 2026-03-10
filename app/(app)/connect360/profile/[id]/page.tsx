@@ -378,10 +378,18 @@ export default function ProviderProfilePage() {
                 <Stat
                   label="Specialization"
                   value={
-                    profile.professional_sub_type === 'immigration_consultant' ? 'Immigration Consultant' :
-                    profile.professional_sub_type === 'ag_accountant' ? 'Agricultural Accountant' :
-                    profile.professional_sub_type === 'crop_consultant' ? 'Crop Consultant' :
-                    profile.professional_sub_type
+                    ({
+                      immigration_consultant: 'Immigration Consultant (RCIC)',
+                      ag_accountant:          'Ag Accountant / Tax Advisor',
+                      crop_consultant:        'Crop Consultant',
+                      agrologist:             'Agrologist (P.Ag)',
+                      recruitment_agency:     'Farm Recruitment Agency',
+                      farm_lawyer:            'Agricultural Lawyer',
+                      ag_insurance:           'Ag Insurance Broker',
+                      farm_lender:            'Farm Lender / Financial Advisor',
+                      veterinarian:           'Veterinarian / Herd Health',
+                      environmental:          'Environmental Consultant',
+                    } as Record<string, string>)[profile.professional_sub_type] ?? profile.professional_sub_type
                   }
                 />
               )}
