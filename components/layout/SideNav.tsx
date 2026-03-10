@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  LayoutDashboard, Wheat, Sprout, Tractor, Package, Users, Cloud,
+  LayoutDashboard, Wheat, Sprout, Tractor, Package, Users, Cloud, Globe,
   Settings, ClipboardList, DollarSign, ChevronDown, Lock, Wrench,
   MapPin, Leaf, Beef, Palette, UserCog, Bell, Shield, MessageSquare, LogOut,
 } from "lucide-react";
@@ -25,6 +25,7 @@ const navSections: { title?: string; items: NavItem[] }[] = [
   {
     items: [
       { label: "Grain360", icon: Wheat, href: "/grain360" },
+      { label: "Connect360", icon: Globe, href: "/connect360" },
       { label: "Overview", icon: LayoutDashboard, href: "/overview" },
     ],
   },
@@ -71,7 +72,6 @@ const navSections: { title?: string; items: NavItem[] }[] = [
     items: [
       { label: "Produce360", icon: Leaf, comingSoon: true },
       { label: "Cattle360", icon: Beef, comingSoon: true },
-      { label: "Connect360", icon: MapPin, comingSoon: true },
     ],
   },
 ];
