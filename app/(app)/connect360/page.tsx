@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useUser } from '@clerk/nextjs'
 import {
   Globe, Search, Filter, MapPin, Truck, Sprout,
   Users, ChevronDown, CheckCircle, Clock, Phone,
-  Mail, Building2, Star, RefreshCw, UserPlus, X
+  Mail, Building2, Star, RefreshCw, UserPlus, X, Shield
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -99,7 +100,12 @@ export default function Connect360Page() {
   const [connectingId, setConnectingId] = useState<string | null>(null)
   const [revealedProvider, setRevealedProvider] = useState<ConnectedProvider | null>(null)
   const [showRevealModal, setShowRevealModal] = useState(false)
-
+  const { user, isLoaded } = useUser()
+const isAdmin = isLoaded && [
+  'user_3AfgiCDtz0gHx4WMcLx4bBtrSIY',
+  'user_39r0Tki0JfZnYL77EIzhcrLexio',
+].includes(user?.id ?? '')
+  console.log('user id:', user?.id, 'isAdmin:', isAdmin)
   const fetchProviders = useCallback(async () => {
     setLoading(true)
     try {
@@ -178,17 +184,33 @@ export default function Connect360Page() {
             Find verified truckers, applicators, and workers for your operation
           </p>
         </div>
-        <a
-          href="/connect360/register"
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
-          style={{
-            backgroundColor: 'var(--ag-accent)',
-            color: 'var(--ag-bg-primary)',
-          }}
-        >
-          <UserPlus size={14} />
-          Register as Provider
-        </a>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <a
+              href="/connect360/admin"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all"
+              style={{
+                borderColor: 'var(--ag-border)',
+                color: 'var(--ag-text-secondary)',
+                backgroundColor: 'var(--ag-bg-card)',
+              }}
+            >
+              <Shield size={14} />
+              Admin Queue
+            </a>
+          )}
+          <a
+            href="/connect360/register"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            style={{
+              backgroundColor: 'var(--ag-accent)',
+              color: 'var(--ag-bg-primary)',
+            }}
+          >
+            <UserPlus size={14} />
+            Register as Provider
+          </a>
+        </div>
       </div>
 
       {/* Stats bar */}
