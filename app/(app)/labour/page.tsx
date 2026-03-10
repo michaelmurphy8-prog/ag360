@@ -395,6 +395,21 @@ export default function LabourPage() {
   //  RENDER
   // ═══════════════════════════════════════════════════════════
 
+  // Connect360 contextual banner logic
+  const c360Month = new Date().getMonth() + 1;
+  const showC360Banner = (c360Month >= 4 && c360Month <= 10) || activeWorkers < 3;
+  const c360Type = (c360Month >= 6 && c360Month <= 7) ? 'applicator' : 'worker';
+  const c360Heading = activeWorkers < 3
+    ? 'Your team is running lean.'
+    : (c360Month >= 4 && c360Month <= 5) ? 'Seeding season — do you have enough hands?'
+    : (c360Month >= 6 && c360Month <= 7) ? 'Spray season — need a licensed applicator?'
+    : 'Harvest is coming — is your crew and trucking ready?';
+  const c360Sub = activeWorkers < 3
+    ? 'Find seasonal workers, contractors, and operators on Connect360.'
+    : (c360Month >= 4 && c360Month <= 5) ? 'Find verified seasonal workers and operators on Connect360.'
+    : (c360Month >= 6 && c360Month <= 7) ? 'Browse verified custom applicators on Connect360.'
+    : 'Find workers, operators, and custom truckers on Connect360.';
+
   return (
     <div className="space-y-4 pb-16 w-full max-w-full overflow-x-hidden">
 
@@ -431,6 +446,25 @@ export default function LabourPage() {
             </div>
           </div>
           <button onClick={() => { setTab("Certifications"); setCertFilter("expired"); }} className="text-[10px] font-semibold px-3 py-1 rounded-lg flex-shrink-0" style={{ backgroundColor: "var(--ag-red-dim, rgba(239,68,68,0.08))", color: "var(--ag-red)" }}>View All</button>
+        </div>
+      )}
+
+      {/* Connect360 Contextual Banner */}
+      {showC360Banner && (
+        <div className="rounded-xl border px-4 py-3 flex items-center justify-between gap-4"
+          style={{ backgroundColor: 'rgba(212,175,55,0.04)', borderColor: 'rgba(212,175,55,0.25)' }}>
+          <div className="flex items-start gap-3">
+            <Users size={16} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--ag-accent)' }} />
+            <div>
+              <p className="text-[12px] font-bold" style={{ color: 'var(--ag-accent)' }}>{c360Heading}</p>
+              <p className="text-[11px]" style={{ color: 'var(--ag-text-muted)' }}>{c360Sub}</p>
+            </div>
+          </div>
+          <a href={`/connect360?type=${c360Type}`}
+            className="flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap"
+            style={{ backgroundColor: 'rgba(212,175,55,0.12)', color: 'var(--ag-accent)', border: '1px solid rgba(212,175,55,0.25)' }}>
+            Find on Connect360
+          </a>
         </div>
       )}
 
@@ -481,11 +515,11 @@ export default function LabourPage() {
             { label: "Add Worker", icon: UserPlus, action: () => { setEditWorker(null); setShowWorkerModal(true); } },
             { label: "Log Incident", icon: ShieldAlert, action: () => { setEditIncident(null); setShowIncidentModal(true); } },
             { label: "Upload Certs", icon: Award, action: () => { setEditCert(null); setShowCertModal(true); } },
-            { label: "Connect360", icon: Users, action: null },
+            { label: "Connect360", icon: Users, action: () => { window.location.href = '/connect360'; } },
           ].map(a => (
-            <button key={a.label} onClick={a.action || undefined} disabled={!a.action}
+            <button key={a.label} onClick={a.action}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold rounded-lg border border-[var(--ag-border)] transition-colors"
-              style={{ color: a.action ? "var(--ag-text-secondary)" : "var(--ag-text-dim)", opacity: a.action ? 1 : 0.5 }}>
+              style={{ color: "var(--ag-text-secondary)" }}>
               <a.icon size={11} /> {a.label}
             </button>
           ))}
