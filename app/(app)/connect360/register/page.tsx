@@ -4,23 +4,26 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Globe, Truck, Sprout, Users, ChevronLeft,
-  CheckCircle, Upload, AlertCircle, Briefcase
+  CheckCircle, Upload, AlertCircle, Briefcase, Scale
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
-type ProviderType = 'trucker' | 'applicator' | 'worker'
+type ProviderType = 'trucker' | 'applicator' | 'worker' | 'professional'
 
 interface FormData {
   type: ProviderType | ''
+  // Personal
   first_name: string
   last_name: string
   email: string
   phone: string
+  // Business
   business_name: string
   business_number: string
   insurance_confirmed: boolean
   licence_number: string
   licence_province: string
+  // Location
   base_province: string
   base_city: string
   base_country: string
@@ -30,6 +33,7 @@ interface FormData {
   province_other: string
   open_to_relocation: boolean
   work_countries: string[]
+  // Experience
   bio: string
   years_experience: number | ''
   equipment_owned: string
@@ -40,6 +44,18 @@ interface FormData {
   driver_licence_type: string
   driver_licence_province: string
   availability: string
+  // Professional services
+  professional_sub_type: string
+  languages_spoken: string[]
+  services_offered: string[]
+  provinces_served: string[]
+  countries_served: string[]
+  remote_service: boolean
+  worker_origin_countries: string[]
+  // Worker sponsorship
+  seeking_tfw_sponsorship: boolean
+  seeking_h2a_sponsorship: boolean
+  citizenship_country: string
 }
 
 // ─── Constants ────────────────────────────────────────────────
@@ -71,6 +87,71 @@ const TYPE_OPTIONS = [
     border: 'border-amber-400/40',
     bg: 'bg-amber-400/10',
   },
+  {
+    value: 'professional',
+    label: 'Professional Services',
+    icon: Briefcase,
+    desc: 'Immigration consultants, ag accountants, crop consultants',
+    color: 'text-purple-400',
+    border: 'border-purple-400/40',
+    bg: 'bg-purple-400/10',
+  },
+]
+
+const PROFESSIONAL_SUB_TYPES = [
+  {
+    value: 'immigration_consultant',
+    label: 'Immigration Consultant',
+    desc: 'RCIC (Canada TFW / LMIA / PNP) or H-2A Attorney (USA)',
+    licenceLabel: 'RCIC Licence # or Bar Association #',
+    licenceHint: 'RCIC numbers are verifiable at college-ic.ca',
+    licenceHintUrl: 'https://college-ic.ca/protecting-the-public/find-an-immigration-consultant',
+  },
+  {
+    value: 'ag_accountant',
+    label: 'Ag Accountant / Bookkeeper',
+    desc: 'Farm tax, AgriStability, CCA, succession planning',
+    licenceLabel: 'CPA Registration #',
+    licenceHint: 'CPA numbers are verifiable at your provincial CPA body',
+    licenceHintUrl: 'https://www.cpacanada.ca/en/members-area/find-a-cpa',
+  },
+  {
+    value: 'crop_consultant',
+    label: 'Crop Consultant / Agronomist',
+    desc: 'Independent scouting, fertility planning, precision ag',
+    licenceLabel: 'P.Ag Registration # (if applicable)',
+    licenceHint: 'P.Ag numbers are verifiable at agrology.ca',
+    licenceHintUrl: 'https://www.agrology.ca',
+  },
+]
+
+const IMMIGRATION_SERVICES = [
+  'LMIA', 'TFW Program', 'Provincial Nominee Program (PNP)',
+  'Permanent Residence', 'Study Permit', 'Work Permit',
+  'Family Sponsorship', 'H-2A (USA)', 'Refugee Claims', 'Appeals & Hearings',
+]
+
+const AG_ACCOUNTANT_SERVICES = [
+  'Farm Tax Returns', 'AgriStability / AgriInvest', 'GST / HST Filing',
+  'Payroll & Labour', 'Succession Planning', 'Corporate Structure',
+  'Bookkeeping', 'Financial Statements', 'CCA & Depreciation', 'Grant Applications',
+]
+
+const CROP_CONSULTANT_SERVICES = [
+  'Crop Scouting', 'Soil Sampling', 'Fertilizer Planning', 'Pest & Disease ID',
+  'Variety Selection', 'Precision Agriculture', 'NDVI & Remote Sensing',
+  'Yield Mapping', 'Field Risk Assessment', 'Organic Certification',
+]
+
+const LANGUAGES = [
+  'English', 'French', 'Spanish', 'Tagalog', 'Ukrainian', 'Hindi',
+  'Punjabi', 'Portuguese', 'German', 'Mandarin', 'Korean', 'Other',
+]
+
+const WORKER_ORIGIN_COUNTRIES = [
+  'Philippines', 'Mexico', 'Guatemala', 'Honduras', 'El Salvador',
+  'Jamaica', 'Trinidad & Tobago', 'Ukraine', 'Poland', 'Romania',
+  'India', 'Nepal', 'Other',
 ]
 
 const CROP_OPTIONS = [
@@ -80,62 +161,36 @@ const CROP_OPTIONS = [
 ]
 
 const OPERATIONS_OPTIONS = [
-  'Seeding',
-  'Spraying / Chemical Application',
-  'Haying & Baling',
-  'Swathing',
-  'Combine Harvesting',
-  'Grain Cart Operation',
-  'Land Rolling & Rock Picking',
-  'Grain Hauling & Trucking',
-  'Fabricating & Mechanical',
-  'Chemical Mixing / Water Tender',
-  'Fencing',
-  'Irrigation',
-  'Livestock Handling',
-  'Silage & Forage',
-  'General Yard & Field Work',
-  'Other',
+  'Seeding', 'Spraying / Chemical Application', 'Haying & Baling', 'Swathing',
+  'Combine Harvesting', 'Grain Cart Operation', 'Land Rolling & Rock Picking',
+  'Grain Hauling & Trucking', 'Fabricating & Mechanical', 'Chemical Mixing / Water Tender',
+  'Fencing', 'Irrigation', 'Livestock Handling', 'Silage & Forage',
+  'General Yard & Field Work', 'Other',
 ]
 
 const EQUIPMENT_BRAND_OPTIONS = [
-  // Manufacturers
-  'John Deere',
-  'Case IH',
-  'New Holland',
-  'AGCO / Fendt',
-  'Claas',
-  'Versatile',
-  'MacDon',
-  'Bourgault',
-  'Morris Industries',
-  'Horsch',
-  'Seed Hawk',
-  'Salford',
-  'Buhler / Farm King',
-  // GPS & Precision Ag
-  'John Deere Operations Center',
-  'CNH AFS',
-  'Trimble',
-  'AgLeader',
-  'Raven',
-  'Topcon',
-  'Precision Planting',
-  // Mobile / Software
-  'Climate FieldView',
-  'Bushel Farm',
-  'Granular',
-  'AG360',
-  'FarmLogs',
+  'John Deere', 'Case IH', 'New Holland', 'AGCO / Fendt', 'Claas', 'Versatile',
+  'MacDon', 'Bourgault', 'Morris Industries', 'Horsch', 'Seed Hawk', 'Salford',
+  'Buhler / Farm King', 'John Deere Operations Center', 'CNH AFS', 'Trimble',
+  'AgLeader', 'Raven', 'Topcon', 'Precision Planting', 'Climate FieldView',
+  'Bushel Farm', 'Granular', 'AG360', 'FarmLogs',
 ]
 
 const CANADIAN_PROVINCES = ['AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT']
 const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
 const WORK_COUNTRY_OPTIONS = ['Canada', 'USA', 'Australia', 'New Zealand', 'UK', 'Germany', 'France', 'Ireland', 'Colombia', 'Brazil', 'Other']
+const ALL_PROVINCES_OPTIONS = [...CANADIAN_PROVINCES, ...US_STATES]
 
 const inputClass = `w-full px-3 py-2.5 rounded-lg border text-sm text-ag-primary outline-none transition-all
   focus:border-[var(--ag-accent)] placeholder:text-ag-muted`
 const inputStyle = { borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }
+
+function getServicesForSubType(sub: string): string[] {
+  if (sub === 'immigration_consultant') return IMMIGRATION_SERVICES
+  if (sub === 'ag_accountant') return AG_ACCOUNTANT_SERVICES
+  if (sub === 'crop_consultant') return CROP_CONSULTANT_SERVICES
+  return []
+}
 
 // ─── Main Component ───────────────────────────────────────────
 export default function RegisterProviderPage() {
@@ -164,24 +219,42 @@ export default function RegisterProviderPage() {
     operations_experience: [], equipment_brands: [],
     holds_licence: false, driver_licence_type: '', driver_licence_province: '',
     availability: 'immediate',
+    // Professional
+    professional_sub_type: '',
+    languages_spoken: [],
+    services_offered: [],
+    provinces_served: [],
+    countries_served: ['Canada'],
+    remote_service: true,
+    worker_origin_countries: [],
+    // Worker sponsorship
+    seeking_tfw_sponsorship: false,
+    seeking_h2a_sponsorship: false,
+    citizenship_country: '',
   })
 
   function set(key: keyof FormData, value: unknown) {
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  function toggleItem(key: 'crops_experienced' | 'operations_experience' | 'equipment_brands' | 'work_countries', val: string) {
+  function toggleItem(key: 'crops_experienced' | 'operations_experience' | 'equipment_brands' | 'work_countries' | 'languages_spoken' | 'services_offered' | 'provinces_served' | 'countries_served' | 'worker_origin_countries', val: string) {
     const arr = form[key] as string[]
     set(key, arr.includes(val) ? arr.filter(c => c !== val) : [...arr, val])
   }
 
   function canAdvance() {
     if (step === 1) return !!form.type
-    if (step === 2) return !!(form.first_name && form.last_name && form.email)
+    if (step === 2) {
+      const base = !!(form.first_name && form.last_name && form.email)
+      if (form.type === 'professional') return base && !!form.professional_sub_type
+      return base
+    }
     if (step === 3) return !!(form.base_city && (form.base_province || form.province_other || !['Canada', 'USA'].includes(form.base_country)))
     if (step === 4) return !!form.bio.trim()
     return true
   }
+
+  const subTypeConfig = PROFESSIONAL_SUB_TYPES.find(s => s.value === form.professional_sub_type)
 
   async function handleSubmit() {
     setSubmitting(true)
@@ -231,7 +304,7 @@ export default function RegisterProviderPage() {
       <div className="min-h-[60vh] flex items-center justify-center p-6">
         <div className="max-w-md w-full text-center space-y-4">
           <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
-            style={{ backgroundColor: 'var(--ag-accent)/20' }}>
+            style={{ backgroundColor: 'rgba(212,175,55,0.15)' }}>
             <CheckCircle size={32} className="text-[var(--ag-accent)]" />
           </div>
           <h2 className="text-xl font-bold text-ag-primary">Profile Submitted</h2>
@@ -240,6 +313,13 @@ export default function RegisterProviderPage() {
             before they appear in the directory. You'll be contacted at{' '}
             <span className="text-ag-primary font-medium">{form.email}</span> once approved.
           </p>
+          {form.type === 'professional' && (
+            <p className="text-xs text-ag-muted px-4 py-3 rounded-lg border"
+              style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)' }}>
+              Professional profiles include a licence verification step. Please ensure your registration
+              number is accurate to avoid delays.
+            </p>
+          )}
           <p className="text-xs text-ag-muted">
             Questions? Contact <a href="mailto:mike@ag360.farm" className="text-[var(--ag-accent)]">mike@ag360.farm</a>
           </p>
@@ -255,6 +335,11 @@ export default function RegisterProviderPage() {
     )
   }
 
+  const stepLabel = step === 1 ? 'Provider Type'
+    : step === 2 ? 'Personal & Business Info'
+    : step === 3 ? 'Location & Availability'
+    : 'Experience & Details'
+
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
       {/* Header */}
@@ -265,12 +350,7 @@ export default function RegisterProviderPage() {
         </button>
         <div>
           <h1 className="text-lg font-bold text-ag-primary">Register as a Provider</h1>
-          <p className="text-xs text-ag-muted">Step {step} of 4 — {
-            step === 1 ? 'Provider Type' :
-            step === 2 ? 'Personal & Business Info' :
-            step === 3 ? 'Location & Availability' :
-            'Experience & Details'
-          }</p>
+          <p className="text-xs text-ag-muted">Step {step} of 4 — {stepLabel}</p>
         </div>
       </div>
 
@@ -282,7 +362,7 @@ export default function RegisterProviderPage() {
         ))}
       </div>
 
-      {/* Step 1 — Type selection */}
+      {/* ── Step 1 — Type selection */}
       {step === 1 && (
         <div className="space-y-3">
           <p className="text-sm text-ag-muted">What best describes the service you provide?</p>
@@ -314,7 +394,7 @@ export default function RegisterProviderPage() {
         </div>
       )}
 
-      {/* Step 2 — Personal & Business Info */}
+      {/* ── Step 2 — Personal & Business Info */}
       {step === 2 && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
@@ -346,7 +426,7 @@ export default function RegisterProviderPage() {
               placeholder="+1 (306) 555-0000" />
           </div>
 
-          {/* Business fields — truckers and applicators only */}
+          {/* Trucker / Applicator business fields */}
           {(form.type === 'trucker' || form.type === 'applicator') && (
             <>
               <div>
@@ -355,14 +435,12 @@ export default function RegisterProviderPage() {
                   value={form.business_name} onChange={e => set('business_name', e.target.value)}
                   placeholder="Smith Trucking Ltd." />
               </div>
-
               <div>
                 <label className="block text-xs text-ag-muted mb-1.5">Business Registration Number</label>
                 <input className={inputClass} style={inputStyle}
                   value={form.business_number} onChange={e => set('business_number', e.target.value)}
                   placeholder="GST / HST / BN" />
               </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-ag-muted mb-1.5">
@@ -381,7 +459,6 @@ export default function RegisterProviderPage() {
                   </select>
                 </div>
               </div>
-
               <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer"
                 style={{ borderColor: form.insurance_confirmed ? 'var(--ag-accent-border)' : 'var(--ag-border)', backgroundColor: 'var(--ag-bg-card)' }}>
                 <input type="checkbox" className="mt-0.5"
@@ -394,10 +471,162 @@ export default function RegisterProviderPage() {
               </label>
             </>
           )}
+
+          {/* Professional Services fields */}
+          {form.type === 'professional' && (
+            <>
+              {/* Sub-type selector */}
+              <div>
+                <label className="block text-xs text-ag-muted mb-2">Service Type *</label>
+                <div className="space-y-2">
+                  {PROFESSIONAL_SUB_TYPES.map(sub => (
+                    <button key={sub.value} type="button"
+                      onClick={() => { set('professional_sub_type', sub.value); set('services_offered', []) }}
+                      className="w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all"
+                      style={{
+                        borderColor: form.professional_sub_type === sub.value ? 'rgba(168,85,247,0.5)' : 'var(--ag-border)',
+                        backgroundColor: form.professional_sub_type === sub.value ? 'rgba(168,85,247,0.08)' : 'var(--ag-bg-card)',
+                      }}>
+                      <div className="flex-1">
+                        <div className="font-semibold text-sm text-ag-primary">{sub.label}</div>
+                        <div className="text-xs text-ag-muted mt-0.5">{sub.desc}</div>
+                      </div>
+                      {form.professional_sub_type === sub.value && (
+                        <CheckCircle size={15} className="text-purple-400 mt-0.5 flex-shrink-0" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Licence number — shown once sub-type is selected */}
+              {subTypeConfig && (
+                <>
+                  <div>
+                    <label className="block text-xs text-ag-muted mb-1.5">{subTypeConfig.licenceLabel}</label>
+                    <input className={inputClass} style={inputStyle}
+                      value={form.licence_number} onChange={e => set('licence_number', e.target.value)}
+                      placeholder="Registration or licence number" />
+                    <a href={subTypeConfig.licenceHintUrl} target="_blank" rel="noopener noreferrer"
+                      className="text-[10px] mt-1 inline-block"
+                      style={{ color: 'var(--ag-accent)' }}>
+                      {subTypeConfig.licenceHint} ↗
+                    </a>
+                  </div>
+
+                  {/* Business name */}
+                  <div>
+                    <label className="block text-xs text-ag-muted mb-1.5">Business / Practice Name</label>
+                    <input className={inputClass} style={inputStyle}
+                      value={form.business_name} onChange={e => set('business_name', e.target.value)}
+                      placeholder="e.g. Prairie Immigration Services" />
+                  </div>
+
+                  {/* Services offered */}
+                  <div>
+                    <label className="block text-xs text-ag-muted mb-2">Services Offered</label>
+                    <div className="flex flex-wrap gap-2">
+                      {getServicesForSubType(form.professional_sub_type).map(s => (
+                        <button key={s} type="button"
+                          onClick={() => toggleItem('services_offered', s)}
+                          className="px-3 py-1.5 rounded-full border text-xs font-medium transition-all"
+                          style={{
+                            borderColor: form.services_offered.includes(s) ? 'rgba(168,85,247,0.5)' : 'var(--ag-border)',
+                            backgroundColor: form.services_offered.includes(s) ? 'rgba(168,85,247,0.08)' : 'var(--ag-bg-hover)',
+                            color: form.services_offered.includes(s) ? '#c084fc' : 'var(--ag-text-secondary)',
+                          }}>
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Languages */}
+                  <div>
+                    <label className="block text-xs text-ag-muted mb-2">Languages Spoken</label>
+                    <div className="flex flex-wrap gap-2">
+                      {LANGUAGES.map(l => (
+                        <button key={l} type="button"
+                          onClick={() => toggleItem('languages_spoken', l)}
+                          className="px-3 py-1.5 rounded-full border text-xs font-medium transition-all"
+                          style={{
+                            borderColor: form.languages_spoken.includes(l) ? 'rgba(168,85,247,0.5)' : 'var(--ag-border)',
+                            backgroundColor: form.languages_spoken.includes(l) ? 'rgba(168,85,247,0.08)' : 'var(--ag-bg-hover)',
+                            color: form.languages_spoken.includes(l) ? '#c084fc' : 'var(--ag-text-secondary)',
+                          }}>
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Worker origin countries — immigration only */}
+                  {form.professional_sub_type === 'immigration_consultant' && (
+                    <>
+                      <div>
+                        <label className="block text-xs text-ag-muted mb-1">Worker Origin Countries</label>
+                        <p className="text-[11px] text-ag-dim mb-2">Countries you have experience processing workers from</p>
+                        <div className="flex flex-wrap gap-2">
+                          {WORKER_ORIGIN_COUNTRIES.map(c => (
+                            <button key={c} type="button"
+                              onClick={() => toggleItem('worker_origin_countries', c)}
+                              className="px-3 py-1.5 rounded-full border text-xs font-medium transition-all"
+                              style={{
+                                borderColor: form.worker_origin_countries.includes(c) ? 'rgba(168,85,247,0.5)' : 'var(--ag-border)',
+                                backgroundColor: form.worker_origin_countries.includes(c) ? 'rgba(168,85,247,0.08)' : 'var(--ag-bg-hover)',
+                                color: form.worker_origin_countries.includes(c) ? '#c084fc' : 'var(--ag-text-secondary)',
+                              }}>
+                              {c}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-ag-muted mb-2">Countries Served</label>
+                        <div className="flex gap-2">
+                          {['Canada', 'USA', 'Both'].map(c => (
+                            <button key={c} type="button"
+                              onClick={() => set('countries_served', c === 'Both' ? ['Canada', 'USA'] : [c])}
+                              className="flex-1 py-2 rounded-lg border text-xs font-medium transition-all"
+                              style={{
+                                borderColor: (c === 'Both' ? (form.countries_served.includes('Canada') && form.countries_served.includes('USA')) : form.countries_served.includes(c) && form.countries_served.length === 1) ? 'rgba(168,85,247,0.5)' : 'var(--ag-border)',
+                                backgroundColor: (c === 'Both' ? (form.countries_served.includes('Canada') && form.countries_served.includes('USA')) : form.countries_served.includes(c) && form.countries_served.length === 1) ? 'rgba(168,85,247,0.08)' : 'var(--ag-bg-card)',
+                                color: (c === 'Both' ? (form.countries_served.includes('Canada') && form.countries_served.includes('USA')) : form.countries_served.includes(c) && form.countries_served.length === 1) ? '#c084fc' : 'var(--ag-text-secondary)',
+                              }}>
+                              {c}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Remote service */}
+                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer"
+                    style={{ borderColor: form.remote_service ? 'rgba(168,85,247,0.4)' : 'var(--ag-border)', backgroundColor: 'var(--ag-bg-card)' }}>
+                    <input type="checkbox" checked={form.remote_service}
+                      onChange={e => set('remote_service', e.target.checked)} />
+                    <div>
+                      <div className="text-sm text-ag-primary font-medium">Available for Remote / Virtual Consultations</div>
+                      <div className="text-xs text-ag-muted">Clients can work with you from anywhere</div>
+                    </div>
+                  </label>
+
+                  {/* Disclaimer */}
+                  <div className="flex items-start gap-2 p-3 rounded-lg border text-xs text-ag-muted"
+                    style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)' }}>
+                    <Scale size={13} className="flex-shrink-0 mt-0.5 text-ag-muted" />
+                    <span>Connect360 is a directory and connection platform only. You are responsible for all professional advice and services provided. AG360 does not guarantee outcomes or verify credentials beyond the information you provide.</span>
+                  </div>
+                </>
+              )}
+            </>
+          )}
         </div>
       )}
 
-      {/* Step 3 — Location & Availability */}
+      {/* ── Step 3 — Location & Availability */}
       {step === 3 && (
         <div className="space-y-4">
           {/* Base Country */}
@@ -465,33 +694,57 @@ export default function RegisterProviderPage() {
             </div>
           </div>
 
-          {/* Service Radius */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs text-ag-muted">
-                Service Radius —{' '}
-                <span className="text-ag-primary font-medium">
-                  {form.worldwide ? 'Worldwide' : `${form.service_radius_km} km`}
-                </span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.worldwide}
-                  onChange={e => set('worldwide', e.target.checked)} />
-                <span className="text-xs text-ag-muted">Worldwide</span>
-              </label>
+          {/* Provinces served — professional */}
+          {form.type === 'professional' && (
+            <div>
+              <label className="block text-xs text-ag-muted mb-1">Provinces / States Served</label>
+              <p className="text-[11px] text-ag-dim mb-2">Select all you actively serve</p>
+              <div className="flex flex-wrap gap-2">
+                {ALL_PROVINCES_OPTIONS.map(p => (
+                  <button key={p} type="button"
+                    onClick={() => toggleItem('provinces_served', p)}
+                    className="px-2.5 py-1 rounded-full border text-xs font-medium transition-all"
+                    style={{
+                      borderColor: form.provinces_served.includes(p) ? 'rgba(168,85,247,0.5)' : 'var(--ag-border)',
+                      backgroundColor: form.provinces_served.includes(p) ? 'rgba(168,85,247,0.08)' : 'var(--ag-bg-hover)',
+                      color: form.provinces_served.includes(p) ? '#c084fc' : 'var(--ag-text-secondary)',
+                    }}>
+                    {p}
+                  </button>
+                ))}
+              </div>
             </div>
-            {!form.worldwide && (
-              <>
-                <input type="range" min={50} max={2000} step={50}
-                  value={form.service_radius_km}
-                  onChange={e => set('service_radius_km', Number(e.target.value))}
-                  className="w-full accent-[var(--ag-accent)]" />
-                <div className="flex justify-between text-[10px] text-ag-muted mt-1">
-                  <span>50 km</span><span>500 km</span><span>1,000 km</span><span>2,000 km</span>
-                </div>
-              </>
-            )}
-          </div>
+          )}
+
+          {/* Service Radius — not shown for remote professionals */}
+          {!(form.type === 'professional' && form.remote_service) && (
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs text-ag-muted">
+                  Service Radius —{' '}
+                  <span className="text-ag-primary font-medium">
+                    {form.worldwide ? 'Worldwide' : `${form.service_radius_km} km`}
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.worldwide}
+                    onChange={e => set('worldwide', e.target.checked)} />
+                  <span className="text-xs text-ag-muted">Worldwide</span>
+                </label>
+              </div>
+              {!form.worldwide && (
+                <>
+                  <input type="range" min={50} max={2000} step={50}
+                    value={form.service_radius_km}
+                    onChange={e => set('service_radius_km', Number(e.target.value))}
+                    className="w-full accent-[var(--ag-accent)]" />
+                  <div className="flex justify-between text-[10px] text-ag-muted mt-1">
+                    <span>50 km</span><span>500 km</span><span>1,000 km</span><span>2,000 km</span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Work countries */}
           <div>
@@ -512,16 +765,18 @@ export default function RegisterProviderPage() {
             </div>
           </div>
 
-          {/* Open to relocation */}
-          <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer"
-            style={{ borderColor: form.open_to_relocation ? 'var(--ag-accent-border)' : 'var(--ag-border)', backgroundColor: 'var(--ag-bg-card)' }}>
-            <input type="checkbox" checked={form.open_to_relocation}
-              onChange={e => set('open_to_relocation', e.target.checked)} />
-            <div>
-              <div className="text-sm text-ag-primary font-medium">Open to Relocation</div>
-              <div className="text-xs text-ag-muted">I'm willing to relocate for the right opportunity</div>
-            </div>
-          </label>
+          {/* Open to relocation — not shown for professionals */}
+          {form.type !== 'professional' && (
+            <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer"
+              style={{ borderColor: form.open_to_relocation ? 'var(--ag-accent-border)' : 'var(--ag-border)', backgroundColor: 'var(--ag-bg-card)' }}>
+              <input type="checkbox" checked={form.open_to_relocation}
+                onChange={e => set('open_to_relocation', e.target.checked)} />
+              <div>
+                <div className="text-sm text-ag-primary font-medium">Open to Relocation</div>
+                <div className="text-xs text-ag-muted">I'm willing to relocate for the right opportunity</div>
+              </div>
+            </label>
+          )}
 
           {/* Availability */}
           <div>
@@ -551,10 +806,9 @@ export default function RegisterProviderPage() {
         </div>
       )}
 
-      {/* Step 4 — Experience & Details */}
+      {/* ── Step 4 — Experience & Details */}
       {step === 4 && (
         <div className="space-y-5">
-          {/* Years + Bio */}
           <div>
             <label className="block text-xs text-ag-muted mb-1.5">Years of Experience</label>
             <input className={inputClass} style={inputStyle} type="number" min={0} max={60}
@@ -563,57 +817,99 @@ export default function RegisterProviderPage() {
               placeholder="e.g. 12" />
           </div>
 
-          {/* Commercial Licence */}
-          <div>
-            <label className="block text-xs text-ag-muted mb-2">Do you hold a commercial vehicle licence?</label>
-            <div className="flex gap-2">
-              {[{ val: true, label: 'Yes' }, { val: false, label: 'No' }].map(opt => (
-                <button key={String(opt.val)} type="button"
-                  onClick={() => set('holds_licence', opt.val)}
-                  className="flex-1 py-2.5 rounded-lg border text-sm font-medium transition-all"
-                  style={{
-                    borderColor: form.holds_licence === opt.val ? 'var(--ag-accent-border)' : 'var(--ag-border)',
-                    backgroundColor: form.holds_licence === opt.val ? 'var(--ag-bg-active)' : 'var(--ag-bg-card)',
-                    color: form.holds_licence === opt.val ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
-                  }}>
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            {form.holds_licence && (
-              <div className="grid grid-cols-2 gap-3 mt-3">
+          {/* Worker sponsorship — workers only */}
+          {form.type === 'worker' && (
+            <div className="space-y-3">
+              <label className="block text-xs text-ag-muted">Work Authorization</label>
+
+              <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer"
+                style={{ borderColor: form.seeking_tfw_sponsorship ? 'rgba(56,189,248,0.4)' : 'var(--ag-border)', backgroundColor: 'var(--ag-bg-card)' }}>
+                <input type="checkbox" className="mt-0.5"
+                  checked={form.seeking_tfw_sponsorship}
+                  onChange={e => set('seeking_tfw_sponsorship', e.target.checked)} />
                 <div>
-                  <label className="block text-xs text-ag-muted mb-1.5">Licence Type</label>
-                  <select className={inputClass} style={inputStyle}
-                    value={form.driver_licence_type} onChange={e => set('driver_licence_type', e.target.value)}>
-                    <option value="">Select type...</option>
-                    <option value="Class 1A">Class 1A (SK/AB/MB — Semi)</option>
-                    <option value="Class 1">Class 1 (BC/ON — Semi)</option>
-                    <option value="CDL-A">CDL-A (USA — Semi)</option>
-                    <option value="CDL-B">CDL-B (USA — Straight Truck)</option>
-                    <option value="HGV Class 1">HGV Class 1 (UK/EU — Articulated)</option>
-                    <option value="HGV Class 2">HGV Class 2 (UK/EU — Rigid)</option>
-                    <option value="Class 3">Class 3 (Straight Truck)</option>
-                    <option value="Other">Other Equivalent</option>
-                  </select>
+                  <div className="text-sm text-ag-primary font-medium">Seeking TFW Sponsorship (Canada)</div>
+                  <div className="text-xs text-ag-muted">I require LMIA / Temporary Foreign Worker Program sponsorship to work in Canada</div>
                 </div>
+              </label>
+
+              <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer"
+                style={{ borderColor: form.seeking_h2a_sponsorship ? 'rgba(56,189,248,0.4)' : 'var(--ag-border)', backgroundColor: 'var(--ag-bg-card)' }}>
+                <input type="checkbox" className="mt-0.5"
+                  checked={form.seeking_h2a_sponsorship}
+                  onChange={e => set('seeking_h2a_sponsorship', e.target.checked)} />
                 <div>
-                  <label className="block text-xs text-ag-muted mb-1.5">Issuing Province / State / Country</label>
+                  <div className="text-sm text-ag-primary font-medium">Seeking H-2A Sponsorship (USA)</div>
+                  <div className="text-xs text-ag-muted">I require H-2A agricultural guest worker visa sponsorship to work in the United States</div>
+                </div>
+              </label>
+
+              {(form.seeking_tfw_sponsorship || form.seeking_h2a_sponsorship) && (
+                <div>
+                  <label className="block text-xs text-ag-muted mb-1.5">Country of Citizenship</label>
                   <input className={inputClass} style={inputStyle}
-                    value={form.driver_licence_province} onChange={e => set('driver_licence_province', e.target.value)}
-                    placeholder="e.g. SK, ND, Ireland" />
+                    value={form.citizenship_country} onChange={e => set('citizenship_country', e.target.value)}
+                    placeholder="e.g. Philippines, Mexico, Ukraine" />
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Commercial Licence — non-professionals */}
+          {form.type !== 'professional' && (
+            <div>
+              <label className="block text-xs text-ag-muted mb-2">Do you hold a commercial vehicle licence?</label>
+              <div className="flex gap-2">
+                {[{ val: true, label: 'Yes' }, { val: false, label: 'No' }].map(opt => (
+                  <button key={String(opt.val)} type="button"
+                    onClick={() => set('holds_licence', opt.val)}
+                    className="flex-1 py-2.5 rounded-lg border text-sm font-medium transition-all"
+                    style={{
+                      borderColor: form.holds_licence === opt.val ? 'var(--ag-accent-border)' : 'var(--ag-border)',
+                      backgroundColor: form.holds_licence === opt.val ? 'var(--ag-bg-active)' : 'var(--ag-bg-card)',
+                      color: form.holds_licence === opt.val ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
+                    }}>
+                    {opt.label}
+                  </button>
+                ))}
               </div>
-            )}
-          </div>
+              {form.holds_licence && (
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <label className="block text-xs text-ag-muted mb-1.5">Licence Type</label>
+                    <select className={inputClass} style={inputStyle}
+                      value={form.driver_licence_type} onChange={e => set('driver_licence_type', e.target.value)}>
+                      <option value="">Select type...</option>
+                      <option value="Class 1A">Class 1A (SK/AB/MB — Semi)</option>
+                      <option value="Class 1">Class 1 (BC/ON — Semi)</option>
+                      <option value="CDL-A">CDL-A (USA — Semi)</option>
+                      <option value="CDL-B">CDL-B (USA — Straight Truck)</option>
+                      <option value="HGV Class 1">HGV Class 1 (UK/EU — Articulated)</option>
+                      <option value="HGV Class 2">HGV Class 2 (UK/EU — Rigid)</option>
+                      <option value="Class 3">Class 3 (Straight Truck)</option>
+                      <option value="Other">Other Equivalent</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-ag-muted mb-1.5">Issuing Province / State / Country</label>
+                    <input className={inputClass} style={inputStyle}
+                      value={form.driver_licence_province} onChange={e => set('driver_licence_province', e.target.value)}
+                      placeholder="e.g. SK, ND, Ireland" />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-xs text-ag-muted mb-1.5">
-              Bio / About You <span className="text-red-400">*</span>
+              {form.type === 'professional' ? 'Professional Bio *' : 'Bio / About You *'}
             </label>
             <textarea className={inputClass} style={inputStyle} rows={4}
               value={form.bio} onChange={e => set('bio', e.target.value)}
-              placeholder="Describe your experience, what you offer, and what makes you a great hire. This is what farmers see first — make it count." />
+              placeholder={form.type === 'professional'
+                ? 'Describe your practice, areas of expertise, and how you help agricultural clients.'
+                : 'Describe your experience, what you offer, and what makes you a great hire. This is what farmers see first — make it count.'} />
             {!form.bio.trim() && (
               <p className="text-xs text-ag-muted mt-1">Required before submitting.</p>
             )}
@@ -629,64 +925,66 @@ export default function RegisterProviderPage() {
             </div>
           )}
 
-          {/* Crops Experienced */}
-          <div>
-            <label className="block text-xs text-ag-muted mb-2">Crops Experienced With</label>
-            <div className="flex flex-wrap gap-2">
-              {CROP_OPTIONS.map(crop => (
-                <button key={crop} type="button"
-                  onClick={() => toggleItem('crops_experienced', crop)}
-                  className="px-3 py-1.5 rounded-full border text-xs font-medium transition-all"
-                  style={{
-                    borderColor: form.crops_experienced.includes(crop) ? 'var(--ag-accent-border)' : 'var(--ag-border)',
-                    backgroundColor: form.crops_experienced.includes(crop) ? 'var(--ag-bg-active)' : 'var(--ag-bg-hover)',
-                    color: form.crops_experienced.includes(crop) ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
-                  }}>
-                  {crop}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Crops + Operations + Brands — non-professionals */}
+          {form.type !== 'professional' && (
+            <>
+              <div>
+                <label className="block text-xs text-ag-muted mb-2">Crops Experienced With</label>
+                <div className="flex flex-wrap gap-2">
+                  {CROP_OPTIONS.map(crop => (
+                    <button key={crop} type="button"
+                      onClick={() => toggleItem('crops_experienced', crop)}
+                      className="px-3 py-1.5 rounded-full border text-xs font-medium transition-all"
+                      style={{
+                        borderColor: form.crops_experienced.includes(crop) ? 'var(--ag-accent-border)' : 'var(--ag-border)',
+                        backgroundColor: form.crops_experienced.includes(crop) ? 'var(--ag-bg-active)' : 'var(--ag-bg-hover)',
+                        color: form.crops_experienced.includes(crop) ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
+                      }}>
+                      {crop}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          {/* Operations Experience */}
-          <div>
-            <label className="block text-xs text-ag-muted mb-1">Operations Experience</label>
-            <p className="text-[11px] text-ag-dim mb-2">Select all that apply</p>
-            <div className="flex flex-wrap gap-2">
-              {OPERATIONS_OPTIONS.map(op => (
-                <button key={op} type="button"
-                  onClick={() => toggleItem('operations_experience', op)}
-                  className="px-3 py-1.5 rounded-full border text-xs font-medium transition-all"
-                  style={{
-                    borderColor: form.operations_experience.includes(op) ? 'var(--ag-accent-border)' : 'var(--ag-border)',
-                    backgroundColor: form.operations_experience.includes(op) ? 'var(--ag-bg-active)' : 'var(--ag-bg-hover)',
-                    color: form.operations_experience.includes(op) ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
-                  }}>
-                  {op}
-                </button>
-              ))}
-            </div>
-          </div>
+              <div>
+                <label className="block text-xs text-ag-muted mb-1">Operations Experience</label>
+                <p className="text-[11px] text-ag-dim mb-2">Select all that apply</p>
+                <div className="flex flex-wrap gap-2">
+                  {OPERATIONS_OPTIONS.map(op => (
+                    <button key={op} type="button"
+                      onClick={() => toggleItem('operations_experience', op)}
+                      className="px-3 py-1.5 rounded-full border text-xs font-medium transition-all"
+                      style={{
+                        borderColor: form.operations_experience.includes(op) ? 'var(--ag-accent-border)' : 'var(--ag-border)',
+                        backgroundColor: form.operations_experience.includes(op) ? 'var(--ag-bg-active)' : 'var(--ag-bg-hover)',
+                        color: form.operations_experience.includes(op) ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
+                      }}>
+                      {op}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          {/* Equipment & Brand Experience */}
-          <div>
-            <label className="block text-xs text-ag-muted mb-1">Equipment & Brand Experience</label>
-            <p className="text-[11px] text-ag-dim mb-2">Manufacturers, GPS systems, and farm software</p>
-            <div className="flex flex-wrap gap-2">
-              {EQUIPMENT_BRAND_OPTIONS.map(brand => (
-                <button key={brand} type="button"
-                  onClick={() => toggleItem('equipment_brands', brand)}
-                  className="px-3 py-1.5 rounded-full border text-xs font-medium transition-all"
-                  style={{
-                    borderColor: form.equipment_brands.includes(brand) ? 'var(--ag-accent-border)' : 'var(--ag-border)',
-                    backgroundColor: form.equipment_brands.includes(brand) ? 'var(--ag-bg-active)' : 'var(--ag-bg-hover)',
-                    color: form.equipment_brands.includes(brand) ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
-                  }}>
-                  {brand}
-                </button>
-              ))}
-            </div>
-          </div>
+              <div>
+                <label className="block text-xs text-ag-muted mb-1">Equipment & Brand Experience</label>
+                <p className="text-[11px] text-ag-dim mb-2">Manufacturers, GPS systems, and farm software</p>
+                <div className="flex flex-wrap gap-2">
+                  {EQUIPMENT_BRAND_OPTIONS.map(brand => (
+                    <button key={brand} type="button"
+                      onClick={() => toggleItem('equipment_brands', brand)}
+                      className="px-3 py-1.5 rounded-full border text-xs font-medium transition-all"
+                      style={{
+                        borderColor: form.equipment_brands.includes(brand) ? 'var(--ag-accent-border)' : 'var(--ag-border)',
+                        backgroundColor: form.equipment_brands.includes(brand) ? 'var(--ag-bg-active)' : 'var(--ag-bg-hover)',
+                        color: form.equipment_brands.includes(brand) ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
+                      }}>
+                      {brand}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* CV Upload — workers only */}
           {form.type === 'worker' && (
