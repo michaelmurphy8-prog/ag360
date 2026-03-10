@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { getTenantAuth } from '@/lib/tenant-auth'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY!)
 
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -146,6 +149,38 @@ export async function POST(req: NextRequest) {
       )
       RETURNING id, status, created_at
     `
+
+    // Admin email notification — fire and forget
+    try {
+      await resend.emails.send({
+        from: 'AG360 <hello@ag360.farm>',
+        to: 'mike@ag360.farm',
+        subject: `New Connect360 Registration — ${first_name} ${last_name}`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #0f1117; color: #e2e8f0; padding: 32px; border-radius: 12px;">
+            <h2 style="color: #d4af37; margin-top: 0;">New Provider Registration</h2>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+              <tr><td style="padding: 8px 0; color: #94a3b8; width: 140px;">Name</td><td style="padding: 8px 0; font-weight: 600;">${first_name} ${last_name}</td></tr>
+              <tr><td style="padding: 8px 0; color: #94a3b8;">Type</td><td style="padding: 8px 0; text-transform: capitalize;">${type}</td></tr>
+              ${business_name ? `<tr><td style="padding: 8px 0; color: #94a3b8;">Business</td><td style="padding: 8px 0;">${business_name}</td></tr>` : ''}
+              <tr><td style="padding: 8px 0; color: #94a3b8;">Location</td><td style="padding: 8px 0;">${[base_city, base_province, base_country].filter(Boolean).join(', ')}</td></tr>
+              <tr><td style="padding: 8px 0; color: #94a3b8;">Phone</td><td style="padding: 8px 0;">${phone ?? '—'}</td></tr>
+              <tr><td style="padding: 8px 0; color: #94a3b8;">Email</td><td style="padding: 8px 0;">${email}</td></tr>
+              <tr><td style="padding: 8px 0; color: #94a3b8;">Availability</td><td style="padding: 8px 0; text-transform: capitalize;">${availability ?? '—'}</td></tr>
+            </table>
+            <div style="margin-top: 28px;">
+              <a href="https://ag360.farm/connect360/admin"
+                style="background: #d4af37; color: #0f1117; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 14px;">
+                Review in Admin Queue →
+              </a>
+            </div>
+            <p style="color: #475569; font-size: 12px; margin-top: 32px; margin-bottom: 0;">AG360 · ag360.farm</p>
+          </div>
+        `,
+      })
+    } catch (emailErr) {
+      console.error('Admin notification email failed:', emailErr)
+    }
 
     return NextResponse.json({
       success: true,

@@ -36,6 +36,8 @@ interface ConnectProfile {
   verified_at?: string
   created_at: string
   cv_url?: string
+  operations_experience?: string[]
+  equipment_brands?: string[]
 }
 
 // ─── Constants ────────────────────────────────────────────────
@@ -302,6 +304,34 @@ export default function ProviderProfilePage() {
                 <span key={crop} className="text-xs px-2.5 py-1 rounded-full border"
                   style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)', color: 'var(--ag-text-secondary)' }}>
                   {crop}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {profile.operations_experience && profile.operations_experience.length > 0 && (
+          <div className="mt-3">
+            <div className="text-xs text-ag-muted uppercase tracking-wide mb-2">Operations Experience</div>
+            <div className="flex flex-wrap gap-1.5">
+              {profile.operations_experience.map(exp => (
+                <span key={exp} className="text-xs px-2.5 py-1 rounded-full border"
+                  style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)', color: 'var(--ag-text-secondary)' }}>
+                  {exp}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {profile.equipment_brands && profile.equipment_brands.length > 0 && (
+          <div className="mt-3">
+            <div className="text-xs text-ag-muted uppercase tracking-wide mb-2">Equipment Brands</div>
+            <div className="flex flex-wrap gap-1.5">
+              {profile.equipment_brands.map(brand => (
+                <span key={brand} className="text-xs px-2.5 py-1 rounded-full border"
+                  style={{ borderColor: 'rgba(212,175,55,0.3)', backgroundColor: 'rgba(212,175,55,0.08)', color: 'var(--ag-accent)' }}>
+                  {brand}
                 </span>
               ))}
             </div>
