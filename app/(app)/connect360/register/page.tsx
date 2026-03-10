@@ -36,6 +36,9 @@ interface FormData {
   crops_experienced: string[]
   operations_experience: string[]
   equipment_brands: string[]
+  holds_licence: boolean
+  driver_licence_type: string
+  driver_licence_province: string
   availability: string
 }
 
@@ -159,6 +162,7 @@ export default function RegisterProviderPage() {
     bio: '', years_experience: '',
     equipment_owned: '', crops_experienced: [],
     operations_experience: [], equipment_brands: [],
+    holds_licence: false, driver_licence_type: '', driver_licence_province: '',
     availability: 'immediate',
   })
 
@@ -557,6 +561,50 @@ export default function RegisterProviderPage() {
               value={form.years_experience}
               onChange={e => set('years_experience', e.target.value === '' ? '' : Number(e.target.value))}
               placeholder="e.g. 12" />
+          </div>
+
+          {/* Commercial Licence */}
+          <div>
+            <label className="block text-xs text-ag-muted mb-2">Do you hold a commercial vehicle licence?</label>
+            <div className="flex gap-2">
+              {[{ val: true, label: 'Yes' }, { val: false, label: 'No' }].map(opt => (
+                <button key={String(opt.val)} type="button"
+                  onClick={() => set('holds_licence', opt.val)}
+                  className="flex-1 py-2.5 rounded-lg border text-sm font-medium transition-all"
+                  style={{
+                    borderColor: form.holds_licence === opt.val ? 'var(--ag-accent-border)' : 'var(--ag-border)',
+                    backgroundColor: form.holds_licence === opt.val ? 'var(--ag-bg-active)' : 'var(--ag-bg-card)',
+                    color: form.holds_licence === opt.val ? 'var(--ag-accent)' : 'var(--ag-text-secondary)',
+                  }}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {form.holds_licence && (
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                  <label className="block text-xs text-ag-muted mb-1.5">Licence Type</label>
+                  <select className={inputClass} style={inputStyle}
+                    value={form.driver_licence_type} onChange={e => set('driver_licence_type', e.target.value)}>
+                    <option value="">Select type...</option>
+                    <option value="Class 1A">Class 1A (SK/AB/MB — Semi)</option>
+                    <option value="Class 1">Class 1 (BC/ON — Semi)</option>
+                    <option value="CDL-A">CDL-A (USA — Semi)</option>
+                    <option value="CDL-B">CDL-B (USA — Straight Truck)</option>
+                    <option value="HGV Class 1">HGV Class 1 (UK/EU — Articulated)</option>
+                    <option value="HGV Class 2">HGV Class 2 (UK/EU — Rigid)</option>
+                    <option value="Class 3">Class 3 (Straight Truck)</option>
+                    <option value="Other">Other Equivalent</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-ag-muted mb-1.5">Issuing Province / State / Country</label>
+                  <input className={inputClass} style={inputStyle}
+                    value={form.driver_licence_province} onChange={e => set('driver_licence_province', e.target.value)}
+                    placeholder="e.g. SK, ND, Ireland" />
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

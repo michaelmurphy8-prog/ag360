@@ -96,6 +96,9 @@ export async function POST(req: NextRequest) {
       operations_experience,
       equipment_brands,
       worldwide,
+      holds_licence,
+      driver_licence_type,
+      driver_licence_province,
     } = body
 
     if (!type || !first_name || !last_name || !email) {
@@ -122,7 +125,8 @@ export async function POST(req: NextRequest) {
         base_country, service_radius_km, open_to_relocation,
         work_countries, bio, years_experience, equipment_owned,
         crops_experienced, availability, cv_url,
-        operations_experience, equipment_brands, worldwide, status
+        operations_experience, equipment_brands, worldwide,
+        holds_licence, driver_licence_type, driver_licence_province, status
       ) VALUES (
         ${clerk_user_id ?? null}, ${type}, ${first_name}, ${last_name},
         ${email}, ${phone ?? null}, ${photo_url ?? null},
@@ -136,7 +140,9 @@ export async function POST(req: NextRequest) {
         ${crops_experienced ?? []}, ${availability ?? 'immediate'},
         ${cv_url ?? null},
         ${operations_experience ?? []}, ${equipment_brands ?? []},
-        ${worldwide ?? false}, 'pending'
+        ${worldwide ?? false},
+        ${holds_licence ?? false}, ${driver_licence_type ?? null},
+        ${driver_licence_province ?? null}, 'pending'
       )
       RETURNING id, status, created_at
     `
