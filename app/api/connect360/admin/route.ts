@@ -34,7 +34,11 @@ export async function GET(req: NextRequest) {
         crops_experienced, operations_experience, equipment_brands,
         worldwide, cv_url, holds_licence, driver_licence_type,
         driver_licence_province, availability,
-        verified_at, verified_by, created_at
+        verified_at, verified_by, created_at,
+        professional_sub_type, services_offered, languages_spoken,
+        remote_service, countries_served, worker_origin_countries,
+        seeking_tfw_sponsorship, seeking_h2a_sponsorship, citizenship_country,
+        licence_verified
       FROM connect_profiles
       WHERE status = ${status}
       ORDER BY created_at ASC
@@ -67,8 +71,21 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Missing id or action' }, { status: 400 })
     }
 
-    if (!['approve', 'reject', 'suspend'].includes(action)) {
+    if (!['approve', 'reject', 'suspend', 'verify_licence'].includes(action)) {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+    }
+
+    if (action === 'verify_licence') {
+      const result = await sql`
+        UPDATE connect_profiles
+        SET licence_verified = true, updated_at = NOW()
+        WHERE id = ${id}
+        RETURNING id
+      `
+      if (result.length === 0) {
+        return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      }
+      return NextResponse.json({ success: true, action })
     }
 
     const newStatus =
