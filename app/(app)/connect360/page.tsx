@@ -180,7 +180,7 @@ export default function Connect360Page() {
       const res = await fetch('/api/connect360/profiles?limit=500')
       const data = await res.json()
       const counts: Record<string, number> = {}
-      for (const p of (data.profiles ?? [])) {
+      for (const p of [...(data.profiles ?? []), ...(data.directory ?? [])]) {
         counts[p.type] = (counts[p.type] ?? 0) + 1
       }
       setTypeCounts(counts)
