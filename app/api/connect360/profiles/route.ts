@@ -21,24 +21,31 @@ export async function GET(req: NextRequest) {
   try {
     let profiles = await sql`
       SELECT
-        id, type, first_name, last_name, business_name,
-        photo_url, bio, years_experience, equipment_owned,
-        crops_experienced, availability, base_province,
-        base_city, base_country, service_radius_km,
-        open_to_relocation, work_countries,
-        licence_province, verified_at, created_at
-      FROM connect_profiles
-      WHERE status = 'approved'
-        AND (${type}::text IS NULL OR type = ${type})
-        AND (${province}::text IS NULL OR base_province = ${province})
-        AND (${country}::text IS NULL OR base_country = ${country} OR ${country} = ANY(work_countries))
-        AND (${openToRelocation}::text IS NULL OR open_to_relocation = ${openToRelocation === 'true'})
-        AND (${availability}::text IS NULL OR availability = ${availability})
+        cp.id, cp.type, cp.first_name, cp.last_name, cp.business_name,
+        cp.photo_url, cp.bio, cp.years_experience, cp.equipment_owned,
+        cp.crops_experienced, cp.availability, cp.base_province,
+        cp.base_city, cp.base_country, cp.service_radius_km,
+        cp.open_to_relocation, cp.work_countries,
+        cp.licence_province, cp.licence_verified, cp.verified_at, cp.created_at,
+        cp.professional_sub_type, cp.services_offered, cp.languages_spoken,
+        cp.remote_service, cp.countries_served,
+        cp.seeking_tfw_sponsorship, cp.seeking_h2a_sponsorship,
+        ROUND(AVG(r.rating)::numeric, 1) AS avg_rating,
+        COUNT(r.id)::int AS review_count
+      FROM connect_profiles cp
+      LEFT JOIN connect_reviews r ON r.profile_id = cp.id
+      WHERE cp.status = 'approved'
+        AND (${type}::text IS NULL OR cp.type = ${type})
+        AND (${province}::text IS NULL OR cp.base_province = ${province})
+        AND (${country}::text IS NULL OR cp.base_country = ${country} OR ${country} = ANY(cp.work_countries))
+        AND (${openToRelocation}::text IS NULL OR cp.open_to_relocation = ${openToRelocation === 'true'})
+        AND (${availability}::text IS NULL OR cp.availability = ${availability})
         AND (${search}::text IS NULL OR
-          LOWER(first_name || ' ' || last_name) LIKE ${'%' + (search?.toLowerCase() ?? '') + '%'} OR
-          LOWER(COALESCE(business_name, '')) LIKE ${'%' + (search?.toLowerCase() ?? '') + '%'}
+          LOWER(cp.first_name || ' ' || cp.last_name) LIKE ${'%' + (search?.toLowerCase() ?? '') + '%'} OR
+          LOWER(COALESCE(cp.business_name, '')) LIKE ${'%' + (search?.toLowerCase() ?? '') + '%'}
         )
-      ORDER BY verified_at DESC NULLS LAST, created_at DESC
+      GROUP BY cp.id
+      ORDER BY cp.verified_at DESC NULLS LAST, cp.created_at DESC
     `
 
     // Also pull seeded directory entries
