@@ -6,7 +6,7 @@ import {
   ChevronLeft, CheckCircle, MapPin, Truck, Sprout,
   Users, Globe, Phone, Mail, Building2, Calendar,
   Wheat, RefreshCw, AlertCircle, Shield, FileText,
-  Briefcase, BadgeCheck, Languages, Scale
+  Briefcase, BadgeCheck, Languages, Scale, Star, ThumbsUp
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -88,6 +88,21 @@ export default function ProviderProfilePage() {
   const [connecting, setConnecting] = useState(false)
   const [revealedContact, setRevealedContact] = useState<{ phone?: string; email?: string } | null>(null)
 
+  // Reviews
+  const [reviews, setReviews] = useState<any[]>([])
+  const [reviewTotal, setReviewTotal] = useState(0)
+  const [reviewAverage, setReviewAverage] = useState<number | null>(null)
+  const [wouldRehireCount, setWouldRehireCount] = useState(0)
+  const [myReview, setMyReview] = useState<any | null>(null)
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewHoverRating, setReviewHoverRating] = useState(0)
+  const [reviewBody, setReviewBody] = useState('')
+  const [reviewHireType, setReviewHireType] = useState('')
+  const [reviewSeasonYear, setReviewSeasonYear] = useState(new Date().getFullYear())
+  const [reviewWouldRehire, setReviewWouldRehire] = useState<boolean | null>(null)
+  const [reviewSaving, setReviewSaving] = useState(false)
+
   useEffect(() => {
     fetch(`/api/connect360/profiles/${id}`)
       .then(r => r.json())
@@ -109,6 +124,71 @@ export default function ProviderProfilePage() {
       })
       .catch(() => {})
   }, [id])
+
+  useEffect(() => {
+    fetch(`/api/connect360/reviews?profile_id=${id}`)
+      .then(r => r.json())
+      .then(data => {
+        setReviews(data.reviews ?? [])
+        setReviewTotal(data.total ?? 0)
+        setReviewAverage(data.average ?? null)
+        setWouldRehireCount(data.would_rehire_count ?? 0)
+      })
+      .catch(() => {})
+  }, [id])
+
+  useEffect(() => {
+    fetch('/api/connect360/reviews')
+      .then(r => r.json())
+      .then(data => {
+        const mine = (data.reviews ?? []).find((r: any) => r.profile_id === id)
+        if (mine) {
+          setMyReview(mine)
+          setReviewRating(mine.rating)
+          setReviewBody(mine.body ?? '')
+          setReviewHireType(mine.hire_type ?? '')
+          setReviewSeasonYear(mine.season_year ?? new Date().getFullYear())
+          setReviewWouldRehire(mine.would_rehire ?? null)
+        }
+      })
+      .catch(() => {})
+  }, [id])
+
+  async function handleSubmitReview() {
+    if (!reviewRating) return
+    setReviewSaving(true)
+    try {
+      const res = await fetch('/api/connect360/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile_id: id,
+          rating: reviewRating,
+          review_body: reviewBody,
+          hire_type: reviewHireType,
+          season_year: reviewSeasonYear,
+          would_rehire: reviewWouldRehire,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setMyReview(data.review)
+        setShowReviewForm(false)
+        // Refresh aggregate
+        fetch(`/api/connect360/reviews?profile_id=${id}`)
+          .then(r => r.json())
+          .then(d => {
+            setReviews(d.reviews ?? [])
+            setReviewTotal(d.total ?? 0)
+            setReviewAverage(d.average ?? null)
+            setWouldRehireCount(d.would_rehire_count ?? 0)
+          })
+      }
+    } catch {
+    } finally {
+      setReviewSaving(false)
+    }
+  }
 
   async function handleConnect() {
     setConnecting(true)
@@ -499,8 +579,160 @@ export default function ProviderProfilePage() {
         </div>
       )}
 
+      {/* Reviews */}
+      <div className="p-5 rounded-2xl border" style={{ backgroundColor: 'var(--ag-bg-card)', borderColor: 'var(--ag-border)' }}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="font-mono text-[10px] font-bold text-ag-secondary uppercase tracking-[1.5px] mb-1">Reviews</h2>
+            {reviewAverage !== null ? (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-0.5">
+                  {[1,2,3,4,5].map(s => (
+                    <Star key={s} size={14} fill={s <= Math.round(Number(reviewAverage)) ? 'var(--ag-accent)' : 'transparent'}
+                      className={s <= Math.round(Number(reviewAverage)) ? 'text-ag-accent' : 'text-ag-dim'} />
+                  ))}
+                </div>
+                <span className="text-sm font-bold text-ag-primary">{Number(reviewAverage).toFixed(1)}</span>
+                <span className="text-xs text-ag-muted">· {reviewTotal} review{reviewTotal !== 1 ? 's' : ''}</span>
+                {wouldRehireCount > 0 && (
+                  <span className="flex items-center gap-1 text-xs text-green-400 ml-1">
+                    <ThumbsUp size={11} /> {wouldRehireCount} would rehire
+                  </span>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-ag-muted">No reviews yet</p>
+            )}
+          </div>
+          {connected && (
+            <button
+              onClick={() => setShowReviewForm(!showReviewForm)}
+              className="text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-all"
+              style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)' }}>
+              {myReview ? 'Edit Review' : '+ Leave a Review'}
+            </button>
+          )}
+        </div>
+
+        {/* Review form */}
+        {showReviewForm && connected && (
+          <div className="mb-4 p-4 rounded-xl border space-y-3"
+            style={{ borderColor: 'var(--ag-accent-border)', backgroundColor: 'var(--ag-bg-hover)' }}>
+            <div>
+              <div className="text-[10px] uppercase tracking-[1.5px] font-mono font-semibold text-ag-muted mb-2">Rating *</div>
+              <div className="flex items-center gap-1">
+                {[1,2,3,4,5].map(s => (
+                  <button key={s}
+                    onClick={() => setReviewRating(s)}
+                    onMouseEnter={() => setReviewHoverRating(s)}
+                    onMouseLeave={() => setReviewHoverRating(0)}>
+                    <Star size={22}
+                      fill={(reviewHoverRating || reviewRating) >= s ? 'var(--ag-accent)' : 'transparent'}
+                      className={(reviewHoverRating || reviewRating) >= s ? 'text-ag-accent' : 'text-ag-dim'} />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-[1.5px] font-mono font-semibold text-ag-muted mb-1">Hire Type</div>
+                <select value={reviewHireType} onChange={e => setReviewHireType(e.target.value)}
+                  className="w-full bg-[var(--ag-bg-primary)] border border-[var(--ag-border)] rounded-lg px-3 py-2 text-sm text-ag-primary focus:outline-none">
+                  <option value="">Select...</option>
+                  {['Seeding', 'Spraying', 'Harvest', 'Trucking', 'General Labour', 'Professional Service', 'Other'].map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-[1.5px] font-mono font-semibold text-ag-muted mb-1">Season Year</div>
+                <select value={reviewSeasonYear} onChange={e => setReviewSeasonYear(Number(e.target.value))}
+                  className="w-full bg-[var(--ag-bg-primary)] border border-[var(--ag-border)] rounded-lg px-3 py-2 text-sm text-ag-primary focus:outline-none">
+                  {[2026,2025,2024,2023,2022].map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-[1.5px] font-mono font-semibold text-ag-muted mb-1">Comments</div>
+              <textarea value={reviewBody} onChange={e => setReviewBody(e.target.value)} rows={3}
+                placeholder="Showed up on time, great equipment, would hire again..."
+                className="w-full bg-[var(--ag-bg-primary)] border border-[var(--ag-border)] rounded-lg px-3 py-2 text-sm text-ag-primary placeholder-ag-dim focus:outline-none resize-none" />
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-[1.5px] font-mono font-semibold text-ag-muted mb-2">Would you rehire?</div>
+              <div className="flex gap-2">
+                {[{ val: true, label: 'Yes' }, { val: false, label: 'No' }].map(opt => (
+                  <button key={String(opt.val)} onClick={() => setReviewWouldRehire(opt.val)}
+                    className="px-4 py-1.5 rounded-lg text-xs font-semibold border transition-all"
+                    style={reviewWouldRehire === opt.val
+                      ? { backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)', borderColor: 'var(--ag-accent)' }
+                      : { borderColor: 'var(--ag-border)', color: 'var(--ag-text-muted)' }}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button onClick={() => setShowReviewForm(false)}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg border"
+                style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-muted)' }}>
+                Cancel
+              </button>
+              <button onClick={handleSubmitReview} disabled={!reviewRating || reviewSaving}
+                className="px-4 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-all"
+                style={{ backgroundColor: reviewRating ? 'var(--ag-accent)' : 'var(--ag-bg-hover)',
+                  color: reviewRating ? 'var(--ag-bg-primary)' : 'var(--ag-text-dim)',
+                  opacity: reviewSaving ? 0.6 : 1 }}>
+                {reviewSaving ? <RefreshCw size={12} className="animate-spin" /> : <Star size={12} />}
+                {myReview ? 'Update Review' : 'Submit Review'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Review list */}
+        {reviews.length === 0 ? (
+          <p className="text-xs text-ag-muted text-center py-4">
+            {connected ? 'Be the first to leave a review.' : 'Connect with this provider to leave a review.'}
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {reviews.map((r: any) => (
+              <div key={r.id} className="p-3 rounded-xl border"
+                style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)' }}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1">
+                    {[1,2,3,4,5].map(s => (
+                      <Star key={s} size={11}
+                        fill={s <= r.rating ? 'var(--ag-accent)' : 'transparent'}
+                        className={s <= r.rating ? 'text-ag-accent' : 'text-ag-dim'} />
+                    ))}
+                    <span className="text-[11px] font-bold text-ag-primary ml-1">{r.rating}/5</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {r.would_rehire && (
+                      <span className="flex items-center gap-1 text-[10px] text-green-400">
+                        <ThumbsUp size={9} /> Would rehire
+                      </span>
+                    )}
+                    <span className="text-[10px] text-ag-muted">
+                      {r.hire_type && `${r.hire_type} · `}{r.season_year}
+                    </span>
+                  </div>
+                </div>
+                {r.body && <p className="text-xs text-ag-muted leading-relaxed">{r.body}</p>}
+                <p className="text-[10px] text-ag-dim mt-1.5">
+                  {r.reviewer_farm ?? 'Verified Farmer'} · {new Date(r.created_at).toLocaleDateString('en-CA', { year: 'numeric', month: 'short' })}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Verification note */}
       {profile.verified_at && (
+
         <div className="flex items-start gap-2 p-3 rounded-lg border text-xs text-ag-muted"
           style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-card)' }}>
           <CheckCircle size={12} className="text-green-400 mt-0.5 flex-shrink-0" />

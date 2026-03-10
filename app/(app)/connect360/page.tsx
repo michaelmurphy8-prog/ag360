@@ -7,7 +7,7 @@ import {
   Users, CheckCircle, Phone,
   Mail, Building2, RefreshCw, UserPlus, X, Shield,
   Briefcase, Calendar, Wheat, Plus, Pencil, Trash2,
-  Scale, Languages, BadgeCheck, AlertTriangle
+  Scale, Languages, BadgeCheck, AlertTriangle, Star,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -45,6 +45,9 @@ interface ConnectProfile {
   // Worker sponsorship
   seeking_tfw_sponsorship?: boolean
   seeking_h2a_sponsorship?: boolean
+  // Reviews
+  avg_rating?: number
+  review_count?: number
 }
 
 interface DirectoryEntry {
@@ -706,6 +709,8 @@ function ProfileCard({
 }) {
   const isProfessional = provider.type === 'professional'
   const cfg = TYPE_CONFIG[provider.type] ?? TYPE_CONFIG.worker
+  const avgRating = provider.avg_rating ? Number(provider.avg_rating) : null
+  const reviewCount = provider.review_count ? Number(provider.review_count) : 0
   const Icon = cfg.icon
   const initials = `${provider.first_name[0]}${provider.last_name[0]}`.toUpperCase()
   const subLabel = provider.professional_sub_type
@@ -832,6 +837,19 @@ function ProfileCard({
         <div className="flex items-center gap-1.5 text-xs text-ag-muted mb-3">
           <Languages size={11} className="text-ag-muted flex-shrink-0" />
           <span>{provider.languages_spoken.join(', ')}</span>
+        </div>
+      )}
+
+      {/* Star rating */}
+      {avgRating !== null && reviewCount > 0 && (
+        <div className="flex items-center gap-1.5 mt-2">
+          {[1,2,3,4,5].map(s => (
+            <Star key={s} size={10}
+              fill={s <= Math.round(avgRating) ? 'var(--ag-accent)' : 'transparent'}
+              className={s <= Math.round(avgRating) ? 'text-ag-accent' : 'text-ag-dim'} />
+          ))}
+          <span className="text-[10px] font-semibold text-ag-primary">{avgRating.toFixed(1)}</span>
+          <span className="text-[10px] text-ag-muted">· {reviewCount} review{reviewCount !== 1 ? 's' : ''}</span>
         </div>
       )}
 
