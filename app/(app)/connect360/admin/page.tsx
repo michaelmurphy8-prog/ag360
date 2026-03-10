@@ -33,6 +33,10 @@ interface ConnectProfile {
   years_experience?: number
   equipment_owned?: string
   crops_experienced?: string[]
+  operations_experience?: string[]
+  equipment_brands?: string[]
+  worldwide?: boolean
+  cv_url?: string
   availability: string
   verified_at?: string
   verified_by?: string
@@ -285,6 +289,27 @@ export default function Connect360AdminPage() {
                           <div className="text-ag-primary">{profile.work_countries.join(', ')}</div>
                         </div>
                       )}
+                      <div>
+                        <div className="text-ag-muted mb-0.5">Base Country</div>
+                        <div className="text-ag-primary">{profile.base_country}</div>
+                      </div>
+                      <div>
+                        <div className="text-ag-muted mb-0.5">CDL / Truck Licence</div>
+                        <div className={profile.licence_number ? 'text-green-400' : 'text-ag-muted'}>
+                          {profile.licence_number
+                            ? `${profile.licence_number}${profile.licence_province ? ` (${profile.licence_province})` : ''}`
+                            : 'Not provided'}
+                        </div>
+                      </div>
+                      {profile.cv_url && (
+                        <div className="col-span-2 md:col-span-3">
+                          <div className="text-ag-muted mb-0.5">CV / Résumé</div>
+                          <a href={profile.cv_url} target="_blank" rel="noopener noreferrer"
+                            className="text-xs text-[var(--ag-accent)] underline underline-offset-2">
+                            Download CV
+                          </a>
+                        </div>
+                      )}
                     </div>
 
                     {profile.bio && (
@@ -309,6 +334,34 @@ export default function Connect360AdminPage() {
                             <span key={c} className="text-[10px] px-2 py-0.5 rounded-full border"
                               style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)' }}>
                               {c}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {profile.operations_experience && profile.operations_experience.length > 0 && (
+                      <div>
+                        <div className="text-[10px] text-ag-muted uppercase tracking-wide mb-1.5">Operations Experience</div>
+                        <div className="flex flex-wrap gap-1">
+                          {profile.operations_experience.map(op => (
+                            <span key={op} className="text-[10px] px-2 py-0.5 rounded-full border"
+                              style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)' }}>
+                              {op}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {profile.equipment_brands && profile.equipment_brands.length > 0 && (
+                      <div>
+                        <div className="text-[10px] text-ag-muted uppercase tracking-wide mb-1.5">Equipment & Brand Experience</div>
+                        <div className="flex flex-wrap gap-1">
+                          {profile.equipment_brands.map(b => (
+                            <span key={b} className="text-[10px] px-2 py-0.5 rounded-full border"
+                              style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)' }}>
+                              {b}
                             </span>
                           ))}
                         </div>
