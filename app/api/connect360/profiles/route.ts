@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const valid = ['trucker', 'applicator', 'worker', 'farmer']
+    const valid = ['trucker', 'applicator', 'worker', 'farmer', 'professional']
     if (!valid.includes(type)) {
       return NextResponse.json({ error: 'Invalid provider type' }, { status: 400 })
     }
