@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   ChevronLeft, CheckCircle, MapPin, Truck, Sprout,
   Users, Globe, Phone, Mail, Building2, Calendar,
-  Wheat, RefreshCw, AlertCircle, Shield
+  Wheat, RefreshCw, AlertCircle, Shield, FileText
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -35,6 +35,7 @@ interface ConnectProfile {
   availability: string
   verified_at?: string
   created_at: string
+  cv_url?: string
 }
 
 // ─── Constants ────────────────────────────────────────────────
@@ -307,6 +308,35 @@ export default function ProviderProfilePage() {
           </div>
         )}
       </Section>
+
+      {/* CV Download */}
+      {profile.cv_url && (
+        <div className="p-5 rounded-2xl border"
+          style={{ backgroundColor: 'var(--ag-bg-card)', borderColor: 'var(--ag-border)' }}>
+          <h2 className="font-mono text-[10px] font-bold text-ag-secondary uppercase tracking-[1.5px] mb-3">
+            CV / Résumé
+          </h2>
+          <a
+            href={profile.cv_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 p-3 rounded-xl border transition-all hover:border-[var(--ag-accent-border)]"
+            style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)' }}
+          >
+            <div className="p-2 rounded-lg" style={{ backgroundColor: 'var(--ag-bg-card)' }}>
+              <FileText size={16} className="text-ag-accent" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-ag-primary">Download CV</div>
+              <div className="text-xs text-ag-muted truncate">{profile.cv_url.split('/').pop()}</div>
+            </div>
+            <span className="text-xs text-ag-muted px-2 py-1 rounded border"
+              style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-card)' }}>
+              Open
+            </span>
+          </a>
+        </div>
+      )}
 
       {/* Verification note */}
       {profile.verified_at && (
