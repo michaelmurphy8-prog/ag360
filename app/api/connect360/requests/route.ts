@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { getTenantAuth } from '@/lib/tenant-auth'
-
+import { Resend } from 'resend'
 const sql = neon(process.env.DATABASE_URL!)
+const resend = new Resend(process.env.RESEND_API_KEY!)
 
 // GET — farmer views their own connection requests
 export async function GET(req: NextRequest) {
@@ -76,6 +77,31 @@ export async function POST(req: NextRequest) {
       VALUES (${tenantId}, ${connect_profile_id}, ${message ?? null}, 'accepted')
       RETURNING id, status, created_at
     `
+
+    // Email notification to provider — fire and forget
+    try {
+      const [farm] = await sql`
+        SELECT farm_name FROM farm_profiles WHERE tenant_id = ${tenantId} LIMIT 1
+      `
+      const farmName = farm?.farm_name ?? 'A farmer'
+      if (provider[0].email) {
+        await resend.emails.send({
+          from: 'AG360 Connect360 <hello@ag360.farm>',
+          to: provider[0].email,
+          subject: `${farmName} connected with you on AG360 Connect360`,
+          html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
+              <h2 style="color:#d4af37;">New Connection on AG360 Connect360</h2>
+              <p><strong>${farmName}</strong> has connected with your listing and can now see your contact details.</p>
+              ${message ? `<p style="color:#94a3b8;font-style:italic;">"${message}"</p>` : ''}
+              <p>Log in to <a href="https://ag360.farm/connect360" style="color:#d4af37;">AG360 Connect360</a> to view your connections and manage your profile.</p>
+              <hr style="border-color:#1e293b;margin:24px 0;" />
+              <p style="color:#64748b;font-size:12px;">AG360 — For the Farmer · ag360.farm</p>
+            </div>
+          `,
+        })
+      }
+    } catch {}
 
     // Return provider contact info immediately (direct reveal model)
     return NextResponse.json({
