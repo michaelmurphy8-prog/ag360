@@ -469,6 +469,13 @@ export default function ProviderProfilePage() {
                 : 'Connect — Reveal Contact Info'}
             </button>
           )}
+          {isOwner && (
+            <a href={`/connect360/edit/${profile.id}`}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium border transition-all hover:border-[var(--ag-accent-border)] mt-2"
+              style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)' }}>
+              Edit Profile
+            </a>
+          )}
           <button
             onClick={() => setShowReportModal(true)}
             className="flex items-center gap-1.5 text-[11px] text-ag-dim hover:text-red-400 transition-colors mt-2"

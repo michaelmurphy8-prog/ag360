@@ -57,6 +57,7 @@ export async function PATCH(
       service_radius_km, open_to_relocation, work_countries,
       bio, years_experience, equipment_owned,
       crops_experienced, availability,
+      available_from, available_to, cv_url,
     } = body
 
     const result = await sql`
@@ -79,6 +80,9 @@ export async function PATCH(
         equipment_owned = COALESCE(${equipment_owned ?? null}, equipment_owned),
         crops_experienced = COALESCE(${crops_experienced ?? null}, crops_experienced),
         availability = COALESCE(${availability ?? null}, availability),
+        available_from = COALESCE(${available_from ?? null}, available_from),
+        available_to = COALESCE(${available_to ?? null}, available_to),
+        cv_url = COALESCE(${cv_url ?? null}, cv_url),
         updated_at = NOW()
       WHERE id = ${id}
       RETURNING id, updated_at
