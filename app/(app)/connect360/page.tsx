@@ -163,6 +163,7 @@ export default function Connect360Page() {
   const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set())
   const [connections, setConnections] = useState<any[]>([])
   const [showConnectionsPanel, setShowConnectionsPanel] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
   const [connectingId, setConnectingId] = useState<string | null>(null)
   const [revealedProvider, setRevealedProvider] = useState<ConnectedProvider | null>(null)
   const [showRevealModal, setShowRevealModal] = useState(false)
@@ -253,6 +254,19 @@ export default function Connect360Page() {
   useEffect(() => { fetchProviders() }, [fetchProviders])
   useEffect(() => { fetchCounts() }, [])
   useEffect(() => { fetchSaved() }, [])
+  useEffect(() => {
+    async function fetchUnread() {
+      try {
+        const res = await fetch('/api/connect360/messages')
+        const data = await res.json()
+        const total = (data.threads ?? []).reduce((sum: number, t: any) => sum + (t.unread_count ?? 0), 0)
+        setUnreadCount(total)
+      } catch {}
+    }
+    fetchUnread()
+    const interval = setInterval(fetchUnread, 10000)
+    return () => clearInterval(interval)
+  }, [])
 
   const fetchBids = useCallback(async () => {
     setBidsLoading(true)
@@ -379,7 +393,15 @@ export default function Connect360Page() {
             <div className="text-lg font-bold" style={{ color: 'var(--ag-accent)' }}>
               {connections.length > 0 ? connections.length : '—'}
             </div>
-            <div className="text-[10px] text-ag-muted uppercase tracking-wide">My Connections</div>
+            <div className="flex items-center gap-1.5">
+              <div className="text-[10px] text-ag-muted uppercase tracking-wide">My Connections</div>
+              {unreadCount > 0 && (
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}>
+                  {unreadCount}
+                </span>
+              )}
+            </div>
           </div>
         </button>
         {/* Bids card */}
