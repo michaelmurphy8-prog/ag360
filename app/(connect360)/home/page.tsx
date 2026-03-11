@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import {
   Truck, Sprout, Users, Briefcase,
-  ArrowRight, Star, MapPin, Bell, Bookmark
+  ArrowRight, Star, MapPin, Bell, Bookmark,
+  Sunrise, Sunset, Moon
 } from 'lucide-react'
 
 interface Stats {
@@ -53,6 +54,13 @@ function greeting() {
   return 'Good evening'
 }
 
+function GreetingIcon() {
+  const h = new Date().getHours()
+  if (h < 12) return <Sunrise size={22} style={{ color: '#C9A84C' }} />
+  if (h < 17) return <Sunset size={22} style={{ color: '#C9A84C' }} />
+  return <Moon size={22} style={{ color: '#C9A84C' }} />
+}
+
 export default function Connect360HomePage() {
   const router = useRouter()
   const { user } = useUser()
@@ -93,22 +101,22 @@ export default function Connect360HomePage() {
   const firstName = user?.firstName ?? 'Farmer'
 
   return (
-    <div className="min-h-screen pb-6" style={{ backgroundColor: '#080D14' }}>
+    <div className="min-h-screen pb-6" style={{ backgroundColor: '#0D1520' }}>
 
       {/* Header */}
       <div className="px-5 pt-14 pb-6">
         <div className="flex items-start justify-between">
           <div>
             <p className="text-sm mb-0.5" style={{ color: '#4A5568' }}>{greeting()}</p>
-            <h1 className="text-2xl font-bold" style={{ color: '#F0F4F8' }}>
-              {firstName} 👋
+            <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#F0F4F8' }}>
+              {firstName} <GreetingIcon />
             </h1>
           </div>
           <div className="flex items-center gap-3 mt-1">
             {unreadCount > 0 && (
               <button onClick={() => router.push('/messages')}
                 className="relative p-2 rounded-xl"
-                style={{ backgroundColor: '#0F1923', border: '1px solid #1A2535' }}>
+                style={{ backgroundColor: '#152030', border: '1px solid #1E3048' }}>
                 <Bell size={18} style={{ color: '#C9A84C' }} />
                 <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
                   style={{ backgroundColor: '#C9A84C', color: '#080D14' }}>
@@ -118,7 +126,7 @@ export default function Connect360HomePage() {
             )}
             <button onClick={() => router.push('/network')}
               className="relative p-2 rounded-xl"
-              style={{ backgroundColor: '#0F1923', border: '1px solid #1A2535' }}>
+              style={{ backgroundColor: '#152030', border: '1px solid #1E3048' }}>
               <Bookmark size={18} style={{ color: savedCount > 0 ? '#C9A84C' : '#4A5568' }} />
               {savedCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
@@ -134,7 +142,7 @@ export default function Connect360HomePage() {
       {/* Stats bar */}
       {stats && (
         <div className="mx-5 mb-6 rounded-2xl p-4"
-          style={{ backgroundColor: '#0F1923', border: '1px solid #1A2535' }}>
+          style={{ backgroundColor: '#152030', border: '1px solid #1E3048' }}>
           <div className="grid grid-cols-4 gap-2">
             {[
               { label: 'Truckers',      count: stats.types.trucker,      color: '#60A5FA' },
@@ -175,7 +183,7 @@ export default function Connect360HomePage() {
               <button key={key}
                 onClick={() => router.push(`/discover?type=${key}`)}
                 className="flex items-center gap-3 p-4 rounded-2xl text-left transition-all active:scale-95"
-                style={{ backgroundColor: '#0F1923', border: '1px solid #1A2535' }}>
+                style={{ backgroundColor: '#152030', border: '1px solid #1E3048' }}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: cfg.bg }}>
                   <Icon size={18} style={{ color: cfg.color }} />
@@ -212,7 +220,7 @@ export default function Connect360HomePage() {
                 <button key={p.id}
                   onClick={() => router.push(`/profile/${p.id}`)}
                   className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all active:scale-95"
-                  style={{ backgroundColor: '#0F1923', border: '1px solid #1A2535' }}>
+                  style={{ backgroundColor: '#152030', border: '1px solid #1E3048' }}>
                   {/* Avatar */}
                   <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: cfg.bg }}>

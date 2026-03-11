@@ -28,7 +28,7 @@ export default function Connect360Layout({ children }: { children: React.ReactNo
 
   return (
     <div className="flex flex-col min-h-screen max-w-md mx-auto relative"
-      style={{ backgroundColor: '#080D14', color: '#F0F4F8' }}>
+      style={{ backgroundColor: '#0D1520', color: '#F0F4F8' }}>
 
       {/* Page content */}
       <main className={`flex-1 overflow-y-auto ${showTabs ? 'pb-20' : ''}`}>
@@ -39,8 +39,8 @@ export default function Connect360Layout({ children }: { children: React.ReactNo
       {showTabs && (
         <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 flex items-center justify-around px-2 py-2"
           style={{
-            backgroundColor: '#0A1020',
-            borderTop: '1px solid #1A2535',
+            backgroundColor: '#0D1824',
+            borderTop: '1px solid #1E3048',
             paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
           }}>
           {TABS.map(tab => {

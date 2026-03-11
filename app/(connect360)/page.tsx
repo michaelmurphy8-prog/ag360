@@ -1,5 +1,9 @@
-// CREATE: app/(connect360)/page.tsx
-import { redirect } from 'next/navigation'
+'use client'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+
 export default function Connect360Root() {
-  redirect('/splash')
+  const router = useRouter()
+  useEffect(() => { router.replace('/splash') }, [router])
+  return null
 }
