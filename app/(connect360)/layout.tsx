@@ -1,18 +1,16 @@
 'use client'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
-import { useEffect } from 'react'
 import { Compass, Users, MessageCircle, User, Grid3X3 } from 'lucide-react'
 
 const TABS = [
-  { href: '/home',     icon: Compass,       label: 'Discover',   match: ['/home', '/discover'] },
-  { href: '/network',  icon: Users,         label: 'Network',    match: ['/network'] },
-  { href: '/messages', icon: MessageCircle, label: 'Messages',   match: ['/messages'] },
-  { href: '/profile',  icon: User,          label: 'Profile',    match: ['/profile'] },
-  { href: '/more',     icon: Grid3X3,       label: 'More',       match: ['/more'] },
+  { href: '/home',     icon: Compass,       label: 'Discover'  },
+  { href: '/network',  icon: Users,         label: 'Network'   },
+  { href: '/messages', icon: MessageCircle, label: 'Messages'  },
+  { href: '/profile',  icon: User,          label: 'Profile'   },
+  { href: '/more',     icon: Grid3X3,       label: 'More'      },
 ]
 
-// Routes that should NOT show the bottom tab bar
 const NO_TAB_ROUTES = ['/splash', '/auth', '/register']
 
 export default function Connect360Layout({ children }: { children: React.ReactNode }) {
@@ -22,44 +20,44 @@ export default function Connect360Layout({ children }: { children: React.ReactNo
 
   const showTabs = isLoaded && userId && !NO_TAB_ROUTES.some(r => pathname.includes(r))
 
-  function isActive(tab: typeof TABS[0]) {
-    return tab.match.some(m => pathname.includes(m))
+  function isActive(href: string) {
+    return pathname.includes(href.replace('/', ''))
   }
 
   return (
-    <div className="flex flex-col min-h-screen max-w-md mx-auto relative"
-      style={{ backgroundColor: '#0D1520', color: '#F0F4F8' }}>
-
-      {/* Page content */}
-      <main className={`flex-1 overflow-y-auto ${showTabs ? 'pb-20' : ''}`}>
+    <div
+      className="flex flex-col min-h-screen max-w-md mx-auto relative"
+      style={{ backgroundColor: '#F7F5F0', color: '#0D1520' }}
+    >
+      <main className={`flex-1 overflow-y-auto ${showTabs ? 'pb-24' : ''}`}>
         {children}
       </main>
 
-      {/* Bottom tab bar */}
       {showTabs && (
-        <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 flex items-center justify-around px-2 py-2"
+        <nav
+          className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 flex items-center justify-around px-4"
           style={{
-            backgroundColor: '#0D1824',
-            borderTop: '1px solid #1E3048',
-            paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
-          }}>
+            backgroundColor: '#FFFFFF',
+            borderTop: '1px solid #EEE9E0',
+            paddingTop: 10,
+            paddingBottom: 'max(env(safe-area-inset-bottom), 14px)',
+            boxShadow: '0 -4px 24px rgba(0,0,0,0.06)',
+          }}
+        >
           {TABS.map(tab => {
             const Icon = tab.icon
-            const active = isActive(tab)
+            const active = isActive(tab.href)
             return (
               <button
                 key={tab.href}
                 onClick={() => router.push(tab.href)}
-                className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all min-w-[56px]"
-                style={{ color: active ? '#C9A84C' : '#4A5568' }}>
+                className="flex flex-col items-center gap-1 px-3 transition-all"
+                style={{ color: active ? '#C9A84C' : '#B0A898' }}
+              >
                 <Icon size={22} strokeWidth={active ? 2.5 : 1.8} />
-                <span className="text-[10px] font-medium tracking-wide">
+                <span className="text-[10px] font-semibold tracking-wide">
                   {tab.label}
                 </span>
-                {active && (
-                  <span className="w-1 h-1 rounded-full mt-0.5"
-                    style={{ backgroundColor: '#C9A84C' }} />
-                )}
               </button>
             )
           })}

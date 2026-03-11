@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSignIn, useSignUp } from '@clerk/nextjs'
-import { Eye, EyeOff, ArrowRight, RefreshCw } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight, RefreshCw, CheckCircle2 } from 'lucide-react'
 
 export default function Connect360AuthPage() {
   const router = useRouter()
@@ -20,22 +20,22 @@ export default function Connect360AuthPage() {
   const [verifying, setVerifying] = useState(false)
   const [code, setCode] = useState('')
 
-  const inputStyle: React.CSSProperties = {
+  const inputBase: React.CSSProperties = {
     width: '100%',
     padding: '14px 16px',
-    borderRadius: 12,
-    border: '1px solid #1A2535',
-    backgroundColor: '#0F1923',
-    color: '#F0F4F8',
+    borderRadius: 14,
+    border: '1.5px solid #EEE9E0',
+    backgroundColor: '#FFFFFF',
+    color: '#0D1520',
     fontSize: 15,
     outline: 'none',
+    transition: 'border-color 0.2s',
   }
 
   async function handleSubmit() {
     if (!signInLoaded || !signUpLoaded) return
     setLoading(true)
     setError('')
-
     try {
       if (mode === 'signin') {
         const result = await signIn.create({ identifier: email, password })
@@ -44,12 +44,7 @@ export default function Connect360AuthPage() {
           router.replace('/home')
         }
       } else {
-        const result = await signUp.create({
-          emailAddress: email,
-          password,
-          firstName,
-          lastName,
-        })
+        const result = await signUp.create({ emailAddress: email, password, firstName, lastName })
         if (result.status === 'missing_requirements') {
           await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
           setVerifying(true)
@@ -85,37 +80,39 @@ export default function Connect360AuthPage() {
   if (verifying) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6"
-        style={{ backgroundColor: '#080D14' }}>
+        style={{ backgroundColor: '#F7F5F0' }}>
         <div className="w-full max-w-sm">
-          <div className="text-center mb-8">
-            <div className="text-2xl font-bold mb-2">
-              <span style={{ color: '#F0F4F8' }}>Check your </span>
-              <span style={{ color: '#C9A84C' }}>email</span>
+          {/* Header */}
+          <div className="text-center mb-10">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
+              style={{ backgroundColor: '#C9A84C' }}>
+              <CheckCircle2 size={28} color="#fff" />
             </div>
-            <p className="text-sm" style={{ color: '#4A5568' }}>
-              We sent a verification code to {email}
+            <h2 className="text-2xl font-bold mb-2" style={{ color: '#0D1520' }}>Check your email</h2>
+            <p className="text-sm" style={{ color: '#8A9BB0' }}>
+              We sent a 6-digit code to<br />
+              <span style={{ color: '#0D1520', fontWeight: 600 }}>{email}</span>
             </p>
           </div>
           <input
-            style={{ ...inputStyle, textAlign: 'center', fontSize: 24, letterSpacing: '0.3em' }}
-            placeholder="000000"
+            style={{ ...inputBase, textAlign: 'center', fontSize: 28, letterSpacing: '0.4em', fontWeight: 700 }}
+            placeholder="······"
             value={code}
             onChange={e => setCode(e.target.value)}
             maxLength={6}
           />
-          {error && (
-            <p className="text-sm mt-3 text-center" style={{ color: '#F87171' }}>{error}</p>
-          )}
+          {error && <p className="text-sm mt-3 text-center" style={{ color: '#EF4444' }}>{error}</p>}
           <button
             onClick={handleVerify}
             disabled={loading || code.length < 6}
-            className="w-full mt-4 flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-semibold transition-all"
+            className="w-full mt-4 flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-bold transition-all"
             style={{
               backgroundColor: '#C9A84C',
-              color: '#080D14',
-              opacity: loading || code.length < 6 ? 0.6 : 1,
+              color: '#FFFFFF',
+              opacity: loading || code.length < 6 ? 0.5 : 1,
+              boxShadow: '0 4px 20px rgba(201,168,76,0.35)',
             }}>
-            {loading ? <RefreshCw size={16} className="animate-spin" /> : 'Verify Email'}
+            {loading ? <RefreshCw size={16} className="animate-spin" /> : 'Verify & Continue'}
           </button>
         </div>
       </div>
@@ -123,50 +120,58 @@ export default function Connect360AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col"
-      style={{ backgroundColor: '#080D14' }}>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F7F5F0' }}>
 
-      {/* Header */}
-      <div className="pt-16 pb-10 px-6 text-center">
-        <div className="text-3xl font-bold mb-1 tracking-tight">
-          <span style={{ color: '#F0F4F8' }}>Connect</span>
+      {/* Top hero — dark contrast entry matching splash */}
+      <div className="px-6 pt-14 pb-10 text-center"
+        style={{
+          background: 'linear-gradient(160deg, #0D1520 0%, #1A2535 100%)',
+          borderBottomLeftRadius: 32,
+          borderBottomRightRadius: 32,
+        }}>
+        <div className="text-3xl font-bold tracking-tight mb-1">
+          <span style={{ color: '#FFFFFF' }}>Connect</span>
           <span style={{ color: '#C9A84C' }}>360</span>
         </div>
-        <p className="text-xs tracking-[0.25em] uppercase mt-1" style={{ color: '#4A5568' }}>
+        <p className="text-xs tracking-[0.25em] uppercase mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
           The Ultimate AG Network
         </p>
       </div>
 
-      {/* Card */}
-      <div className="flex-1 px-6">
+      {/* Auth card */}
+      <div className="flex-1 px-5 -mt-5">
         <div className="rounded-3xl p-6"
-          style={{ backgroundColor: '#0F1923', border: '1px solid #1A2535' }}>
+          style={{
+            backgroundColor: '#FFFFFF',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.10)',
+          }}>
 
           {/* Mode toggle */}
           <div className="flex rounded-xl p-1 mb-6"
-            style={{ backgroundColor: '#080D14' }}>
+            style={{ backgroundColor: '#F7F5F0' }}>
             {(['signin', 'signup'] as const).map(m => (
               <button key={m}
                 onClick={() => { setMode(m); setError('') }}
                 className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
                 style={{
                   backgroundColor: mode === m ? '#C9A84C' : 'transparent',
-                  color: mode === m ? '#080D14' : '#4A5568',
+                  color: mode === m ? '#FFFFFF' : '#8A9BB0',
+                  boxShadow: mode === m ? '0 2px 8px rgba(201,168,76,0.3)' : 'none',
                 }}>
                 {m === 'signin' ? 'Sign In' : 'Create Account'}
               </button>
             ))}
           </div>
 
-          {/* Welcome text */}
-          <div className="mb-6">
-            <h2 className="text-xl font-bold mb-1" style={{ color: '#F0F4F8' }}>
+          {/* Welcome */}
+          <div className="mb-5">
+            <h2 className="text-xl font-bold mb-1" style={{ color: '#0D1520' }}>
               {mode === 'signin' ? 'Welcome back' : 'Join the network'}
             </h2>
-            <p className="text-sm" style={{ color: '#4A5568' }}>
+            <p className="text-sm" style={{ color: '#8A9BB0' }}>
               {mode === 'signin'
                 ? 'Sign in to your Connect360 account'
-                : 'Connect with ag professionals across the globe'}
+                : 'Connect with ag professionals worldwide'}
             </p>
           </div>
 
@@ -174,65 +179,64 @@ export default function Connect360AuthPage() {
           <div className="space-y-3">
             {mode === 'signup' && (
               <div className="grid grid-cols-2 gap-3">
-                <input style={inputStyle} placeholder="First name"
+                <input style={inputBase} placeholder="First name"
                   value={firstName} onChange={e => setFirstName(e.target.value)} />
-                <input style={inputStyle} placeholder="Last name"
+                <input style={inputBase} placeholder="Last name"
                   value={lastName} onChange={e => setLastName(e.target.value)} />
               </div>
             )}
-            <input style={inputStyle} type="email" placeholder="Email address"
+            <input style={inputBase} type="email" placeholder="Email address"
               value={email} onChange={e => setEmail(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
             <div className="relative">
               <input
-                style={{ ...inputStyle, paddingRight: 48 }}
+                style={{ ...inputBase, paddingRight: 48 }}
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSubmit()}
               />
-              <button
-                onClick={() => setShowPassword(s => !s)}
+              <button onClick={() => setShowPassword(s => !s)}
                 className="absolute right-4 top-1/2 -translate-y-1/2"
-                style={{ color: '#4A5568' }}>
+                style={{ color: '#B0A898' }}>
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
 
-          {/* Error */}
-          {error && (
-            <p className="text-sm mt-3" style={{ color: '#F87171' }}>{error}</p>
-          )}
+          {error && <p className="text-sm mt-3" style={{ color: '#EF4444' }}>{error}</p>}
 
-          {/* Submit */}
           <button
             onClick={handleSubmit}
             disabled={loading || !email || !password}
-            className="w-full mt-5 flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-semibold transition-all"
+            className="w-full mt-5 flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-bold transition-all"
             style={{
               backgroundColor: '#C9A84C',
-              color: '#080D14',
-              opacity: loading || !email || !password ? 0.6 : 1,
+              color: '#FFFFFF',
+              opacity: loading || !email || !password ? 0.5 : 1,
+              boxShadow: '0 4px 20px rgba(201,168,76,0.35)',
             }}>
             {loading
               ? <RefreshCw size={16} className="animate-spin" />
               : <>{mode === 'signin' ? 'Sign In' : 'Create Account'} <ArrowRight size={15} /></>}
           </button>
 
-          {/* Trial note for signup */}
           {mode === 'signup' && (
-            <p className="text-center text-xs mt-4" style={{ color: '#2DD4A0' }}>
-              ✓ 30-day free trial · No credit card required
-            </p>
+            <div className="mt-4 p-3 rounded-xl flex items-center gap-2"
+              style={{ backgroundColor: '#F0FAF6' }}>
+              <CheckCircle2 size={14} style={{ color: '#22C55E', flexShrink: 0 }} />
+              <p className="text-xs" style={{ color: '#16A34A' }}>
+                30-day free trial · No credit card required
+              </p>
+            </div>
           )}
         </div>
       </div>
 
       {/* Footer */}
       <div className="py-8 text-center">
-        <p className="text-[10px] tracking-widest uppercase" style={{ color: '#1A2535' }}>
+        <p className="text-[10px] tracking-widest uppercase" style={{ color: '#C8C0B4' }}>
           AG360 Technologies Inc.
         </p>
       </div>
