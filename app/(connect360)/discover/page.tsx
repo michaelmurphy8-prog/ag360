@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Search, SlidersHorizontal, Truck, Sprout, Users, Briefcase,
@@ -52,7 +52,7 @@ const SORT_OPTIONS = [
   { key: 'experience', label: 'Most experience' },
 ]
 
-export default function DiscoverPage() {
+function DiscoverContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -394,5 +394,23 @@ export default function DiscoverPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function DiscoverPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: '#F7F5F0' }}>
+        <div className="space-y-3 px-5 w-full pt-32">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="w-full h-24 rounded-2xl animate-pulse"
+              style={{ backgroundColor: '#FFFFFF' }} />
+          ))}
+        </div>
+      </div>
+    }>
+      <DiscoverContent />
+    </Suspense>
   )
 }

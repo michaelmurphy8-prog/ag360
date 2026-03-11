@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { getTenantAuth } from '@/lib/tenant-auth'
+import { auth } from '@clerk/nextjs/server'
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
@@ -18,8 +19,24 @@ export async function GET(req: NextRequest) {
   const availability = searchParams.get('availability')
   const search = searchParams.get('search') // name / business name search
   const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : null
-
+  const myProfile = searchParams.get('my_profile') === 'true'
   try {
+    // Own profile lookup — returns single profile for current user
+    if (myProfile) {
+      const { userId } = await auth()
+      if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      const result = await sql`
+        SELECT cp.*, 
+          ROUND(AVG(cr.rating)::numeric, 1) as avg_rating,
+          COUNT(cr.id)::int as review_count
+        FROM connect_profiles cp
+        LEFT JOIN connect_reviews cr ON cr.profile_id = cp.id
+        WHERE cp.clerk_user_id = ${userId}
+        GROUP BY cp.id
+        LIMIT 1
+      `
+      return NextResponse.json({ profile: result[0] ?? null })
+    }
     let profiles = await sql`
       SELECT
         cp.id, cp.type, cp.first_name, cp.last_name, cp.business_name,
