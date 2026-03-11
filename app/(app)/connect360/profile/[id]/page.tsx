@@ -7,7 +7,7 @@ import {
   ChevronLeft, CheckCircle, MapPin, Truck, Sprout,
   Users, Globe, Phone, Mail, Building2, Calendar,
   Wheat, RefreshCw, AlertCircle, Shield, FileText,
-  Briefcase, BadgeCheck, Languages, Scale, Star, ThumbsUp, Flag, Camera
+  Briefcase, BadgeCheck, Languages, Scale, Star, ThumbsUp, Flag, Camera, MessageCircle, Send
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -126,6 +126,13 @@ export default function ProviderProfilePage() {
       .finally(() => setLoading(false))
   }, [id])
 
+  // Chat
+  const [showChat, setShowChat] = useState(false)
+  const [messages, setMessages] = useState<any[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatSending, setChatSending] = useState(false)
+  const [chatLoading, setChatLoading] = useState(false)
+
   // Check if already connected
   useEffect(() => {
     fetch('/api/connect360/requests')
@@ -199,6 +206,46 @@ export default function ProviderProfilePage() {
     } catch {
     } finally {
       setReviewSaving(false)
+    }
+  }
+
+  async function fetchMessages() {
+    if (!profile?.id) return
+    setChatLoading(true)
+    try {
+      const res = await fetch(`/api/connect360/messages?profile_id=${profile.id}`)
+      const data = await res.json()
+      setMessages(data.messages ?? [])
+    } catch {
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!showChat || !profile?.id) return
+    fetchMessages()
+    const interval = setInterval(fetchMessages, 5000)
+    return () => clearInterval(interval)
+  }, [showChat, profile?.id])
+
+  async function handleSendMessage() {
+    if (!chatInput.trim() || !profile?.id) return
+    setChatSending(true)
+    try {
+      const res = await fetch('/api/connect360/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile_id: profile.id, body: chatInput.trim() }),
+      })
+      const data = await res.json()
+      if (data.message) {
+        setMessages(prev => [...prev, data.message])
+        setChatInput('')
+      }
+    } catch {
+    } finally {
+      setChatSending(false)
     }
   }
 
@@ -476,6 +523,18 @@ export default function ProviderProfilePage() {
               Edit Profile
             </a>
           )}
+          {connected && !isOwner && (
+            <button
+              onClick={() => setShowChat(c => !c)}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium border transition-all mt-2 hover:border-[var(--ag-accent-border)]"
+              style={{
+                borderColor: showChat ? 'var(--ag-accent-border)' : 'var(--ag-border)',
+                backgroundColor: showChat ? 'rgba(212,175,55,0.08)' : 'transparent',
+                color: 'var(--ag-text-secondary)'
+              }}>
+              <MessageCircle size={14} /> {showChat ? 'Close Chat' : 'Message'}
+            </button>
+          )}
           <button
             onClick={() => setShowReportModal(true)}
             className="flex items-center gap-1.5 text-[11px] text-ag-dim hover:text-red-400 transition-colors mt-2"
@@ -525,6 +584,63 @@ export default function ProviderProfilePage() {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Chat Panel */}
+      {showChat && connected && !isOwner && (
+        <div className="rounded-xl border overflow-hidden"
+          style={{ backgroundColor: 'var(--ag-bg-card)', borderColor: 'var(--ag-border)' }}>
+          <div className="flex items-center gap-2 px-4 py-3 border-b"
+            style={{ borderColor: 'var(--ag-border)' }}>
+            <MessageCircle size={14} style={{ color: 'var(--ag-accent)' }} />
+            <span className="text-sm font-semibold text-ag-primary">
+              Message {profile.business_name || `${profile.first_name} ${profile.last_name}`}
+            </span>
+          </div>
+          <div className="h-64 overflow-y-auto p-4 space-y-3 flex flex-col">
+            {chatLoading && messages.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-ag-muted text-sm">
+                <RefreshCw size={14} className="animate-spin mr-2" /> Loading...
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-ag-muted text-sm">
+                No messages yet. Say hello!
+              </div>
+            ) : (
+              messages.map((m: any) => {
+                const isMine = m.sender_id === userId
+                return (
+                  <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[75%] px-3 py-2 rounded-xl text-sm leading-relaxed`}
+                      style={isMine
+                        ? { backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }
+                        : { backgroundColor: 'var(--ag-bg-hover)', color: 'var(--ag-text-primary)' }}>
+                      {m.body}
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+          <div className="flex items-center gap-2 p-3 border-t"
+            style={{ borderColor: 'var(--ag-border)' }}>
+            <input
+              className="flex-1 px-3 py-2 rounded-lg border text-sm text-ag-primary outline-none"
+              style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}
+              placeholder="Type a message..."
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage() } }}
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={!chatInput.trim() || chatSending}
+              className="p-2.5 rounded-lg transition-all flex-shrink-0"
+              style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)', opacity: !chatInput.trim() ? 0.5 : 1 }}>
+              {chatSending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
+            </button>
           </div>
         </div>
       )}
