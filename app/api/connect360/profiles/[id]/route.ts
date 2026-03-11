@@ -19,8 +19,13 @@ export async function GET(
         base_province, base_city, base_country,
         service_radius_km, open_to_relocation, work_countries,
         bio, years_experience, equipment_owned,
-        crops_experienced, availability,
-        verified_at, created_at
+        crops_experienced, availability, available_from, available_to,
+        verified_at, created_at, clerk_user_id, cv_url,
+        operations_experience, equipment_brands,
+        professional_sub_type, services_offered, languages_spoken,
+        remote_service, countries_served, licence_verified,
+        seeking_tfw_sponsorship, seeking_h2a_sponsorship,
+        citizenship_country
       FROM connect_profiles
       WHERE id = ${id} AND status = 'approved'
     `

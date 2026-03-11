@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 import {
   ChevronLeft, CheckCircle, MapPin, Truck, Sprout,
   Users, Globe, Phone, Mail, Building2, Calendar,
   Wheat, RefreshCw, AlertCircle, Shield, FileText,
-  Briefcase, BadgeCheck, Languages, Scale, Star, ThumbsUp
+  Briefcase, BadgeCheck, Languages, Scale, Star, ThumbsUp, Flag
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -53,6 +54,7 @@ interface ConnectProfile {
   citizenship_country?: string
   available_from?: string
   available_to?: string
+  clerk_user_id?: string
 }
 
 // ─── Constants ────────────────────────────────────────────────
@@ -82,12 +84,19 @@ const AVAILABILITY_COLORS: Record<string, string> = {
 export default function ProviderProfilePage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { userId } = useAuth()
 
   const [profile, setProfile] = useState<ConnectProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [connected, setConnected] = useState(false)
   const [connecting, setConnecting] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportReason, setReportReason] = useState('')
+  const [reportSending, setReportSending] = useState(false)
+  const [reportSent, setReportSent] = useState(false)
+  const [togglingAvailability, setTogglingAvailability] = useState(false)
+  const isOwner = !!(userId && profile?.clerk_user_id && userId === profile.clerk_user_id)
   const [revealedContact, setRevealedContact] = useState<{ phone?: string; email?: string } | null>(null)
 
   // Reviews
@@ -189,6 +198,40 @@ export default function ProviderProfilePage() {
     } catch {
     } finally {
       setReviewSaving(false)
+    }
+  }
+
+  async function handleReport() {
+    if (!reportReason.trim()) return
+    setReportSending(true)
+    try {
+      await fetch('/api/connect360/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile_id: profile?.id, reason: reportReason }),
+      })
+      setReportSent(true)
+      setTimeout(() => setShowReportModal(false), 2000)
+    } catch {
+    } finally {
+      setReportSending(false)
+    }
+  }
+
+  async function handleToggleAvailability() {
+    if (!profile) return
+    setTogglingAvailability(true)
+    const next = profile.availability === 'unavailable' ? 'immediate' : 'unavailable'
+    try {
+      const res = await fetch(`/api/connect360/profiles/${profile.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ availability: next }),
+      })
+      if (res.ok) setProfile(p => p ? { ...p, availability: next } : p)
+    } catch {
+    } finally {
+      setTogglingAvailability(false)
     }
   }
 
@@ -296,6 +339,17 @@ export default function ProviderProfilePage() {
                     : 'Open'}
                 </span>
               )}
+              {isOwner && (
+                <button
+                  onClick={handleToggleAvailability}
+                  disabled={togglingAvailability}
+                  className="text-[10px] font-medium px-2 py-0.5 rounded-full border transition-all"
+                  style={profile.availability === 'unavailable'
+                    ? { borderColor: 'rgba(74,222,128,0.3)', color: 'rgb(74,222,128)', backgroundColor: 'rgba(74,222,128,0.1)' }
+                    : { borderColor: 'rgba(248,113,113,0.3)', color: 'rgb(248,113,113)', backgroundColor: 'rgba(248,113,113,0.1)' }}>
+                  {togglingAvailability ? '...' : profile.availability === 'unavailable' ? '✓ Mark Available' : 'Mark as Hired'}
+                </button>
+              )}
               {profile.open_to_relocation && (
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border text-purple-400 bg-purple-400/10 border-purple-400/20">
                   Open to Relocate
@@ -384,8 +438,58 @@ export default function ProviderProfilePage() {
                 : 'Connect — Reveal Contact Info'}
             </button>
           )}
+          <button
+            onClick={() => setShowReportModal(true)}
+            className="flex items-center gap-1.5 text-[11px] text-ag-dim hover:text-red-400 transition-colors mt-2"
+          >
+            <Flag size={11} /> Report this listing
+          </button>
         </div>
       </div>
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6 space-y-4"
+            style={{ backgroundColor: 'var(--ag-bg-card)', borderColor: 'var(--ag-border)' }}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-ag-primary flex items-center gap-2">
+                <Flag size={14} className="text-red-400" /> Report Listing
+              </h3>
+              <button onClick={() => setShowReportModal(false)} className="text-ag-muted hover:text-ag-primary">✕</button>
+            </div>
+            {reportSent ? (
+              <div className="flex items-center gap-2 text-sm text-green-400">
+                <CheckCircle size={14} /> Report submitted. Thank you.
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-ag-muted">Describe the issue with this listing. AG360 staff will review within 48 hours.</p>
+                <select
+                  value={reportReason}
+                  onChange={e => setReportReason(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border text-sm text-ag-primary outline-none"
+                  style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}>
+                  <option value="">Select a reason...</option>
+                  <option value="fake_listing">Fake or fraudulent listing</option>
+                  <option value="wrong_info">Incorrect information</option>
+                  <option value="inappropriate">Inappropriate content</option>
+                  <option value="scam">Suspected scam</option>
+                  <option value="other">Other</option>
+                </select>
+                <button
+                  onClick={handleReport}
+                  disabled={!reportReason || reportSending}
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all"
+                  style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)', opacity: !reportReason ? 0.5 : 1 }}>
+                  {reportSending ? 'Submitting...' : 'Submit Report'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Bio */}
       {profile.bio && (

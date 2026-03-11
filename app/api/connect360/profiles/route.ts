@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
         cp.professional_sub_type, cp.services_offered, cp.languages_spoken,
         cp.remote_service, cp.countries_served,
         cp.seeking_tfw_sponsorship, cp.seeking_h2a_sponsorship,
-        cp.available_from, cp.available_to,
+        cp.available_from, cp.available_to, cp.clerk_user_id,
         ROUND(AVG(r.rating)::numeric, 1) AS avg_rating,
         COUNT(r.id)::int AS review_count
       FROM connect_profiles cp

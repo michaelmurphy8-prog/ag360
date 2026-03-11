@@ -156,6 +156,8 @@ export default function Connect360Page() {
   const [provinceFilter, setProvinceFilter] = useState('All')
   const [countryFilter, setCountryFilter] = useState('All')
   const [availabilityFilter, setAvailabilityFilter] = useState('all')
+  const [availFromFilter, setAvailFromFilter] = useState('')
+  const [availToFilter, setAvailToFilter] = useState('')
   const [openToRelocation, setOpenToRelocation] = useState(false)
   const [search, setSearch] = useState('')
   const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set())
@@ -183,6 +185,7 @@ export default function Connect360Page() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [showSavedOnly, setShowSavedOnly] = useState(false)
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<'default' | 'rating' | 'experience'>('default')
 
   const fetchCounts = useCallback(async () => {
     try {
@@ -431,6 +434,14 @@ export default function Connect360Page() {
           <option value="seasonal">Seasonal</option>
           <option value="contract">Contract</option>
         </select>
+        <input type="date" value={availFromFilter} onChange={e => setAvailFromFilter(e.target.value)}
+          className="px-3 py-2 rounded-lg border text-sm text-ag-primary outline-none"
+          style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}
+          title="Available from" />
+        <input type="date" value={availToFilter} onChange={e => setAvailToFilter(e.target.value)}
+          className="px-3 py-2 rounded-lg border text-sm text-ag-primary outline-none"
+          style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}
+          title="Available to" />
 
         <button onClick={() => setOpenToRelocation(!openToRelocation)}
           className="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all"
@@ -442,6 +453,13 @@ export default function Connect360Page() {
           <Globe size={13} />
           Open to Relocation
         </button>
+        <select value={sortBy} onChange={e => setSortBy(e.target.value as 'default' | 'rating' | 'experience')}
+          className="px-3 py-2 rounded-lg border text-sm text-ag-primary outline-none ml-auto"
+          style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }}>
+          <option value="default">Sort: Default</option>
+          <option value="rating">Sort: Top Rated</option>
+          <option value="experience">Sort: Most Experienced</option>
+        </select>
       </div>
 
       {/* Professional services disclaimer */}
@@ -467,9 +485,23 @@ export default function Connect360Page() {
         <EmptyState typeFilter={typeFilter} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {providers.filter(provider =>
-            !showSavedOnly || (provider.source === 'profile' && savedIds.has(provider.id))
-          ).map(provider =>
+          {providers.filter(provider => {
+            if (showSavedOnly && !(provider.source === 'profile' && savedIds.has(provider.id))) return false
+            if (provider.source === 'profile' && (availFromFilter || availToFilter)) {
+              const p = provider as ConnectProfile
+              if (availFromFilter && p.available_to && p.available_to < availFromFilter) return false
+              if (availToFilter && p.available_from && p.available_from > availToFilter) return false
+            }
+            return true
+          }).sort((a, b) => {
+            if (sortBy === 'rating') {
+              return (Number((b as ConnectProfile).avg_rating) || 0) - (Number((a as ConnectProfile).avg_rating) || 0)
+            }
+            if (sortBy === 'experience') {
+              return (Number((b as ConnectProfile).years_experience) || 0) - (Number((a as ConnectProfile).years_experience) || 0)
+            }
+            return 0
+          }).map(provider =>
             provider.source === 'profile' ? (
               <ProfileCard
                 key={provider.id}
