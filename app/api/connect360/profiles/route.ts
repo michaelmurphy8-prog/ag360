@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
   const openToRelocation = searchParams.get('open_to_relocation')
   const availability = searchParams.get('availability')
   const search = searchParams.get('search') // name / business name search
+  const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : null
 
   try {
     let profiles = await sql`
@@ -47,6 +48,7 @@ export async function GET(req: NextRequest) {
         )
       GROUP BY cp.id
       ORDER BY cp.verified_at DESC NULLS LAST, cp.created_at DESC
+      ${limit ? sql`LIMIT ${limit}` : sql``}
     `
 
     // Also pull seeded directory entries
