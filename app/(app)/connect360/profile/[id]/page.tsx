@@ -7,7 +7,7 @@ import {
   ChevronLeft, CheckCircle, MapPin, Truck, Sprout,
   Users, Globe, Phone, Mail, Building2, Calendar,
   Wheat, RefreshCw, AlertCircle, Shield, FileText,
-  Briefcase, BadgeCheck, Languages, Scale, Star, ThumbsUp, Flag
+  Briefcase, BadgeCheck, Languages, Scale, Star, ThumbsUp, Flag, Camera
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -96,6 +96,7 @@ export default function ProviderProfilePage() {
   const [reportSending, setReportSending] = useState(false)
   const [reportSent, setReportSent] = useState(false)
   const [togglingAvailability, setTogglingAvailability] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const isOwner = !!(userId && profile?.clerk_user_id && userId === profile.clerk_user_id)
   const [revealedContact, setRevealedContact] = useState<{ phone?: string; email?: string } | null>(null)
 
@@ -218,6 +219,23 @@ export default function ProviderProfilePage() {
     }
   }
 
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !profile) return
+    setUploadingPhoto(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('profile_id', profile.id)
+      const res = await fetch('/api/connect360/upload-photo', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (data.url) setProfile(p => p ? { ...p, photo_url: data.url } : p)
+    } catch {
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
   async function handleToggleAvailability() {
     if (!profile) return
     setTogglingAvailability(true)
@@ -293,11 +311,24 @@ export default function ProviderProfilePage() {
         style={{ backgroundColor: 'var(--ag-bg-card)', borderColor: 'var(--ag-border)' }}>
         <div className="flex items-start gap-4">
           {/* Avatar */}
-          <div className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 text-lg font-bold"
-            style={{ backgroundColor: 'var(--ag-bg-hover)', color: 'var(--ag-accent)' }}>
-            {profile.photo_url
-              ? <img src={profile.photo_url} className="w-16 h-16 rounded-xl object-cover" alt="" />
-              : initials}
+          <div className="relative flex-shrink-0">
+            <div className="w-16 h-16 rounded-xl flex items-center justify-center text-lg font-bold"
+              style={{ backgroundColor: 'var(--ag-bg-hover)', color: 'var(--ag-accent)' }}>
+              {profile.photo_url
+                ? <img src={profile.photo_url} className="w-16 h-16 rounded-xl object-cover" alt="" />
+                : initials}
+            </div>
+            {isOwner && (
+              <label className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all hover:scale-110"
+                style={{ backgroundColor: 'var(--ag-accent)', color: 'var(--ag-bg-primary)' }}
+                title="Change photo">
+                {uploadingPhoto
+                  ? <RefreshCw size={10} className="animate-spin" />
+                  : <Camera size={10} />}
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                  onChange={handlePhotoUpload} disabled={uploadingPhoto} />
+              </label>
+            )}
           </div>
 
           {/* Name + badges */}
