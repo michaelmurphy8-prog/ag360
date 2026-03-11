@@ -4,7 +4,7 @@ import { useAuth } from '@clerk/nextjs'
 import { Compass, Users, MessageCircle, User, Grid3X3 } from 'lucide-react'
 
 const TABS = [
-  { href: '/home',     icon: Compass,       label: 'Discover'  },
+  { href: '/discover', icon: Compass,       label: 'Discover'  },
   { href: '/network',  icon: Users,         label: 'Network'   },
   { href: '/messages', icon: MessageCircle, label: 'Messages'  },
   { href: '/profile',  icon: User,          label: 'Profile'   },
