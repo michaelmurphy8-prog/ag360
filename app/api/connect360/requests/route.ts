@@ -1,14 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { getTenantAuth } from '@/lib/tenant-auth'
+import { auth } from '@clerk/nextjs/server'
 import { Resend } from 'resend'
 const sql = neon(process.env.DATABASE_URL!)
 const resend = new Resend(process.env.RESEND_API_KEY!)
 
 // GET — farmer views their own connection requests
 export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const profileId = searchParams.get('profile_id')
+  const statusFilter = searchParams.get('status')
   const { tenantId } = await getTenantAuth()
-  if (!tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Standalone Connect360 users — fall back to Clerk userId
+  if (!tenantId) {
+    const { userId } = await auth()
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    try {
+      // Check if a specific profile connection exists
+      if (profileId) {
+        const result = await sql`
+          SELECT status FROM connect_requests
+          WHERE clerk_user_id = ${userId}
+          AND connect_profile_id = ${profileId}
+          LIMIT 1
+        `
+        return NextResponse.json({ status: result[0]?.status ?? null })
+      }
+      // Return accepted connections with full profile data
+      const connections = await sql`
+        SELECT
+          cr.id, cr.status, cr.created_at,
+          cp.id AS profile_id, cp.type, cp.first_name, cp.last_name,
+          cp.business_name, cp.phone, cp.email, cp.photo_url,
+          cp.base_city, cp.base_province, cp.availability
+        FROM connect_requests cr
+        JOIN connect_profiles cp ON cp.id = cr.connect_profile_id
+        WHERE cr.clerk_user_id = ${userId}
+        ${statusFilter ? sql`AND cr.status = ${statusFilter}` : sql``}
+        ORDER BY cr.created_at DESC
+      `
+      return NextResponse.json({ connections })
+    } catch (err) {
+      return NextResponse.json({ error: 'Failed to load connections' }, { status: 500 })
+    }
+  }
 
   try {
     const requests = await sql`
@@ -23,7 +60,6 @@ export async function GET(req: NextRequest) {
       WHERE cr.tenant_id = ${tenantId}
       ORDER BY cr.created_at DESC
     `
-
     return NextResponse.json({ requests })
   } catch (err) {
     console.error('GET /api/connect360/requests error:', err)
@@ -34,47 +70,40 @@ export async function GET(req: NextRequest) {
 // POST — farmer sends a connection request to a provider
 export async function POST(req: NextRequest) {
   const { tenantId } = await getTenantAuth()
-  if (!tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
+  const { userId } = await auth()
+  if (!tenantId && !userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const body = await req.json()
     const { connect_profile_id, message } = body
-
     if (!connect_profile_id) {
       return NextResponse.json({ error: 'Missing connect_profile_id' }, { status: 400 })
     }
-
     // Verify provider exists and is approved
     const provider = await sql`
       SELECT id, first_name, last_name, email, phone, business_name
       FROM connect_profiles
       WHERE id = ${connect_profile_id} AND status = 'approved'
     `
-
     if (provider.length === 0) {
       return NextResponse.json({ error: 'Provider not found or not approved' }, { status: 404 })
     }
-
     // Check for duplicate request
     const existing = await sql`
       SELECT id FROM connect_requests
-      WHERE tenant_id = ${tenantId}
+      WHERE (tenant_id = ${tenantId ?? null} OR clerk_user_id = ${userId ?? null})
       AND connect_profile_id = ${connect_profile_id}
     `
-
     if (existing.length > 0) {
-      // Return existing request + provider info (already connected)
       return NextResponse.json({
         success: true,
         already_connected: true,
         provider: provider[0],
       })
     }
-
     // Create the connection request
     const result = await sql`
-      INSERT INTO connect_requests (tenant_id, connect_profile_id, message, status)
-      VALUES (${tenantId}, ${connect_profile_id}, ${message ?? null}, 'accepted')
+      INSERT INTO connect_requests (tenant_id, clerk_user_id, connect_profile_id, message, status)
+      VALUES (${tenantId ?? null}, ${userId ?? null}, ${connect_profile_id}, ${message ?? null}, 'accepted')
       RETURNING id, status, created_at
     `
 
