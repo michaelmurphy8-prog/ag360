@@ -51,6 +51,8 @@ interface ConnectProfile {
   seeking_tfw_sponsorship?: boolean
   seeking_h2a_sponsorship?: boolean
   citizenship_country?: string
+  available_from?: string
+  available_to?: string
 }
 
 // ─── Constants ────────────────────────────────────────────────
@@ -282,6 +284,18 @@ export default function ProviderProfilePage() {
               <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${AVAILABILITY_COLORS[profile.availability] ?? ''}`}>
                 {AVAILABILITY_LABELS[profile.availability] ?? profile.availability}
               </span>
+              {(profile.available_from || profile.available_to) && (
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border text-ag-muted"
+                  style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)' }}>
+                  {profile.available_from
+                    ? new Date(profile.available_from + 'T00:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
+                    : '?'}
+                  {' – '}
+                  {profile.available_to
+                    ? new Date(profile.available_to + 'T00:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : 'Open'}
+                </span>
+              )}
               {profile.open_to_relocation && (
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border text-purple-400 bg-purple-400/10 border-purple-400/20">
                   Open to Relocate

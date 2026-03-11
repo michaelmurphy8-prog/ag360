@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
         cp.professional_sub_type, cp.services_offered, cp.languages_spoken,
         cp.remote_service, cp.countries_served,
         cp.seeking_tfw_sponsorship, cp.seeking_h2a_sponsorship,
+        cp.available_from, cp.available_to,
         ROUND(AVG(r.rating)::numeric, 1) AS avg_rating,
         COUNT(r.id)::int AS review_count
       FROM connect_profiles cp
@@ -109,6 +110,8 @@ export async function POST(req: NextRequest) {
       holds_licence,
       driver_licence_type,
       driver_licence_province,
+      available_from,
+      available_to,
     } = body
 
     if (!type || !first_name || !last_name || !email) {
@@ -136,7 +139,8 @@ export async function POST(req: NextRequest) {
         work_countries, bio, years_experience, equipment_owned,
         crops_experienced, availability, cv_url,
         operations_experience, equipment_brands, worldwide,
-        holds_licence, driver_licence_type, driver_licence_province, status
+        holds_licence, driver_licence_type, driver_licence_province,
+        available_from, available_to, status
       ) VALUES (
         ${clerk_user_id ?? null}, ${type}, ${first_name}, ${last_name},
         ${email}, ${phone ?? null}, ${photo_url ?? null},
@@ -152,7 +156,8 @@ export async function POST(req: NextRequest) {
         ${operations_experience ?? []}, ${equipment_brands ?? []},
         ${worldwide ?? false},
         ${holds_licence ?? false}, ${driver_licence_type ?? null},
-        ${driver_licence_province ?? null}, 'pending'
+        ${driver_licence_province ?? null},
+        ${available_from ?? null}, ${available_to ?? null}, 'pending'
       )
       RETURNING id, status, created_at
     `

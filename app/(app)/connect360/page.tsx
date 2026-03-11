@@ -45,6 +45,9 @@ interface ConnectProfile {
   // Worker sponsorship
   seeking_tfw_sponsorship?: boolean
   seeking_h2a_sponsorship?: boolean
+  // Availability window
+  available_from?: string
+  available_to?: string
   // Reviews
   avg_rating?: number
   review_count?: number
@@ -819,6 +822,19 @@ function ProfileCard({
             {AVAILABILITY_LABELS[provider.availability] ?? provider.availability}
           </span>
         )}
+        {!isProfessional && (provider.available_from || provider.available_to) && (
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border text-ag-muted"
+            style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)' }}>
+            {provider.available_from
+                ? new Date(provider.available_from + 'T00:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
+                : '?'}
+              {' – '}
+              {provider.available_to
+                ? new Date(provider.available_to + 'T00:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
+                : 'Open'}
+            </span>
+          )}
+          
         {isProfessional && provider.remote_service && (
           <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border text-purple-400 bg-purple-400/10 border-purple-400/20">
             Remote

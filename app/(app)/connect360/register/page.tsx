@@ -44,6 +44,8 @@ interface FormData {
   driver_licence_type: string
   driver_licence_province: string
   availability: string
+  available_from?: string
+  available_to?: string
   // Professional services
   professional_sub_type: string
   languages_spoken: string[]
@@ -275,6 +277,8 @@ export default function RegisterProviderPage() {
     operations_experience: [], equipment_brands: [],
     holds_licence: false, driver_licence_type: '', driver_licence_province: '',
     availability: 'immediate',
+    available_from: '',
+    available_to: '',
     // Professional
     professional_sub_type: '',
     languages_spoken: [],
@@ -859,9 +863,29 @@ export default function RegisterProviderPage() {
               ))}
             </div>
           </div>
+
+          {/* Availability date range */}
+          {(form.availability === 'seasonal' || form.availability === 'contract') && (
+            <div>
+              <label className="block text-xs text-ag-muted mb-1.5">Availability Window <span className="text-ag-dim">(optional)</span></label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] text-ag-dim mb-1">From</label>
+                  <input type="date" className={inputClass} style={inputStyle}
+                    value={form.available_from ?? ''}
+                    onChange={e => set('available_from', e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-ag-dim mb-1">To</label>
+                  <input type="date" className={inputClass} style={inputStyle}
+                    value={form.available_to ?? ''}
+                    onChange={e => set('available_to', e.target.value)} />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
-
       {/* ── Step 4 — Experience & Details */}
       {step === 4 && (
         <div className="space-y-5">
