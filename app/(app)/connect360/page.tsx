@@ -6,7 +6,7 @@ import {
   Globe, Search, MapPin, Truck, Sprout,
   Users, CheckCircle, Phone,
   Mail, Building2, RefreshCw, UserPlus, X, Shield,
-  Briefcase, Calendar, Wheat, Plus, Pencil, Trash2,
+  Briefcase, Calendar, Wheat, Plus, Pencil, Trash2, Handshake,
   Scale, Languages, BadgeCheck, AlertTriangle, Star, Bookmark,
 } from 'lucide-react'
 
@@ -370,7 +370,7 @@ export default function Connect360Page() {
             borderColor: showBidsPanel ? 'rgba(212,175,55,0.4)' : 'var(--ag-border)',
           }}
         >
-          <Briefcase size={16} style={{ color: 'var(--ag-accent)' }} />
+          <Handshake size={16} style={{ color: 'var(--ag-accent)' }} />
           <div>
             <div className="text-lg font-bold" style={{ color: 'var(--ag-accent)' }}>
               {bids.length > 0 ? bids.length : '—'}
@@ -498,7 +498,7 @@ export default function Connect360Page() {
             <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'var(--ag-border)' }}>
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <Briefcase size={16} style={{ color: 'var(--ag-accent)' }} />
+                  <Handshake size={16} style={{ color: 'var(--ag-accent)' }} />
                   <h2 className="font-bold text-ag-primary">Active Bids</h2>
                   {bids.length > 0 && (
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium"
@@ -782,7 +782,7 @@ function ProfileCard({
           style={{ backgroundColor: 'var(--ag-bg-hover)', color: 'var(--ag-accent)' }}>
           {provider.photo_url
             ? <img src={provider.photo_url} className="w-10 h-10 rounded-full object-cover" alt="" />
-            : initials}
+            : <Icon size={18} className={cfg.color} />}
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-sm text-ag-primary truncate">
@@ -834,7 +834,7 @@ function ProfileCard({
                 : 'Open'}
             </span>
           )}
-          
+
         {isProfessional && provider.remote_service && (
           <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border text-purple-400 bg-purple-400/10 border-purple-400/20">
             Remote
@@ -1010,7 +1010,7 @@ function DirectoryCard({ entry }: { entry: DirectoryEntry }) {
       <div className="flex items-start gap-3 mb-3">
         <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
           style={{ backgroundColor: 'var(--ag-bg-hover)' }}>
-          <Building2 size={16} className="text-ag-muted" />
+          <Icon size={16} className={cfg.color} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-sm text-ag-primary truncate">{entry.business_name}</div>
