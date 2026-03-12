@@ -15,7 +15,7 @@ const WORKER_ORIGIN_COUNTRIES = ['Philippines','Mexico','Ukraine','Guatemala','H
 const LANGUAGES = ['English','French','Spanish','Tagalog','Ukrainian','Portuguese','Hindi','Punjabi','Mandarin','German','Dutch','Other']
 const CROP_OPTIONS = ['Wheat','Canola','Barley','Oats','Flax','Peas','Lentils','Chickpeas','Soybeans','Corn','Sunflowers','Potatoes','Sugar Beets','Mustard','Canaryseed','Hemp','Hay','Silage','Specialty Crops']
 const OPERATIONS_OPTIONS = ['Seeding','Harvest','Spraying','Fertilizing','Tillage','Swathing','Baling','Trucking','Trucker','Grain Handling','Bin Management','Irrigation','Livestock','Fencing','Welding','Mechanics','GPS / Precision Ag','Drones','Cattle Working','Feeding / Nutrition']
-const EQUIPMENT_BRAND_OPTIONS = ['John Deere','Case IH','New Holland','Claas','AGCO','Versatile','Fendt','Challenger','Kinze','White','Morris','Bourgault','Seed Hawk','Vaderstad','CNH','Trimble','Topcon','Raven','Climate FieldView','Ag Leader','Precision Planting','Hagie','Rogator','Apache','Other']
+const EQUIPMENT_BRAND_OPTIONS = ['John Deere','Case IH','New Holland','Claas','AGCO','Versatile','Fendt','Challenger','Kinze','White','Morris','Bourgault','Seed Hawk','Vaderstad','CNH','Trimble','Topcon','Raven','Climate FieldView','Ag Leader','Precision Planting','Hagie','Rogator','Apache','DJI','Other']
 const ALL_PROVINCES_OPTIONS = [...CANADIAN_PROVINCES,...US_STATES]
 
 const PROFESSIONAL_SUB_TYPES = [
@@ -809,7 +809,7 @@ export default function RegisterPage() {
             )}
 
             {/* Commercial licence */}
-            {form.type !== 'professional' && form.type !== 'farmer' && (
+            {form.type !== 'professional' && form.type !== 'farmer' && form.type !== 'applicator' && (
               <div className="rounded-2xl p-4 space-y-3"
                 style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                 <label style={labelStyle}>Do you hold a commercial vehicle licence?</label>
