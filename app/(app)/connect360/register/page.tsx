@@ -1127,7 +1127,7 @@ export default function RegisterProviderPage() {
           )}
 
           {/* Commercial Licence — non-professionals */}
-          {form.type !== 'professional' && form.type !== 'farmer' && (
+          {form.type !== 'professional' && form.type !== 'farmer' && form.type !== 'applicator' && (
             <div>
               <label className="block text-xs text-ag-muted mb-2">Do you hold a commercial vehicle licence?</label>
               <div className="flex gap-2">

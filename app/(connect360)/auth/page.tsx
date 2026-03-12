@@ -41,7 +41,7 @@ export default function Connect360AuthPage() {
         const result = await signIn.create({ identifier: email, password })
         if (result.status === 'complete') {
           await setActiveSignIn({ session: result.createdSessionId })
-          router.replace('/home')
+          window.location.href = '/home'
         }
       } else {
         const result = await signUp.create({ emailAddress: email, password, firstName, lastName })
@@ -50,7 +50,7 @@ export default function Connect360AuthPage() {
           setVerifying(true)
         } else if (result.status === 'complete') {
           await setActiveSignUp({ session: result.createdSessionId })
-          router.replace('/home')
+          window.location.href = '/home'
         }
       }
     } catch (err: any) {
@@ -68,7 +68,7 @@ export default function Connect360AuthPage() {
       const result = await signUp.attemptEmailAddressVerification({ code })
       if (result.status === 'complete') {
         await setActiveSignUp({ session: result.createdSessionId })
-        router.replace('/home')
+        window.location.href = '/home'
       }
     } catch (err: any) {
       setError(err?.errors?.[0]?.message ?? 'Invalid code. Please try again.')
