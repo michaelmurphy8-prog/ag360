@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
       ${poster_type ? sql`AND j.poster_type = ${poster_type}` : sql``}
       ${provider_type ? sql`AND (j.provider_type_needed = ${provider_type} OR j.provider_type_needed = 'any')` : sql``}
       ${province ? sql`AND j.location_province = ${province}` : sql``}
+      ${searchParams.get('countries') ? sql`AND j.location_country = ANY(${searchParams.get('countries')!.split(',')})` : sql``}
       GROUP BY j.id
       ORDER BY j.created_at DESC
     `
