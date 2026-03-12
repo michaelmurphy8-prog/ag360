@@ -478,7 +478,7 @@ export default function RegisterProviderPage() {
                 </div>
                 {selected && <CheckCircle size={16} className={`ml-auto ${opt.color}`} />}
               </button>
-              {opt.services.length > 0 && (
+              {opt.services.length > 0 && selected && (
                 <div className="flex flex-wrap gap-1.5 px-4 pb-3">
                   {opt.services.map(s => (
                     <span key={s} className="text-[10px] px-2 py-0.5 rounded-full border text-ag-muted"

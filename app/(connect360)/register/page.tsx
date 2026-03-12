@@ -296,7 +296,7 @@ export default function RegisterPage() {
                   </div>
                   {selected && <CheckCircle size={18} style={{ color: '#C9A84C', flexShrink: 0 }} />}
                 </button>
-                {opt.services.length > 0 && (
+                {opt.services.length > 0 && selected && (
                   <div className="flex flex-wrap gap-1.5 px-4 pb-3 -mt-1">
                     {opt.services.map(s => (
                       <span key={s} className="text-[10px] px-2 py-0.5 rounded-full"
