@@ -61,24 +61,29 @@ interface FormData {
 }
 
 // ─── Constants ────────────────────────────────────────────────
+const TRANSPORT_SERVICES = ['Grain & Fertilizer Hauling','Oversize & Heavy Haul','Custom Transport','Dry Bulk Loads','Liquid Tankers','Gravel & Sand','AC & Reefer Loads']
+const CUSTOM_WORK_SERVICES = ['Crop Spraying','Fertilizer Application','Custom Harvest','Custom Seeding','Drone & Aerial Spraying Services']
+
 const TYPE_OPTIONS = [
   {
     value: 'trucker',
-    label: 'Custom Trucker',
+    label: 'Custom Transport',
     icon: Truck,
-    desc: 'Grain hauling, bulk transport, on-farm logistics',
+    desc: 'Grain & fertilizer hauling, oversize, bulk, tanker, reefer',
     color: 'text-blue-400',
     border: 'border-blue-400/40',
     bg: 'bg-blue-400/10',
+    services: TRANSPORT_SERVICES,
   },
   {
     value: 'applicator',
-    label: 'Custom Applicator',
+    label: 'Custom Work',
     icon: Sprout,
-    desc: 'Crop spraying, fertilizer application, custom field work',
+    desc: 'Crop spraying, fertilizer, custom harvest, seeding, drones',
     color: 'text-green-400',
     border: 'border-green-400/40',
     bg: 'bg-green-400/10',
+    services: CUSTOM_WORK_SERVICES,
   },
   {
     value: 'worker',
@@ -88,15 +93,17 @@ const TYPE_OPTIONS = [
     color: 'text-amber-400',
     border: 'border-amber-400/40',
     bg: 'bg-amber-400/10',
+    services: [],
   },
   {
     value: 'professional',
     label: 'Professional Services',
     icon: Briefcase,
-    desc: 'Immigration consultants, ag accountants, crop consultants',
+    desc: 'Agronomy, immigration, accounting, legal, trades & more',
     color: 'text-purple-400',
     border: 'border-purple-400/40',
     bg: 'bg-purple-400/10',
+    services: [],
   },
 ]
 
@@ -181,6 +188,12 @@ const PROFESSIONAL_SUB_TYPES = [
     licenceHint: 'ECO Canada or provincial environmental registry',
     licenceHintUrl: 'https://eco.ca',
   },
+  { value: 'hr_consultant', label: 'HR Consultant', desc: 'Farm HR, hiring, onboarding, compliance, team management', licenceLabel: 'Business Registration Number', licenceHint: '', licenceHintUrl: '' },
+  { value: 'fuel_oil', label: 'Fuel, Oil & Lubricants', desc: 'On-farm fuel delivery, bulk oil, lubricant supply', licenceLabel: 'Business Registration Number', licenceHint: '', licenceHintUrl: '' },
+  { value: 'construction', label: 'Construction', desc: 'Farm construction, site prep, concrete, earthworks', licenceLabel: 'Business / Contractor Registration', licenceHint: '', licenceHintUrl: '' },
+  { value: 'hvac_plumbing', label: 'HVAC & Plumbing', desc: 'Heating, cooling, ventilation, plumbing for farm facilities', licenceLabel: 'Trade Licence Number', licenceHint: '', licenceHintUrl: '' },
+  { value: 'mechanic', label: 'Mechanic & Technician', desc: 'Farm equipment repair, diagnostics, welding, mobile service', licenceLabel: 'Trade Certification / Red Seal', licenceHint: '', licenceHintUrl: '' },
+  { value: 'buildings_storage', label: 'Buildings & Storage', desc: 'Bins, grain storage, farm buildings, steel structures', licenceLabel: 'Business / Contractor Registration', licenceHint: '', licenceHintUrl: '' },
 ]
 
 const IMMIGRATION_SERVICES = [
@@ -221,7 +234,7 @@ const CROP_OPTIONS = [
 const OPERATIONS_OPTIONS = [
   'Seeding', 'Spraying / Chemical Application', 'Haying & Baling', 'Swathing',
   'Combine Harvesting', 'Grain Cart Operation', 'Land Rolling & Rock Picking',
-  'Grain Hauling & Trucking', 'Fabricating & Mechanical', 'Chemical Mixing / Water Tender',
+  'Grain Hauling & Trucking', 'Trucker', 'Fabricating & Mechanical', 'Chemical Mixing / Water Tender',
   'Fencing', 'Irrigation', 'Livestock Handling', 'Silage & Forage',
   'General Yard & Field Work', 'Other',
 ]
@@ -244,10 +257,25 @@ const inputClass = `w-full px-3 py-2.5 rounded-lg border text-sm text-ag-primary
 const inputStyle = { borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-input)' }
 
 function getServicesForSubType(sub: string): string[] {
-  if (sub === 'immigration_consultant') return IMMIGRATION_SERVICES
-  if (sub === 'ag_accountant') return AG_ACCOUNTANT_SERVICES
-  if (sub === 'crop_consultant') return CROP_CONSULTANT_SERVICES
-  return []
+  const map: Record<string, string[]> = {
+    immigration_consultant: IMMIGRATION_SERVICES,
+    ag_accountant: AG_ACCOUNTANT_SERVICES,
+    crop_consultant: CROP_CONSULTANT_SERVICES,
+    agrologist: ['Soil Health','Nutrient Management','Crop Rotation','Environmental Compliance','Land Evaluation','Agronomic Reports'],
+    recruitment_agency: ['Labour Sourcing','TFW Placement','Seasonal Hiring','Permanent Placement','Payroll Services','HR Consulting'],
+    farm_lawyer: ['Land Purchase/Sale','Lease Agreements','Wills & Estates','Farm Succession','Water Rights','Litigation','Corporate Structure'],
+    ag_insurance: ['Crop Insurance','Hail Insurance','AgriInsurance','Farm Property','Liability','Equipment','Business Interruption'],
+    farm_lender: ['Operating Lines','Equipment Financing','Land Loans','FCC Programs','Refinancing','Investment Planning'],
+    veterinarian: ['Herd Health Programs','Vaccination','Pregnancy Checking','Feedlot Health','Biosecurity','Nutrition Consulting'],
+    environmental: ['Soil Testing','Carbon Credits','Environmental Assessments','Wetland Delineation','Compliance Reporting'],
+    hr_consultant: ['Hiring & Recruitment','Onboarding','HR Policies','Payroll Compliance','Performance Management','Workplace Safety','Employment Contracts'],
+    fuel_oil: ['On-Farm Fuel Delivery','Bulk Diesel','Bulk Gasoline','Lubricants','DEF Fluid','Propane','Emergency Delivery'],
+    construction: ['Site Prep','Concrete Work','Steel Buildings','Earthworks','Road Building','Drainage','Yard Construction'],
+    hvac_plumbing: ['Heating Systems','Ventilation','Air Conditioning','Plumbing Install','Repairs & Maintenance','Shop HVAC','Livestock Facility HVAC'],
+    mechanic: ['Equipment Repair','Diagnostics','Welding','Mobile Service','Preventive Maintenance','Hydraulics','Electrical'],
+    buildings_storage: ['Grain Bins','Bin Floors & Aeration','Farm Buildings','Steel Structures','Hopper Bottoms','Flat Storage','Bin Installation'],
+  }
+  return map[sub] ?? []
 }
 
 // ─── Main Component ───────────────────────────────────────────
@@ -430,14 +458,15 @@ export default function RegisterProviderPage() {
             const Icon = opt.icon
             const selected = form.type === opt.value
             return (
-              <button
-                key={opt.value}
-                onClick={() => set('type', opt.value)}
-                className={`w-full flex items-center gap-4 p-4 rounded-xl border text-left transition-all ${selected ? `${opt.border} ${opt.bg}` : ''}`}
+              <div key={opt.value} className="rounded-xl border overflow-hidden"
                 style={{
                   borderColor: selected ? undefined : 'var(--ag-border)',
                   backgroundColor: selected ? undefined : 'var(--ag-bg-card)',
-                }}
+                }}>
+              <button
+                onClick={() => set('type', opt.value)}
+                className={`w-full flex items-center gap-4 p-4 text-left transition-all ${selected ? `${opt.border} ${opt.bg}` : ''}`}
+                style={{ backgroundColor: 'transparent' }}
               >
                 <div className={`p-2.5 rounded-lg ${selected ? opt.bg : ''}`}
                   style={{ backgroundColor: selected ? undefined : 'var(--ag-bg-hover)' }}>
@@ -449,6 +478,17 @@ export default function RegisterProviderPage() {
                 </div>
                 {selected && <CheckCircle size={16} className={`ml-auto ${opt.color}`} />}
               </button>
+              {opt.services.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 px-4 pb-3">
+                  {opt.services.map(s => (
+                    <span key={s} className="text-[10px] px-2 py-0.5 rounded-full border text-ag-muted"
+                      style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)' }}>
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              )}
+              </div>
             )
           })}
         </div>

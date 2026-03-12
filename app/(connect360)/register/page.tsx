@@ -14,7 +14,7 @@ const WORK_COUNTRY_OPTIONS = ['Canada','USA','Australia','New Zealand','UK','Eur
 const WORKER_ORIGIN_COUNTRIES = ['Philippines','Mexico','Ukraine','Guatemala','Honduras','El Salvador','Jamaica','Thailand','Vietnam','India','Nepal','Colombia','Brazil','South Africa','Kenya','Nigeria','Other']
 const LANGUAGES = ['English','French','Spanish','Tagalog','Ukrainian','Portuguese','Hindi','Punjabi','Mandarin','German','Dutch','Other']
 const CROP_OPTIONS = ['Wheat','Canola','Barley','Oats','Flax','Peas','Lentils','Chickpeas','Soybeans','Corn','Sunflowers','Potatoes','Sugar Beets','Mustard','Canaryseed','Hemp','Hay','Silage','Specialty Crops']
-const OPERATIONS_OPTIONS = ['Seeding','Harvest','Spraying','Fertilizing','Tillage','Swathing','Baling','Trucking','Grain Handling','Bin Management','Irrigation','Livestock','Fencing','Welding','Mechanics','GPS / Precision Ag','Drones','Cattle Working','Feeding / Nutrition']
+const OPERATIONS_OPTIONS = ['Seeding','Harvest','Spraying','Fertilizing','Tillage','Swathing','Baling','Trucking','Trucker','Grain Handling','Bin Management','Irrigation','Livestock','Fencing','Welding','Mechanics','GPS / Precision Ag','Drones','Cattle Working','Feeding / Nutrition']
 const EQUIPMENT_BRAND_OPTIONS = ['John Deere','Case IH','New Holland','Claas','AGCO','Versatile','Fendt','Challenger','Kinze','White','Morris','Bourgault','Seed Hawk','Vaderstad','CNH','Trimble','Topcon','Raven','Climate FieldView','Ag Leader','Precision Planting','Hagie','Rogator','Apache','Other']
 const ALL_PROVINCES_OPTIONS = [...CANADIAN_PROVINCES,...US_STATES]
 
@@ -29,6 +29,12 @@ const PROFESSIONAL_SUB_TYPES = [
   { value: 'lender', label: 'Farm Lender / Financial Advisor', desc: 'FCC, credit union, farm operating loans, investment', licenceLabel: 'Securities / FSRA Licence', licenceHint: '', licenceHintUrl: '' },
   { value: 'veterinarian', label: 'Veterinarian / Herd Health', desc: 'Livestock health, herd management, vet services', licenceLabel: 'Veterinary Licence Number', licenceHint: 'Verify with provincial college', licenceHintUrl: '' },
   { value: 'environmental', label: 'Environmental Consultant', desc: 'Soil testing, carbon credits, environmental compliance', licenceLabel: 'Professional Registration / Cert', licenceHint: '', licenceHintUrl: '' },
+  { value: 'hr_consultant', label: 'HR Consultant', desc: 'Farm HR, hiring, onboarding, compliance, team management', licenceLabel: 'Business Registration Number', licenceHint: '', licenceHintUrl: '' },
+  { value: 'fuel_oil', label: 'Fuel, Oil & Lubricants', desc: 'On-farm fuel delivery, bulk oil, lubricant supply', licenceLabel: 'Business Registration Number', licenceHint: '', licenceHintUrl: '' },
+  { value: 'construction', label: 'Construction', desc: 'Farm construction, site prep, concrete, earthworks', licenceLabel: 'Business / Contractor Registration', licenceHint: '', licenceHintUrl: '' },
+  { value: 'hvac_plumbing', label: 'HVAC & Plumbing', desc: 'Heating, cooling, ventilation, plumbing for farm facilities', licenceLabel: 'Trade Licence Number', licenceHint: '', licenceHintUrl: '' },
+  { value: 'mechanic', label: 'Mechanic & Technician', desc: 'Farm equipment repair, diagnostics, welding, mobile service', licenceLabel: 'Trade Certification / Red Seal', licenceHint: '', licenceHintUrl: '' },
+  { value: 'buildings_storage', label: 'Buildings & Storage', desc: 'Bins, grain storage, farm buildings, steel structures', licenceLabel: 'Business / Contractor Registration', licenceHint: '', licenceHintUrl: '' },
 ]
 
 function getServicesForSubType(sub: string): string[] {
@@ -43,15 +49,24 @@ function getServicesForSubType(sub: string): string[] {
     lender: ['Operating Lines','Equipment Financing','Land Loans','FCC Programs','Refinancing','Investment Planning'],
     veterinarian: ['Herd Health Programs','Vaccination','Pregnancy Checking','Feedlot Health','Biosecurity','Nutrition Consulting'],
     environmental: ['Soil Testing','Carbon Credits','Environmental Assessments','Wetland Delineation','Compliance Reporting'],
+    hr_consultant: ['Hiring & Recruitment','Onboarding','HR Policies','Payroll Compliance','Performance Management','Workplace Safety','Employment Contracts'],
+    fuel_oil: ['On-Farm Fuel Delivery','Bulk Diesel','Bulk Gasoline','Lubricants','DEF Fluid','Propane','Emergency Delivery'],
+    construction: ['Site Prep','Concrete Work','Steel Buildings','Earthworks','Road Building','Drainage','Yard Construction'],
+    hvac_plumbing: ['Heating Systems','Ventilation','Air Conditioning','Plumbing Install','Repairs & Maintenance','Shop HVAC','Livestock Facility HVAC'],
+    mechanic: ['Equipment Repair','Diagnostics','Welding','Mobile Service','Preventive Maintenance','Hydraulics','Electrical'],
+    buildings_storage: ['Grain Bins','Bin Floors & Aeration','Farm Buildings','Steel Structures','Hopper Bottoms','Flat Storage','Bin Installation'],
   }
   return map[sub] ?? []
 }
 
+const TRANSPORT_SERVICES = ['Grain & Fertilizer Hauling','Oversize & Heavy Haul','Custom Transport','Dry Bulk Loads','Liquid Tankers','Gravel & Sand','AC & Reefer Loads']
+const CUSTOM_WORK_SERVICES = ['Crop Spraying','Fertilizer Application','Custom Harvest','Custom Seeding','Drone & Aerial Spraying Services']
+
 const TYPE_OPTIONS = [
-  { value: 'trucker',      label: 'Custom Trucker',              desc: 'Grain hauling, B-trains, oversize, custom transport',     icon: Truck,     color: 'text-amber-400',  bg: 'bg-amber-400/10',   border: 'border-amber-400/30' },
-  { value: 'applicator',   label: 'Custom Applicator',           desc: 'Crop spraying, fertilizer application, custom field work', icon: Sprout,    color: 'text-green-400',  bg: 'bg-green-400/10',   border: 'border-green-400/30' },
-  { value: 'worker',       label: 'Full Time & Seasonal Worker', desc: 'Farm labour, equipment operators, livestock handlers',     icon: Users,     color: 'text-blue-400',   bg: 'bg-blue-400/10',    border: 'border-blue-400/30'  },
-  { value: 'professional', label: 'Professional Services',       desc: 'Agronomy, immigration, accounting, legal, insurance',     icon: Briefcase, color: 'text-purple-400', bg: 'bg-purple-400/10',  border: 'border-purple-400/30'},
+  { value: 'trucker',      label: 'Custom Transport',            desc: 'Grain & fertilizer hauling, oversize, bulk, tanker, reefer', icon: Truck,     color: 'text-amber-400',  bg: 'bg-amber-400/10',   border: 'border-amber-400/30', services: TRANSPORT_SERVICES },
+  { value: 'applicator',   label: 'Custom Work',                 desc: 'Crop spraying, fertilizer, custom harvest, seeding, drones', icon: Sprout,    color: 'text-green-400',  bg: 'bg-green-400/10',   border: 'border-green-400/30', services: CUSTOM_WORK_SERVICES },
+  { value: 'worker',       label: 'Full Time & Seasonal Worker', desc: 'Farm labour, equipment operators, livestock handlers',        icon: Users,     color: 'text-blue-400',   bg: 'bg-blue-400/10',    border: 'border-blue-400/30',  services: [] },
+  { value: 'professional', label: 'Professional Services',       desc: 'Agronomy, immigration, accounting, legal, trades & more',    icon: Briefcase, color: 'text-purple-400', bg: 'bg-purple-400/10',  border: 'border-purple-400/30',services: [] },
 ]
 
 interface FormData {
@@ -262,13 +277,15 @@ export default function RegisterPage() {
               const Icon = opt.icon
               const selected = form.type === opt.value
               return (
-                <button key={opt.value} onClick={() => set('type', opt.value)}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all"
+                <div key={opt.value} className="rounded-2xl overflow-hidden"
                   style={{
                     backgroundColor: '#FFFFFF',
                     border: `1px solid ${selected ? '#C9A84C' : '#EEE9E0'}`,
                     boxShadow: selected ? '0 2px 16px rgba(201,168,76,0.15)' : '0 2px 8px rgba(0,0,0,0.04)',
                   }}>
+                <button onClick={() => set('type', opt.value)}
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all"
+                  style={{ backgroundColor: 'transparent' }}>
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: '#FDF8EE' }}>
                     <Icon size={20} style={{ color: '#C9A84C' }} />
@@ -279,7 +296,18 @@ export default function RegisterPage() {
                   </div>
                   {selected && <CheckCircle size={18} style={{ color: '#C9A84C', flexShrink: 0 }} />}
                 </button>
-              )
+                {opt.services.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 px-4 pb-3 -mt-1">
+                    {opt.services.map(s => (
+                      <span key={s} className="text-[10px] px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: '#F7F5F0', color: '#8A9BB0', border: '1px solid #EEE9E0' }}>
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
             })}
           </>
         )}
