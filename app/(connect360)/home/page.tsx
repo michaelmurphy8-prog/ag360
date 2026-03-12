@@ -304,7 +304,7 @@ export default function Connect360HomePage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-bold" style={{ color: '#0D1520' }}>Find by type</h2>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-2">
             {Object.entries(TYPE_CONFIG).map(([key, cfg]) => {
               const Icon = cfg.icon
               const count = stats?.types[key as keyof typeof stats.types]
@@ -312,45 +312,34 @@ export default function Connect360HomePage() {
               return (
                 <button key={key}
                   onClick={() => router.push(`/discover?type=${key}`)}
-                  className={`p-4 rounded-2xl text-left transition-all active:scale-95 ${isFarmer ? 'col-span-2' : ''}`}
+                  className="w-full p-4 rounded-2xl text-left transition-all active:scale-95"
                   style={{
                     backgroundColor: '#FFFFFF',
                     boxShadow: isFarmer
                       ? '0 0 0 2px rgba(201,168,76,0.25), 0 4px 24px rgba(201,168,76,0.2)'
                       : '0 2px 12px rgba(0,0,0,0.06)',
-                    border: isFarmer ? '2px solid rgba(201,168,76,0.4)' : '5px solid #EEE9E0',
+                    border: isFarmer ? '2px solid rgba(201,168,76,0.4)' : '1px solid #EEE9E0',
                   }}>
-                  {isFarmer ? (
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: '#FDF8EE' }}>
-                        <Icon size={22} style={{ color: '#C9A84C' }} />
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: isFarmer ? '#FDF8EE' : '#F7F5F0' }}>
+                      <Icon size={20} style={{ color: isFarmer ? '#C9A84C' : '#8A9BB0' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-bold" style={{ color: '#0D1520' }}>{cfg.label}</div>
+                      <div className="text-xs mt-0.5" style={{ color: '#8A9BB0' }}>
+                        {count !== undefined ? `${count} available` : '—'}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold" style={{ color: '#0D1520' }}>{cfg.label}</div>
-                        <div className="text-xs mt-0.5" style={{ color: '#8A9BB0' }}>
-                          {count !== undefined ? `${count} available` : '—'}
-                        </div>
-                      </div>
+                    </div>
+                    {isFarmer ? (
                       <div className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0"
                         style={{ backgroundColor: '#FDF8EE', color: '#C9A84C' }}>
                         Connect Now →
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: '#FDF8EE' }}>
-                        <Icon size={18} style={{ color: '#C9A84C' }} />
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold" style={{ color: '#0D1520' }}>{cfg.label}</div>
-                        <div className="text-xs mt-0.5" style={{ color: '#8A9BB0' }}>
-                          {count !== undefined ? `${count} available` : '—'}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                    ) : (
+                      <ChevronRight size={16} style={{ color: '#B0A898', flexShrink: 0 }} />
+                    )}
+                  </div>
                 </button>
               )
             })}
