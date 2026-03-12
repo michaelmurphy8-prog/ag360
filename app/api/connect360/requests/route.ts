@@ -130,24 +130,58 @@ export async function POST(req: NextRequest) {
         SELECT farm_name FROM farm_profiles WHERE tenant_id = ${tenantId} LIMIT 1
       `
       const farmName = farm?.farm_name ?? 'A farmer'
-      if (provider[0].email) {
+      const senderName = `${provider[0].first_name} ${provider[0].last_name}`.trim()
+
+      // Check recipient notification prefs
+      const [recipientPrefs] = await sql`
+        SELECT notification_prefs FROM connect_profiles
+        WHERE id = ${connect_profile_id} LIMIT 1
+      `
+      const prefs = recipientPrefs?.notification_prefs ?? {}
+      const shouldEmail = prefs.enabled === true && prefs.connect_requests !== false
+
+      if (shouldEmail && provider[0].email) {
         await resend.emails.send({
-          from: 'AG360 Connect360 <hello@ag360.farm>',
+          from: 'Connect360 <hello@ag360.farm>',
           to: provider[0].email,
-          subject: `${farmName} connected with you on AG360 Connect360`,
+          subject: `${farmName} sent you a connect request on Connect360`,
           html: `
-            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
-              <h2 style="color:#d4af37;">New Connection on AG360 Connect360</h2>
-              <p><strong>${farmName}</strong> has connected with your listing and can now see your contact details.</p>
-              ${message ? `<p style="color:#94a3b8;font-style:italic;">"${message}"</p>` : ''}
-              <p>Log in to <a href="https://ag360.farm/connect360" style="color:#d4af37;">AG360 Connect360</a> to view your connections and manage your profile.</p>
-              <hr style="border-color:#1e293b;margin:24px 0;" />
-              <p style="color:#64748b;font-size:12px;">AG360 — For the Farmer · ag360.farm</p>
+            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;background:#F7F5F0;padding:24px;border-radius:16px;">
+
+              <!-- Header -->
+              <div style="background:linear-gradient(160deg,#0A1018 0%,#162030 100%);border-radius:12px;padding:24px;text-align:center;margin-bottom:20px;">
+                <div style="font-size:22px;font-weight:900;color:#FFFFFF;letter-spacing:-0.5px;">Connect<span style="color:#C9A84C;">360</span></div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:4px;letter-spacing:1px;text-transform:uppercase;">For AG, by a farmer.</div>
+              </div>
+
+              <!-- Body -->
+              <div style="background:#FFFFFF;border-radius:12px;padding:24px;margin-bottom:16px;">
+                <p style="margin:0 0 12px;font-size:15px;font-weight:700;color:#0D1520;">You have a new connect request</p>
+                <p style="margin:0 0 16px;font-size:14px;color:#4B5563;line-height:1.6;">
+                  <strong style="color:#0D1520;">${farmName}</strong> wants to connect with you on Connect360.
+                </p>
+                ${message ? `
+                <div style="background:#F7F5F0;border-left:3px solid #C9A84C;padding:12px 16px;border-radius:0 8px 8px 0;margin-bottom:16px;">
+                  <p style="margin:0;font-size:13px;color:#4B5563;font-style:italic;">"${message}"</p>
+                </div>` : ''}
+                <a href="https://connect360.ag360.farm/network"
+                  style="display:inline-block;background:#C9A84C;color:#FFFFFF;font-size:13px;font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none;letter-spacing:0.3px;">
+                  View Request →
+                </a>
+              </div>
+
+              <!-- Footer -->
+              <p style="text-align:center;font-size:11px;color:#B0A898;margin:0;">
+                Connect360 · AG360 Inc. · Swift Current, SK<br/>
+                <a href="https://ag360.farm" style="color:#C9A84C;text-decoration:none;">ag360.farm</a>
+              </p>
             </div>
           `,
         })
       }
-    } catch {}
+    } catch (emailErr) {
+      console.error('Connect request email failed:', emailErr)
+    }
 
     // Return provider contact info immediately (direct reveal model)
     return NextResponse.json({
