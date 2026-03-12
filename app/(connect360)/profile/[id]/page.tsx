@@ -34,6 +34,9 @@ interface Profile {
   holds_licence?: boolean
   driver_licence_type?: string
   cv_url?: string
+  farmer_sub_types?: string[]
+  sponsorship_offered?: string[]
+  website_url?: string
   avg_rating?: number
   review_count?: number
   verified_at?: string
@@ -351,7 +354,8 @@ export default function ProfilePage() {
             </div>
           )}
           {profile.holds_licence && (
-            <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="flex items-center gap-3 px-4 py-3.5"
+              style={{ borderBottom: profile.website_url ? '1px solid #F7F5F0' : 'none' }}>
               <Shield size={16} style={{ color: '#22C55E' }} />
               <span className="text-sm" style={{ color: '#0D1520' }}>
                 {profile.driver_licence_type
@@ -359,6 +363,17 @@ export default function ProfilePage() {
                   : 'Licensed'}
               </span>
             </div>
+          )}
+          {profile.website_url && (
+            <a href={profile.website_url.startsWith('http') ? profile.website_url : `https://${profile.website_url}`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-3 px-4 py-3.5 w-full"
+              style={{ borderBottom: 'none' }}>
+              <Globe size={16} style={{ color: '#C9A84C' }} />
+              <span className="text-sm font-medium" style={{ color: '#C9A84C', textDecoration: 'underline' }}>
+                {profile.website_url.replace(/^https?:\/\//, '')}
+              </span>
+            </a>
           )}
         </div>
 
@@ -379,6 +394,38 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {/* Farm types — farmer only */}
+        {profile.type === 'farmer' && profile.farmer_sub_types && profile.farmer_sub_types.length > 0 && (
+          <div className="p-4 rounded-2xl"
+            style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <h3 className="text-xs font-bold uppercase tracking-wide mb-3"
+              style={{ color: '#8A9BB0' }}>Farm Type</h3>
+            <div className="flex flex-wrap gap-2">
+              {profile.farmer_sub_types.map(t => (
+                <span key={t} className="px-3 py-1.5 rounded-full text-xs font-semibold"
+                  style={{ backgroundColor: '#F0FDF4', color: '#16A34A' }}>
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Sponsorship offered — farmer only */}
+        {profile.type === 'farmer' && profile.sponsorship_offered && profile.sponsorship_offered.length > 0 && (
+          <div className="p-4 rounded-2xl"
+            style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <h3 className="text-xs font-bold uppercase tracking-wide mb-3"
+              style={{ color: '#8A9BB0' }}>Sponsorship Offered</h3>
+            <div className="flex flex-wrap gap-2">
+              {profile.sponsorship_offered.map(s => (
+                <span key={s} className="px-3 py-1.5 rounded-full text-xs font-semibold"
+                  style={{ backgroundColor: '#EFF6FF', color: '#2563EB' }}>
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         {/* Operations experience */}
         {profile.operations_experience && profile.operations_experience.length > 0 && (
           <div className="p-4 rounded-2xl"

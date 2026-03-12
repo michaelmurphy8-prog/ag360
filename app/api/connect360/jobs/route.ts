@@ -12,11 +12,22 @@ export async function GET(req: NextRequest) {
   const provider_type = searchParams.get('provider_type')
   const province = searchParams.get('province')
   const my_jobs = searchParams.get('my_jobs') === 'true'
-
+  const my_posts = searchParams.get('my_posts') === 'true'
+  const my_applications = searchParams.get('my_applications') === 'true'
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   try {
+    if (my_applications) {
+      const jobs = await sql`
+        SELECT j.*, COUNT(a2.id)::int AS application_count
+        FROM connect_jobs j
+        LEFT JOIN connect_job_applications a2 ON a2.job_id = j.id
+        INNER JOIN connect_job_applications my_app ON my_app.job_id = j.id AND my_app.clerk_user_id = ${userId}
+        GROUP BY j.id
+        ORDER BY j.created_at DESC
+      `
+      return NextResponse.json({ jobs })
+    }
     const jobs = await sql`
       SELECT
         j.*,
@@ -24,7 +35,7 @@ export async function GET(req: NextRequest) {
       FROM connect_jobs j
       LEFT JOIN connect_job_applications a ON a.job_id = j.id
       WHERE j.status = 'open'
-      ${my_jobs ? sql`AND j.clerk_user_id = ${userId}` : sql``}
+      ${(my_jobs || my_posts) ? sql`AND j.clerk_user_id = ${userId}` : sql``}
       ${poster_type ? sql`AND j.poster_type = ${poster_type}` : sql``}
       ${provider_type ? sql`AND (j.provider_type_needed = ${provider_type} OR j.provider_type_needed = 'any')` : sql``}
       ${province ? sql`AND j.location_province = ${province}` : sql``}

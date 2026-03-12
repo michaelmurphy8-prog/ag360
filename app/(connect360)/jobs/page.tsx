@@ -215,12 +215,13 @@ function CountryMultiSelect({
   )
 }
 
-type FeedTab = 'farm' | 'general'
-
+type FeedTab = 'farm' | 'general' | 'mine' | 'applied'
 export default function JobsPage() {
   const router = useRouter()
   const { user } = useUser()
-  const [feedTab, setFeedTab] = useState<FeedTab>('farm')
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+  const initialTab = (searchParams?.get('tab') as FeedTab) ?? 'farm'
+  const [feedTab, setFeedTab] = useState<FeedTab>(initialTab)
   const [myProfileType, setMyProfileType] = useState<string | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
@@ -265,12 +266,22 @@ export default function JobsPage() {
   async function fetchJobs() {
     setLoading(true)
     try {
-      const params = new URLSearchParams({ poster_type: feedTab })
-      if (filterType !== 'any') params.set('provider_type', filterType)
-      if (filterCountries.length > 0) params.set('countries', filterCountries.join(','))
-      const res = await fetch(`/api/connect360/jobs?${params}`)
-      const data = await res.json()
-      setJobs(data.jobs ?? [])
+      if (feedTab === 'mine') {
+        const res = await fetch('/api/connect360/jobs?my_posts=true')
+        const data = await res.json()
+        setJobs(data.jobs ?? [])
+      } else if (feedTab === 'applied') {
+        const res = await fetch('/api/connect360/jobs?my_applications=true')
+        const data = await res.json()
+        setJobs(data.jobs ?? [])
+      } else {
+        const params = new URLSearchParams({ poster_type: feedTab })
+        if (filterType !== 'any') params.set('provider_type', filterType)
+        if (filterCountries.length > 0) params.set('countries', filterCountries.join(','))
+        const res = await fetch(`/api/connect360/jobs?${params}`)
+        const data = await res.json()
+        setJobs(data.jobs ?? [])
+      }
     } catch {} finally {
       setLoading(false)
     }
@@ -648,6 +659,10 @@ export default function JobsPage() {
           {([
             { key: 'farm',    label: 'Farm',    icon: Tractor   },
             { key: 'general', label: 'General', icon: Briefcase },
+            ...(myProfileType === 'farmer'
+              ? [{ key: 'mine' as const,    label: 'My Posts',  icon: Briefcase }]
+              : [{ key: 'applied' as const, label: 'Applied',   icon: Briefcase }]
+            ),
           ] as const).map(tab => {
             const Icon = tab.icon
             const active = feedTab === tab.key
