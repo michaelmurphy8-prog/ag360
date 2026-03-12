@@ -230,9 +230,9 @@ export default function Connect360HomePage() {
           {/* Top bar */}
           <div className="flex items-center justify-between px-5 pt-14 pb-5">
             <div>
-              <p className="text-xs mb-1 flex items-center gap-1.5"
-                style={{ color: 'rgba(255,255,255,0.4)' }}>
-                <GreetingIcon /> {greetingText()}
+              <p className="text-[11px] mb-1 flex items-center gap-1.5 font-semibold uppercase tracking-widest"
+                style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em' }}>
+                {greetingText()}
               </p>
               <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#FFFFFF' }}>
                 {firstName}
@@ -316,9 +316,9 @@ export default function Connect360HomePage() {
                   style={{
                     backgroundColor: '#FFFFFF',
                     boxShadow: isFarmer
-                      ? '0 0 0 2px rgba(34,197,94,0.25), 0 4px 20px rgba(34,197,94,0.15)'
+                      ? '0 0 0 2px rgba(201,168,76,0.25), 0 4px 24px rgba(201,168,76,0.2)'
                       : '0 2px 12px rgba(0,0,0,0.06)',
-                    border: isFarmer ? '1px solid rgba(34,197,94,0.3)' : '1px solid transparent',
+                    border: isFarmer ? '1px solid rgba(201,168,76,0.4)' : '1px solid transparent',
                   }}>
                   {isFarmer ? (
                     <div className="flex items-center gap-4">
