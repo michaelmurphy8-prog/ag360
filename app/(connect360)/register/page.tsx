@@ -64,11 +64,11 @@ const CUSTOM_WORK_SERVICES = ['Crop Spraying','Fertilizer Application','Custom H
 const FARMER_SUB_TYPES = ['Grain','Produce','Cattle','Specialty','Horticulture','Aquaculture','Dairy','Viticulture','Citrus & Fruit']
 
 const TYPE_OPTIONS = [
+  { value: 'farmer',       label: 'Farmer',                      desc: 'Grain, cattle, produce, dairy, specialty & more',            icon: Tractor,   color: 'text-green-400',  bg: 'bg-green-400/10',   border: 'border-green-400/30', services: [], glow: true },
+  { value: 'worker',       label: 'Full Time & Seasonal Worker', desc: 'Farm labour, equipment operators, livestock handlers',        icon: Users,     color: 'text-blue-400',   bg: 'bg-blue-400/10',    border: 'border-blue-400/30',  services: [] },
   { value: 'trucker',      label: 'Custom Transport',            desc: 'Grain & fertilizer hauling, oversize, bulk, tanker, reefer', icon: Truck,     color: 'text-amber-400',  bg: 'bg-amber-400/10',   border: 'border-amber-400/30', services: TRANSPORT_SERVICES },
   { value: 'applicator',   label: 'Custom Work',                 desc: 'Crop spraying, fertilizer, custom harvest, seeding, drones', icon: Sprout,    color: 'text-green-400',  bg: 'bg-green-400/10',   border: 'border-green-400/30', services: CUSTOM_WORK_SERVICES },
-  { value: 'worker',       label: 'Full Time & Seasonal Worker', desc: 'Farm labour, equipment operators, livestock handlers',        icon: Users,     color: 'text-blue-400',   bg: 'bg-blue-400/10',    border: 'border-blue-400/30',  services: [] },
   { value: 'professional', label: 'Professional Services',       desc: 'Agronomy, immigration, accounting, legal, trades & more',    icon: Briefcase, color: 'text-purple-400', bg: 'bg-purple-400/10',  border: 'border-purple-400/30',services: [] },
-  { value: 'farmer',       label: 'Farmer',                      desc: 'Grain, cattle, produce, dairy, specialty & more',            icon: Tractor,   color: 'text-green-400',  bg: 'bg-green-400/10',   border: 'border-green-400/30', services: [] },
 ]
 
 interface FormData {
@@ -86,6 +86,8 @@ interface FormData {
   holds_licence: boolean; driver_licence_type: string; driver_licence_province: string
   availability: string; available_from: string; available_to: string
   professional_sub_type: string
+  farmer_sub_types: string[]
+  sponsorship_offered: string[]
   languages_spoken: string[]; services_offered: string[]
   provinces_served: string[]; countries_served: string[]
   remote_service: boolean; worker_origin_countries: string[]
@@ -148,6 +150,8 @@ export default function RegisterPage() {
     holds_licence: false, driver_licence_type: '', driver_licence_province: '',
     availability: 'immediate', available_from: '', available_to: '',
     professional_sub_type: '',
+    farmer_sub_types: [],
+    sponsorship_offered: [],
     languages_spoken: [], services_offered: [], provinces_served: [],
     countries_served: ['Canada'], remote_service: true, worker_origin_countries: [],
     seeking_tfw_sponsorship: false, seeking_h2a_sponsorship: false, citizenship_country: '',
@@ -157,7 +161,7 @@ export default function RegisterPage() {
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  function toggleItem(key: 'crops_experienced'|'operations_experience'|'equipment_brands'|'work_countries'|'languages_spoken'|'services_offered'|'provinces_served'|'countries_served'|'worker_origin_countries', val: string) {
+  function toggleItem(key: 'crops_experienced'|'operations_experience'|'equipment_brands'|'work_countries'|'languages_spoken'|'services_offered'|'provinces_served'|'countries_served'|'worker_origin_countries'|'farmer_sub_types'|'sponsorship_offered', val: string) {
     const arr = form[key] as string[]
     set(key, (arr.includes(val) ? arr.filter(c => c !== val) : [...arr, val]) as FormData[typeof key])
   }
@@ -282,8 +286,8 @@ export default function RegisterPage() {
                 <div key={opt.value} className="rounded-2xl overflow-hidden"
                   style={{
                     backgroundColor: '#FFFFFF',
-                    border: `1px solid ${selected ? '#C9A84C' : '#EEE9E0'}`,
-                    boxShadow: selected ? '0 2px 16px rgba(201,168,76,0.15)' : '0 2px 8px rgba(0,0,0,0.04)',
+                    border: selected ? `1px solid #C9A84C` : opt.glow ? `1px solid rgba(34,197,94,0.4)` : `1px solid #EEE9E0`,
+                    boxShadow: selected ? '0 2px 16px rgba(201,168,76,0.15)' : opt.glow ? '0 0 0 3px rgba(34,197,94,0.08), 0 2px 12px rgba(34,197,94,0.15)' : '0 2px 8px rgba(0,0,0,0.04)',
                   }}>
                 <button onClick={() => set('type', opt.value)}
                   className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all"
@@ -321,15 +325,15 @@ export default function RegisterPage() {
             {form.type === 'farmer' && (
               <div className="rounded-2xl p-4 space-y-3"
                 style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                <label style={labelStyle}>Farm Type</label>
+                <label style={labelStyle}>Farm Type <span style={{ color: '#B0A898', textTransform: 'none', fontWeight: 400 }}>(select all that apply)</span></label>
                 <div className="flex flex-wrap gap-2">
                   {FARMER_SUB_TYPES.map(s => (
-                    <button key={s} type="button" onClick={() => set('professional_sub_type', s)}
+                    <button key={s} type="button" onClick={() => toggleItem('farmer_sub_types', s)}
                       className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
                       style={{
-                        border: `1px solid ${form.professional_sub_type === s ? '#C9A84C' : '#EEE9E0'}`,
-                        backgroundColor: form.professional_sub_type === s ? '#FDF8EE' : '#FFFFFF',
-                        color: form.professional_sub_type === s ? '#C9A84C' : '#8A9BB0',
+                        border: `1px solid ${form.farmer_sub_types.includes(s) ? '#C9A84C' : '#EEE9E0'}`,
+                        backgroundColor: form.farmer_sub_types.includes(s) ? '#FDF8EE' : '#FFFFFF',
+                        color: form.farmer_sub_types.includes(s) ? '#C9A84C' : '#8A9BB0',
                       }}>
                       {s}
                     </button>
@@ -567,46 +571,91 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* Work countries */}
-            <div className="rounded-2xl p-4 space-y-2"
-              style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-              <label style={labelStyle}>Countries I'm willing to work in</label>
-              <div className="flex flex-wrap gap-2">
-                {WORK_COUNTRY_OPTIONS.map(c => (
-                  <Chip key={c} label={c} active={form.work_countries.includes(c)} onClick={() => toggleItem('work_countries', c)} />
-                ))}
+            {/* Work countries — non-farmers only */}
+            {form.type !== 'farmer' && (
+              <div className="rounded-2xl p-4 space-y-2"
+                style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <label style={labelStyle}>Countries I'm willing to work in</label>
+                <div className="flex flex-wrap gap-2">
+                  {WORK_COUNTRY_OPTIONS.map(c => (
+                    <Chip key={c} label={c} active={form.work_countries.includes(c)} onClick={() => toggleItem('work_countries', c)} />
+                  ))}
+                </div>
               </div>
-            </div>
-
-            {/* Open to relocation */}
-            {form.type !== 'professional' && (
+            )}
+            {/* Open to relocation — non-farmer, non-professional only */}
+            {form.type !== 'professional' && form.type !== 'farmer' && (
               <CheckRow checked={form.open_to_relocation} onChange={v => set('open_to_relocation', v)}
                 label="Open to Relocation" sublabel="I'm willing to relocate for the right opportunity" />
             )}
-
+            {/* Sponsorship Offered — farmer only */}
+            {form.type === 'farmer' && (
+              <div className="rounded-2xl p-4 space-y-3"
+                style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <label style={labelStyle}>Sponsorship Offered <span style={{ color: '#B0A898', textTransform: 'none', fontWeight: 400 }}>(optional)</span></label>
+                <div className="flex flex-wrap gap-2">
+                  {['H-2A Visa', 'LMIA', 'TFW Program', 'Work Permit', 'Work Visa'].map(s => (
+                    <button key={s} type="button" onClick={() => toggleItem('sponsorship_offered', s)}
+                      className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                      style={{
+                        border: `1px solid ${form.sponsorship_offered.includes(s) ? '#C9A84C' : '#EEE9E0'}`,
+                        backgroundColor: form.sponsorship_offered.includes(s) ? '#FDF8EE' : '#FFFFFF',
+                        color: form.sponsorship_offered.includes(s) ? '#C9A84C' : '#8A9BB0',
+                      }}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Availability */}
             <div className="rounded-2xl p-4 space-y-3"
               style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-              <label style={labelStyle}>Current Availability</label>
+              <label style={labelStyle}>
+                {form.type === 'farmer' ? 'Accepting Applications' : 'Current Availability'}
+              </label>
               <div className="grid grid-cols-2 gap-2">
-                {[
-                  { value: 'immediate', label: 'Available Now', dot: '#22C55E' },
-                  { value: 'seasonal',  label: 'Seasonal',      dot: '#F59E0B' },
-                  { value: 'contract',  label: 'Contract Only', dot: '#60A5FA' },
-                  { value: 'unavailable', label: 'Unavailable', dot: '#D1D5DB' },
-                ].map(opt => (
-                  <button key={opt.value} type="button" onClick={() => set('availability', opt.value)}
-                    className="flex items-center gap-2 p-3 rounded-xl text-sm text-left transition-all"
-                    style={{
-                      border: `1px solid ${form.availability === opt.value ? '#C9A84C' : '#EEE9E0'}`,
-                      backgroundColor: form.availability === opt.value ? '#FDF8EE' : '#FFFFFF',
-                    }}>
-                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: opt.dot }} />
-                    <span style={{ color: form.availability === opt.value ? '#0D1520' : '#8A9BB0', fontWeight: form.availability === opt.value ? 600 : 400 }}>
-                      {opt.label}
-                    </span>
-                  </button>
-                ))}
+                {form.type === 'farmer' ? (
+                  <>
+                    {[
+                      { value: 'immediate', label: 'Open', dot: '#22C55E' },
+                      { value: 'unavailable', label: 'Closed', dot: '#D1D5DB' },
+                    ].map(opt => (
+                      <button key={opt.value} type="button" onClick={() => set('availability', opt.value)}
+                        className="flex items-center gap-2 p-3 rounded-xl text-sm text-left transition-all"
+                        style={{
+                          border: `1px solid ${form.availability === opt.value ? '#C9A84C' : '#EEE9E0'}`,
+                          backgroundColor: form.availability === opt.value ? '#FDF8EE' : '#FFFFFF',
+                        }}>
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: opt.dot }} />
+                        <span style={{ color: form.availability === opt.value ? '#0D1520' : '#8A9BB0', fontWeight: form.availability === opt.value ? 600 : 400 }}>
+                          {opt.label}
+                        </span>
+                      </button>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    {[
+                      { value: 'immediate', label: 'Available Now', dot: '#22C55E' },
+                      { value: 'seasonal',  label: 'Seasonal',      dot: '#F59E0B' },
+                      { value: 'contract',  label: 'Contract Only', dot: '#60A5FA' },
+                      { value: 'unavailable', label: 'Unavailable', dot: '#D1D5DB' },
+                    ].map(opt => (
+                      <button key={opt.value} type="button" onClick={() => set('availability', opt.value)}
+                        className="flex items-center gap-2 p-3 rounded-xl text-sm text-left transition-all"
+                        style={{
+                          border: `1px solid ${form.availability === opt.value ? '#C9A84C' : '#EEE9E0'}`,
+                          backgroundColor: form.availability === opt.value ? '#FDF8EE' : '#FFFFFF',
+                        }}>
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: opt.dot }} />
+                        <span style={{ color: form.availability === opt.value ? '#0D1520' : '#8A9BB0', fontWeight: form.availability === opt.value ? 600 : 400 }}>
+                          {opt.label}
+                        </span>
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
               {(form.availability === 'seasonal' || form.availability === 'contract') && (
                 <div className="grid grid-cols-2 gap-3">
