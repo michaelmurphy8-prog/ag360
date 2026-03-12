@@ -259,7 +259,7 @@ const EQUIPMENT_BRAND_OPTIONS = [
   'MacDon', 'Bourgault', 'Morris Industries', 'Horsch', 'Seed Hawk', 'Salford',
   'Buhler / Farm King', 'John Deere Operations Center', 'CNH AFS', 'Trimble',
   'AgLeader', 'Raven', 'Topcon', 'Precision Planting', 'Climate FieldView',
-  'Bushel Farm', 'Granular', 'AG360', 'FarmLogs',
+  'Bushel Farm', 'Granular', 'AG360', 'FarmLogs', 'DJI',
 ]
 
 const CANADIAN_PROVINCES = ['AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT']
