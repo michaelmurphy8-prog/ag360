@@ -10,7 +10,7 @@ import {
 
 interface Stats {
   total: number
-  provinces: number
+  countries: number
   types: { trucker: number; applicator: number; worker: number; professional: number }
 }
 
@@ -283,7 +283,7 @@ export default function Connect360HomePage() {
             <div className="mt-3 pt-3 flex items-center justify-between"
               style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
               <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                {stats?.total ?? 0} verified · {stats?.provinces ?? 0} provinces
+                {stats?.total ?? 0} verified · {stats?.countries ?? 0} countries
               </span>
               <button onClick={() => router.push('/discover')}
                 className="flex items-center gap-1 text-xs font-semibold"
