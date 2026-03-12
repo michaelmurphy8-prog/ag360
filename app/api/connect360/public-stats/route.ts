@@ -32,6 +32,7 @@ export async function GET() {
       total: total?.total ?? 0,
       countries: countries?.count ?? 0,
       types: {
+        farmer:       typeCounts.farmer       ?? 0,
         trucker:      typeCounts.trucker      ?? 0,
         applicator:   typeCounts.applicator   ?? 0,
         worker:       typeCounts.worker       ?? 0,

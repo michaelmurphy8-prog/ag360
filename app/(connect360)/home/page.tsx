@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import {
-  Truck, Sprout, Users, Briefcase,
+  Truck, Sprout, Users, Briefcase, Tractor,
   ArrowRight, Star, MapPin, Bell,
   Sunrise, Sun, Moon, ChevronRight
 } from 'lucide-react'
@@ -11,7 +11,7 @@ import {
 interface Stats {
   total: number
   countries: number
-  types: { trucker: number; applicator: number; worker: number; professional: number }
+  types: { farmer: number; trucker: number; applicator: number; worker: number; professional: number }
 }
 
 interface RecentProvider {
@@ -33,10 +33,11 @@ const TYPE_CONFIG: Record<string, {
   color: string
   bg: string
 }> = {
-  trucker:      { label: 'Truckers',      icon: Truck,     color: '#C9A84C', bg: '#FDF8EE' },
-  applicator:   { label: 'Applicators',   icon: Sprout,    color: '#C9A84C', bg: '#FDF8EE' },
-  worker:       { label: 'Workers',       icon: Users,     color: '#C9A84C', bg: '#FDF8EE' },
-  professional: { label: 'Professionals', icon: Briefcase, color: '#C9A84C', bg: '#FDF8EE' },
+  farmer:       { label: 'Farmer',                    icon: Tractor,   color: '#16A34A', bg: '#F0FDF4' },
+  worker:       { label: 'Full Time & Seasonal Worker', icon: Users,    color: '#D97706', bg: '#FFF7ED' },
+  trucker:      { label: 'Custom Transport',           icon: Truck,     color: '#3B82F6', bg: '#EFF6FF' },
+  applicator:   { label: 'Custom Work',                icon: Sprout,    color: '#C9A84C', bg: '#FDF8EE' },
+  professional: { label: 'Professional Services',      icon: Briefcase, color: '#8B5CF6', bg: '#F5F3FF' },
 }
 
 const AVAIL_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
@@ -259,10 +260,10 @@ export default function Connect360HomePage() {
             }}>
             <div className="grid grid-cols-4">
               {[
-                { label: 'Truckers',      count: stats?.types.trucker      ?? 0 },
-                { label: 'Applicators',   count: stats?.types.applicator   ?? 0 },
-                { label: 'Workers',       count: stats?.types.worker       ?? 0 },
-                { label: 'Professionals', count: stats?.types.professional ?? 0 },
+                { label: 'Farmers',   count: stats?.types.farmer     ?? 0 },
+                { label: 'Workers',   count: stats?.types.worker     ?? 0 },
+                { label: 'Transport', count: stats?.types.trucker    ?? 0 },
+                { label: 'Custom',    count: stats?.types.applicator ?? 0 },
               ].map((s, i) => (
                 <div key={s.label}
                   className="text-center px-1 py-1"
@@ -283,7 +284,7 @@ export default function Connect360HomePage() {
             <div className="mt-3 pt-3 flex items-center justify-between"
               style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
               <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                {stats?.total ?? 0} verified · {stats?.countries ?? 0} countries
+                {stats?.total ?? 0} users · {stats?.countries ?? 0} countries
               </span>
               <button onClick={() => router.push('/discover')}
                 className="flex items-center gap-1 text-xs font-semibold"
