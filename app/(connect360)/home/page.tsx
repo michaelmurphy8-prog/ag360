@@ -231,7 +231,7 @@ export default function Connect360HomePage() {
           <div className="flex items-center justify-between px-5 pt-14 pb-5">
             <div>
               <p className="text-[11px] mb-1 flex items-center gap-1.5 font-semibold uppercase tracking-widest"
-                style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em' }}>
+                style={{ color: 'rgba(255,255,255,0.5)', letterSpacing: '0.08em' }}>
                 {greetingText()}
               </p>
               <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#FFFFFF' }}>
