@@ -37,7 +37,7 @@ export default function Connect360Layout({ children }: { children: React.ReactNo
       {showHomeButton && (
         <button
           onClick={() => router.push('/home')}
-          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-2 rounded-full"
+          className="fixed top-4 right-4 z-50 flex items-center gap-1.5 px-3 py-2 rounded-full"
           style={{
             backgroundColor: 'rgba(255,255,255,0.12)',
             backdropFilter: 'blur(12px)',
