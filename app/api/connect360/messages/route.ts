@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { getTenantAuth } from '@/lib/tenant-auth'
+import { auth } from '@clerk/nextjs/server'
 
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -14,7 +15,9 @@ function threadId(a: string, b: string) {
 export async function GET(req: NextRequest) {
   try {
     const { tenantId } = await getTenantAuth()
-    if (!tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { userId } = await auth()
+    const senderId = tenantId ?? userId
+    if (!senderId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { searchParams } = new URL(req.url)
     const profileId = searchParams.get('profile_id')
@@ -37,7 +40,7 @@ export async function GET(req: NextRequest) {
           ON unread.thread_id = m.thread_id
           AND unread.recipient_id = ${tenantId}
           AND unread.read_at IS NULL
-        WHERE m.sender_id = ${tenantId} OR m.recipient_id = ${tenantId}
+        WHERE m.sender_id = ${senderId} OR m.recipient_id = ${senderId}
         GROUP BY m.thread_id, m.profile_id, m.sender_id, m.recipient_id,
                  m.body, m.created_at, cp.first_name, cp.last_name,
                  cp.business_name, cp.photo_url, cp.type
@@ -58,15 +61,15 @@ export async function GET(req: NextRequest) {
     // Verify connection exists
     const [connection] = await sql`
       SELECT id FROM connect_requests
-      WHERE (tenant_id = ${tenantId} AND connect_profile_id = ${profileId})
-         OR (tenant_id = ${otherTenantId} AND connect_profile_id IN (
-           SELECT id FROM connect_profiles WHERE clerk_user_id = ${tenantId}
+      WHERE (clerk_user_id = ${senderId} AND connect_profile_id = ${profileId})
+         OR (clerk_user_id = ${otherTenantId} AND connect_profile_id IN (
+           SELECT id FROM connect_profiles WHERE clerk_user_id = ${senderId}
          ))
       LIMIT 1
     `
     if (!connection) return NextResponse.json({ error: 'Not connected' }, { status: 403 })
 
-    const tid = threadId(tenantId, otherTenantId)
+    const tid = threadId(senderId, otherTenantId)
 
     const messages = await sql`
       SELECT id, sender_id, body, read_at, created_at
@@ -80,7 +83,7 @@ export async function GET(req: NextRequest) {
       UPDATE connect_messages
       SET read_at = NOW()
       WHERE thread_id = ${tid}
-        AND recipient_id = ${tenantId}
+        AND recipient_id = ${senderId}
         AND read_at IS NULL
     `
 
@@ -95,7 +98,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const { tenantId } = await getTenantAuth()
-    if (!tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { userId } = await auth()
+    const senderId = tenantId ?? userId
+    if (!senderId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { profile_id, body } = await req.json()
     if (!profile_id || !body?.trim()) {
@@ -111,11 +116,10 @@ export async function POST(req: NextRequest) {
     }
 
     const recipientId = profile.clerk_user_id
-    const tid = threadId(tenantId, recipientId)
-
+    const tid = threadId(senderId, recipientId)
     const [message] = await sql`
       INSERT INTO connect_messages (thread_id, sender_id, recipient_id, profile_id, body)
-      VALUES (${tid}, ${tenantId}, ${recipientId}, ${profile_id}, ${body.trim()})
+      VALUES (${tid}, ${senderId}, ${recipientId}, ${profile_id}, ${body.trim()})
       RETURNING id, sender_id, body, read_at, created_at
     `
 
