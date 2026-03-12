@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Truck, Sprout, Users, Briefcase, ChevronLeft,
+  Truck, Sprout, Users, Briefcase, Tractor, ChevronLeft,
   CheckCircle, Upload, Scale, ArrowRight, RefreshCw
 } from 'lucide-react'
 
@@ -61,12 +61,14 @@ function getServicesForSubType(sub: string): string[] {
 
 const TRANSPORT_SERVICES = ['Grain & Fertilizer Hauling','Oversize & Heavy Haul','Custom Transport','Dry Bulk Loads','Liquid Tankers','Gravel & Sand','AC & Reefer Loads']
 const CUSTOM_WORK_SERVICES = ['Crop Spraying','Fertilizer Application','Custom Harvest','Custom Seeding','Drone & Aerial Spraying Services']
+const FARMER_SUB_TYPES = ['Grain','Produce','Cattle','Specialty','Horticulture','Aquaculture','Dairy','Viticulture','Citrus & Fruit']
 
 const TYPE_OPTIONS = [
   { value: 'trucker',      label: 'Custom Transport',            desc: 'Grain & fertilizer hauling, oversize, bulk, tanker, reefer', icon: Truck,     color: 'text-amber-400',  bg: 'bg-amber-400/10',   border: 'border-amber-400/30', services: TRANSPORT_SERVICES },
   { value: 'applicator',   label: 'Custom Work',                 desc: 'Crop spraying, fertilizer, custom harvest, seeding, drones', icon: Sprout,    color: 'text-green-400',  bg: 'bg-green-400/10',   border: 'border-green-400/30', services: CUSTOM_WORK_SERVICES },
   { value: 'worker',       label: 'Full Time & Seasonal Worker', desc: 'Farm labour, equipment operators, livestock handlers',        icon: Users,     color: 'text-blue-400',   bg: 'bg-blue-400/10',    border: 'border-blue-400/30',  services: [] },
   { value: 'professional', label: 'Professional Services',       desc: 'Agronomy, immigration, accounting, legal, trades & more',    icon: Briefcase, color: 'text-purple-400', bg: 'bg-purple-400/10',  border: 'border-purple-400/30',services: [] },
+  { value: 'farmer',       label: 'Farmer',                      desc: 'Grain, cattle, produce, dairy, specialty & more',            icon: Tractor,   color: 'text-green-400',  bg: 'bg-green-400/10',   border: 'border-green-400/30', services: [] },
 ]
 
 interface FormData {
@@ -315,6 +317,26 @@ export default function RegisterPage() {
         {/* ── Step 2 — Personal & Business Info ── */}
         {step === 2 && (
           <>
+            {/* Farmer sub-type picker */}
+            {form.type === 'farmer' && (
+              <div className="rounded-2xl p-4 space-y-3"
+                style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <label style={labelStyle}>Farm Type</label>
+                <div className="flex flex-wrap gap-2">
+                  {FARMER_SUB_TYPES.map(s => (
+                    <button key={s} type="button" onClick={() => set('professional_sub_type', s)}
+                      className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                      style={{
+                        border: `1px solid ${form.professional_sub_type === s ? '#C9A84C' : '#EEE9E0'}`,
+                        backgroundColor: form.professional_sub_type === s ? '#FDF8EE' : '#FFFFFF',
+                        color: form.professional_sub_type === s ? '#C9A84C' : '#8A9BB0',
+                      }}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="rounded-2xl p-4 space-y-3"
               style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
               <div className="grid grid-cols-2 gap-3">

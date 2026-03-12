@@ -3,12 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Globe, Truck, Sprout, Users, ChevronLeft,
+  Globe, Truck, Sprout, Users, Tractor, ChevronLeft,
   CheckCircle, Upload, AlertCircle, Briefcase, Scale
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
-type ProviderType = 'trucker' | 'applicator' | 'worker' | 'professional'
+type ProviderType = 'trucker' | 'applicator' | 'worker' | 'professional' | 'farmer'
 
 interface FormData {
   type: ProviderType | ''
@@ -63,7 +63,7 @@ interface FormData {
 // ─── Constants ────────────────────────────────────────────────
 const TRANSPORT_SERVICES = ['Grain & Fertilizer Hauling','Oversize & Heavy Haul','Custom Transport','Dry Bulk Loads','Liquid Tankers','Gravel & Sand','AC & Reefer Loads']
 const CUSTOM_WORK_SERVICES = ['Crop Spraying','Fertilizer Application','Custom Harvest','Custom Seeding','Drone & Aerial Spraying Services']
-
+const FARMER_SUB_TYPES = ['Grain','Produce','Cattle','Specialty','Horticulture','Aquaculture','Dairy','Viticulture','Citrus & Fruit']
 const TYPE_OPTIONS = [
   {
     value: 'trucker',
@@ -103,6 +103,16 @@ const TYPE_OPTIONS = [
     color: 'text-purple-400',
     border: 'border-purple-400/40',
     bg: 'bg-purple-400/10',
+    services: [],
+  },
+  {
+    value: 'farmer',
+    label: 'Farmer',
+    icon: Tractor,
+    desc: 'Grain, cattle, produce, dairy, specialty & more',
+    color: 'text-green-400',
+    border: 'border-green-400/40',
+    bg: 'bg-green-400/10',
     services: [],
   },
 ]
@@ -497,6 +507,26 @@ export default function RegisterProviderPage() {
       {/* ── Step 2 — Personal & Business Info */}
       {step === 2 && (
         <div className="space-y-4">
+          {/* Farmer sub-type picker */}
+          {form.type === 'farmer' && (
+            <div className="rounded-2xl p-4 space-y-3"
+              style={{ backgroundColor: 'var(--ag-bg-card)', border: '1px solid var(--ag-border)' }}>
+              <label className="block text-xs text-ag-muted mb-1.5 uppercase tracking-widest font-semibold">Farm Type</label>
+              <div className="flex flex-wrap gap-2">
+                {FARMER_SUB_TYPES.map(s => (
+                  <button key={s} type="button" onClick={() => set('professional_sub_type', s)}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                    style={{
+                      border: `1px solid ${form.professional_sub_type === s ? '#C9A84C' : 'var(--ag-border)'}`,
+                      backgroundColor: form.professional_sub_type === s ? '#FDF8EE' : 'transparent',
+                      color: form.professional_sub_type === s ? '#C9A84C' : 'var(--ag-text-muted)',
+                    }}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-ag-muted mb-1.5">First Name *</label>
