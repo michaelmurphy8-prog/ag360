@@ -130,8 +130,9 @@ export default function MorePage() {
     <div className="min-h-screen pb-10" style={{ backgroundColor: '#F7F5F0' }}>
 
       {/* Header */}
-      <div className="px-5 pt-12 pb-6">
-        <h1 className="text-2xl font-bold mb-4" style={{ color: '#0D1520' }}>More</h1>
+      <div className="px-5 pt-14 pb-6" style={{ background: 'linear-gradient(160deg, #0A1018 0%, #162030 100%)', borderRadius: '0 0 28px 28px', marginBottom: 4 }}>
+        <h1 className="text-2xl font-bold mb-4" style={{ color: '#FFFFFF' }}>More</h1>
+
 
         {/* Profile card */}
         <button

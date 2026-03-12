@@ -39,9 +39,12 @@ export default function Connect360Layout({ children }: { children: React.ReactNo
           onClick={() => router.push('/home')}
           className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-2 rounded-full"
           style={{
-            backgroundColor: '#0D1520',
+            backgroundColor: 'rgba(255,255,255,0.12)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
             color: '#FFFFFF',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
+            border: '1px solid rgba(255,255,255,0.18)',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
           }}>
           <Home size={13} />
           <span className="text-[11px] font-bold">Home</span>

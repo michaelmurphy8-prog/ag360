@@ -103,8 +103,8 @@ export default function NetworkPage() {
     <div className="min-h-screen" style={{ backgroundColor: '#F7F5F0' }}>
 
       {/* Header */}
-      <div className="px-5 pt-12 pb-4">
-        <h1 className="text-2xl font-bold mb-1" style={{ color: '#0D1520' }}>My Network</h1>
+      <div className="px-5 pt-14 pb-5" style={{ background: 'linear-gradient(160deg, #0A1018 0%, #162030 100%)', borderRadius: '0 0 28px 28px', marginBottom: 12 }}>
+        <h1 className="text-2xl font-bold mb-1" style={{ color: '#FFFFFF' }}>My Network</h1>
         <p className="text-xs" style={{ color: '#8A9BB0' }}>
           Your saved providers and active connections
         </p>

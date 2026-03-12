@@ -109,14 +109,15 @@ function DiscoverContent() {
         style={{ backgroundColor: '#F7F5F0', paddingBottom: 8 }}>
 
         {/* Title row */}
-        <div className="flex items-center justify-between px-5 pt-12 pb-3">
-          <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#0D1520' }}>Discover</h1>
-            <p className="text-xs mt-0.5" style={{ color: '#8A9BB0' }}>
-              {loading ? 'Loading...' : `${providers.length} provider${providers.length !== 1 ? 's' : ''} found`}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+        <div style={{ background: 'linear-gradient(160deg, #0A1018 0%, #162030 100%)', borderRadius: '0 0 28px 28px', marginBottom: 12 }}>
+          <div className="flex items-center justify-between px-5 pt-14 pb-5">
+            <div>
+              <h1 className="text-2xl font-bold" style={{ color: '#FFFFFF' }}>Discover</h1>
+              <p className="text-xs mt-0.5" style={{ color: '#8A9BB0' }}>
+                {loading ? 'Loading...' : `${providers.length} provider${providers.length !== 1 ? 's' : ''} found`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
             {/* Sort */}
             <div className="relative">
               <button
@@ -164,8 +165,8 @@ function DiscoverContent() {
               )}
             </button>
           </div>
+          </div>
         </div>
-
         {/* Search bar */}
         <div className="px-5 mb-3">
           <div className="flex items-center gap-3 px-4 rounded-2xl"

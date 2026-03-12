@@ -237,9 +237,9 @@ export default function MessagesPage() {
     <div className="min-h-screen" style={{ backgroundColor: '#F7F5F0' }}>
 
       {/* Header */}
-      <div className="px-5 pt-12 pb-4">
+      <div className="px-5 pt-14 pb-5" style={{ background: 'linear-gradient(160deg, #0A1018 0%, #162030 100%)', borderRadius: '0 0 28px 28px', marginBottom: 12 }}>
         <div className="flex items-center justify-between mb-1">
-          <h1 className="text-2xl font-bold" style={{ color: '#0D1520' }}>Messages</h1>
+          <h1 className="text-2xl font-bold" style={{ color: '#FFFFFF' }}>Messages</h1>
           {totalUnread > 0 && (
             <span className="px-2.5 py-1 rounded-full text-xs font-bold"
               style={{ backgroundColor: '#C9A84C', color: '#FFFFFF' }}>
