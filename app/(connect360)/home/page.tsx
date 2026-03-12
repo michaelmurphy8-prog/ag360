@@ -318,7 +318,7 @@ export default function Connect360HomePage() {
                     boxShadow: isFarmer
                       ? '0 0 0 2px rgba(201,168,76,0.25), 0 4px 24px rgba(201,168,76,0.2)'
                       : '0 2px 12px rgba(0,0,0,0.06)',
-                    border: isFarmer ? '1px solid rgba(201,168,76,0.4)' : '1px solid transparent',
+                    border: isFarmer ? '2px solid rgba(201,168,76,0.4)' : '5px solid #EEE9E0',
                   }}>
                   {isFarmer ? (
                     <div className="flex items-center gap-4">
