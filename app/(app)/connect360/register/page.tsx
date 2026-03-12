@@ -51,6 +51,7 @@ interface FormData {
   // Farmer specific
   farmer_sub_types: string[]
   sponsorship_offered: string[]
+  website_url: string
   languages_spoken: string[]
   services_offered: string[]
   provinces_served: string[]
@@ -325,6 +326,7 @@ export default function RegisterProviderPage() {
     professional_sub_type: '',
     farmer_sub_types: [],
     sponsorship_offered: [],
+    website_url: '',
     languages_spoken: [],
     services_offered: [],
     provinces_served: [],
@@ -995,13 +997,23 @@ export default function RegisterProviderPage() {
       {/* ── Step 4 — Experience & Details */}
       {step === 4 && (
         <div className="space-y-5">
-          <div>
-            <label className="block text-xs text-ag-muted mb-1.5">Years of Experience</label>
-            <input className={inputClass} style={inputStyle} type="number" min={0} max={60}
-              value={form.years_experience}
-              onChange={e => set('years_experience', e.target.value === '' ? '' : Number(e.target.value))}
-              placeholder="e.g. 12" />
-          </div>
+          {form.type === 'farmer' ? (
+            <div>
+              <label className="block text-xs text-ag-muted mb-1.5">Website / Social <span className="text-ag-dim font-normal">(optional)</span></label>
+              <input className={inputClass} style={inputStyle} type="url"
+                value={form.website_url}
+                onChange={e => set('website_url', e.target.value)}
+                placeholder="e.g. murphyfarms.ca or instagram.com/murphyfarms" />
+            </div>
+          ) : (
+            <div>
+              <label className="block text-xs text-ag-muted mb-1.5">Years of Experience</label>
+              <input className={inputClass} style={inputStyle} type="number" min={0} max={60}
+                value={form.years_experience}
+                onChange={e => set('years_experience', e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="e.g. 12" />
+            </div>
+          )}
 
           {/* Worker sponsorship — workers only */}
           {form.type === 'worker' && (
@@ -1042,7 +1054,7 @@ export default function RegisterProviderPage() {
           )}
 
           {/* Commercial Licence — non-professionals */}
-          {form.type !== 'professional' && (
+          {form.type !== 'professional' && form.type !== 'farmer' && (
             <div>
               <label className="block text-xs text-ag-muted mb-2">Do you hold a commercial vehicle licence?</label>
               <div className="flex gap-2">
@@ -1115,9 +1127,12 @@ export default function RegisterProviderPage() {
           {form.type !== 'professional' && (
             <>
               <div>
-                <label className="block text-xs text-ag-muted mb-2">Crops Experienced With</label>
+                <label className="block text-xs text-ag-muted mb-2">{form.type === 'farmer' ? 'Looking For' : 'Crops Experienced With'}</label>
                 <div className="flex flex-wrap gap-2">
-                  {CROP_OPTIONS.map(crop => (
+                  {(form.type === 'farmer'
+                    ? ['Operators', 'General Labour', 'Truck Drivers', 'Office Staff', 'Professional Services', 'Custom Work', 'Contractors']
+                    : CROP_OPTIONS
+                  ).map(crop => (
                     <button key={crop} type="button"
                       onClick={() => toggleItem('crops_experienced', crop)}
                       className="px-3 py-1.5 rounded-full border text-xs font-medium transition-all"
@@ -1133,10 +1148,10 @@ export default function RegisterProviderPage() {
               </div>
 
               <div>
-                <label className="block text-xs text-ag-muted mb-1">Operations Experience</label>
+                <label className="block text-xs text-ag-muted mb-1">Operations</label>
                 <p className="text-[11px] text-ag-dim mb-2">Select all that apply</p>
                 <div className="flex flex-wrap gap-2">
-                  {OPERATIONS_OPTIONS.map(op => (
+                  {[...OPERATIONS_OPTIONS, 'Other'].map(op => (
                     <button key={op} type="button"
                       onClick={() => toggleItem('operations_experience', op)}
                       className="px-3 py-1.5 rounded-full border text-xs font-medium transition-all"

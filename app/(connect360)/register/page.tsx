@@ -80,7 +80,7 @@ interface FormData {
   base_province: string; base_city: string; base_country: string; base_country_other: string
   service_radius_km: number; worldwide: boolean; province_other: string
   open_to_relocation: boolean; work_countries: string[]
-  bio: string; years_experience: string | number
+  bio: string; years_experience: string | number; website_url: string
   equipment_owned: string; crops_experienced: string[]
   operations_experience: string[]; equipment_brands: string[]
   holds_licence: boolean; driver_licence_type: string; driver_licence_province: string
@@ -145,7 +145,7 @@ export default function RegisterPage() {
     base_province: '', base_city: '', base_country: 'Canada', base_country_other: '',
     service_radius_km: 250, worldwide: false, province_other: '',
     open_to_relocation: false, work_countries: ['Canada'],
-    bio: '', years_experience: '',
+    bio: '', years_experience: '', website_url: '',
     equipment_owned: '', crops_experienced: [], operations_experience: [], equipment_brands: [],
     holds_licence: false, driver_licence_type: '', driver_licence_province: '',
     availability: 'immediate', available_from: '', available_to: '',
@@ -678,13 +678,23 @@ export default function RegisterPage() {
           <>
             <div className="rounded-2xl p-4 space-y-4"
               style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-              <div>
-                <label style={labelStyle}>Years of Experience</label>
-                <input style={inputStyle} type="number" min={0} max={60}
-                  value={form.years_experience}
-                  onChange={e => set('years_experience', e.target.value === '' ? '' : Number(e.target.value))}
-                  placeholder="e.g. 12" />
-              </div>
+              {form.type === 'farmer' ? (
+                <div>
+                  <label style={labelStyle}>Website / Social <span style={{ fontWeight: 400, color: '#B0A898' }}>(optional)</span></label>
+                  <input style={inputStyle} type="url"
+                    value={form.website_url}
+                    onChange={e => set('website_url', e.target.value)}
+                    placeholder="e.g. murphyfarms.ca or instagram.com/murphyfarms" />
+                </div>
+              ) : (
+                <div>
+                  <label style={labelStyle}>Years of Experience</label>
+                  <input style={inputStyle} type="number" min={0} max={60}
+                    value={form.years_experience}
+                    onChange={e => set('years_experience', e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="e.g. 12" />
+                </div>
+              )}
               <div>
                 <label style={labelStyle}>{form.type === 'professional' ? 'Professional Bio *' : 'Bio / About You *'}</label>
                 <textarea
@@ -724,7 +734,7 @@ export default function RegisterPage() {
             )}
 
             {/* Commercial licence */}
-            {form.type !== 'professional' && (
+            {form.type !== 'professional' && form.type !== 'farmer' && (
               <div className="rounded-2xl p-4 space-y-3"
                 style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                 <label style={labelStyle}>Do you hold a commercial vehicle licence?</label>
@@ -775,23 +785,26 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* Crops + Operations + Brands */}
+            {/* Crops / Looking For + Operations + Brands */}
             {form.type !== 'professional' && (
               <>
                 <div className="rounded-2xl p-4 space-y-2"
                   style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                  <label style={labelStyle}>Crops Experienced With</label>
+                  <label style={labelStyle}>{form.type === 'farmer' ? 'Looking For' : 'Crops Experienced With'}</label>
                   <div className="flex flex-wrap gap-2">
-                    {CROP_OPTIONS.map(c => (
+                    {(form.type === 'farmer'
+                      ? ['Operators', 'General Labour', 'Truck Drivers', 'Office Staff', 'Professional Services', 'Custom Work', 'Contractors']
+                      : CROP_OPTIONS
+                    ).map(c => (
                       <Chip key={c} label={c} active={form.crops_experienced.includes(c)} onClick={() => toggleItem('crops_experienced', c)} />
                     ))}
                   </div>
                 </div>
                 <div className="rounded-2xl p-4 space-y-2"
                   style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                  <label style={labelStyle}>Operations Experience</label>
+                  <label style={labelStyle}>Operations</label>
                   <div className="flex flex-wrap gap-2">
-                    {OPERATIONS_OPTIONS.map(o => (
+                    {[...OPERATIONS_OPTIONS, 'Other'].map(o => (
                       <Chip key={o} label={o} active={form.operations_experience.includes(o)} onClick={() => toggleItem('operations_experience', o)} />
                     ))}
                   </div>

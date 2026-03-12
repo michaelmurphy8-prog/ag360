@@ -133,6 +133,7 @@ export async function POST(req: NextRequest) {
       available_to,
       farmer_sub_types,
       sponsorship_offered,
+      website_url,
     } = body
 
     if (!type || !first_name || !last_name || !email) {
@@ -161,7 +162,7 @@ export async function POST(req: NextRequest) {
         crops_experienced, availability, cv_url,
         operations_experience, equipment_brands, worldwide,
         holds_licence, driver_licence_type, driver_licence_province,
-        available_from, available_to, farmer_sub_types, sponsorship_offered, status
+        available_from, available_to, farmer_sub_types, sponsorship_offered, website_url, status
       ) VALUES (
         ${clerk_user_id ?? null}, ${type}, ${first_name}, ${last_name},
         ${email}, ${phone ?? null}, ${photo_url ?? null},
@@ -179,7 +180,8 @@ export async function POST(req: NextRequest) {
         ${holds_licence ?? false}, ${driver_licence_type ?? null},
         ${driver_licence_province ?? null},
         ${available_from ?? null}, ${available_to ?? null},
-        ${farmer_sub_types ?? []}, ${sponsorship_offered ?? []}, 'pending'
+        ${farmer_sub_types ?? []}, ${sponsorship_offered ?? []},
+        ${website_url ?? null}, 'pending'
       )
       RETURNING id, status, created_at
     `
