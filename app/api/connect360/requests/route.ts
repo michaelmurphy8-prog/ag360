@@ -28,7 +28,24 @@ export async function GET(req: NextRequest) {
         `
         return NextResponse.json({ status: result[0]?.status ?? null })
       }
-      // Return accepted connections with full profile data
+      // Incoming requests — current user is the provider being requested
+      const incoming = searchParams.get('incoming') === 'true'
+      if (incoming) {
+        const requests = await sql`
+          SELECT
+            cr.id, cr.status, cr.message, cr.created_at,
+            cp.id AS profile_id, cp.type, cp.first_name, cp.last_name,
+            cp.business_name, cp.photo_url,
+            cp.base_city, cp.base_province, cp.availability
+          FROM connect_requests cr
+          JOIN connect_profiles cp ON cp.id = cr.connect_profile_id
+          WHERE cp.clerk_user_id = ${userId}
+          ${statusFilter ? sql`AND cr.status = ${statusFilter}` : sql``}
+          ORDER BY cr.created_at DESC
+        `
+        return NextResponse.json({ requests })
+      }
+      // Outgoing — requests the current user has sent
       const connections = await sql`
         SELECT
           cr.id, cr.status, cr.created_at,
@@ -103,7 +120,7 @@ export async function POST(req: NextRequest) {
     // Create the connection request
     const result = await sql`
       INSERT INTO connect_requests (tenant_id, clerk_user_id, connect_profile_id, message, status)
-      VALUES (${tenantId ?? null}, ${userId ?? null}, ${connect_profile_id}, ${message ?? null}, 'accepted')
+      VALUES (${tenantId ?? null}, ${userId ?? null}, ${connect_profile_id}, ${message ?? null}, 'pending')
       RETURNING id, status, created_at
     `
 
@@ -142,5 +159,35 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('POST /api/connect360/requests error:', err)
     return NextResponse.json({ error: 'Failed to create request' }, { status: 500 })
+  }
+}
+// PATCH — accept or decline a connection request (recipient only)
+export async function PATCH(req: NextRequest) {
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  try {
+    const { request_id, status } = await req.json()
+    if (!request_id || !['accepted', 'declined'].includes(status)) {
+      return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    }
+
+    // Verify the current user is the provider being requested
+    const result = await sql`
+      UPDATE connect_requests cr
+      SET status = ${status}
+      FROM connect_profiles cp
+      WHERE cr.id = ${request_id}
+        AND cr.connect_profile_id = cp.id
+        AND cp.clerk_user_id = ${userId}
+      RETURNING cr.id, cr.status, cr.clerk_user_id
+    `
+    if (result.length === 0) {
+      return NextResponse.json({ error: 'Not found or unauthorized' }, { status: 404 })
+    }
+    return NextResponse.json({ success: true, request: result[0] })
+  } catch (err) {
+    console.error('PATCH /api/connect360/requests error:', err)
+    return NextResponse.json({ error: 'Failed to update request' }, { status: 500 })
   }
 }

@@ -57,7 +57,8 @@ export default function MessagesPage() {
   const [chatInput, setChatInput] = useState('')
   const [chatSending, setChatSending] = useState(false)
   const [chatLoading, setChatLoading] = useState(false)
-
+  const [connectionStatus, setConnectionStatus] = useState<string | null>(null)
+  const [statusLoading, setStatusLoading] = useState(false)
   // Fetch inbox
   useEffect(() => {
     fetchThreads()
@@ -79,9 +80,22 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!activeThread) return
     fetchMessages()
+    checkConnection()
     const interval = setInterval(fetchMessages, 5000)
     return () => clearInterval(interval)
   }, [activeThread])
+
+  async function checkConnection() {
+    if (!activeThread) return
+    setStatusLoading(true)
+    try {
+      const res = await fetch(`/api/connect360/requests?profile_id=${activeThread.profile_id}`)
+      const data = await res.json()
+      setConnectionStatus(data.status ?? null)
+    } catch {} finally {
+      setStatusLoading(false)
+    }
+  }
 
   async function fetchMessages() {
     if (!activeThread) return
@@ -125,7 +139,6 @@ export default function MessagesPage() {
   })
 
   const totalUnread = threads.reduce((s, t) => s + t.unread_count, 0)
-
   // ── CHAT VIEW ──
   if (activeThread) {
     const cfg = TYPE_CONFIG[activeThread.type] ?? TYPE_CONFIG.worker
@@ -199,35 +212,73 @@ export default function MessagesPage() {
           )}
         </div>
 
-        {/* Input */}
-        <div className="px-5 pt-3"
-          style={{
-            paddingBottom: 'max(env(safe-area-inset-bottom), 20px)',
-            backgroundColor: '#FFFFFF',
-            borderTop: '1px solid #EEE9E0',
-            flexShrink: 0,
-          }}>
-          <div className="flex items-center gap-3">
-            <input
-              className="flex-1 px-4 py-3 rounded-2xl text-sm outline-none"
-              style={{ backgroundColor: '#F7F5F0', color: '#0D1520' }}
-              placeholder="Write a message..."
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSend()}
-            />
-            <button onClick={handleSend}
-              disabled={chatSending || !chatInput.trim()}
-              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
-              style={{
-                backgroundColor: chatInput.trim() ? '#C9A84C' : '#EEE9E0',
-              }}>
-              {chatSending
-                ? <RefreshCw size={14} className="animate-spin" style={{ color: '#FFFFFF' }} />
-                : <Send size={14} style={{ color: chatInput.trim() ? '#FFFFFF' : '#B0A898' }} />}
-            </button>
+        {/* Input — locked unless accepted */}
+        {connectionStatus !== 'accepted' && !statusLoading && (
+          <div className="px-5 pt-3 pb-2 flex-shrink-0">
+            <div className="w-full py-3 px-4 rounded-2xl flex items-center gap-3"
+              style={{ backgroundColor: '#FDF8EE', border: '1px solid rgba(201,168,76,0.2)' }}>
+              <span style={{ fontSize: 18 }}>🔒</span>
+              <div>
+                <div className="text-xs font-bold" style={{ color: '#C9A84C' }}>Connection required</div>
+                <div className="text-xs mt-0.5" style={{ color: '#8A9BB0' }}>
+                  {connectionStatus === 'pending'
+                    ? 'Your request is pending — messaging unlocks when accepted'
+                    : 'Send a connection request to start messaging'}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+        {connectionStatus !== 'accepted' && !statusLoading ? (
+          <div className="px-5 pt-3 flex-shrink-0"
+            style={{
+              paddingBottom: 'max(env(safe-area-inset-bottom), 20px)',
+              backgroundColor: '#FFFFFF',
+              borderTop: '1px solid #EEE9E0',
+            }}>
+            <div className="w-full py-3 px-4 rounded-2xl flex items-center gap-3"
+              style={{ backgroundColor: '#FDF8EE', border: '1px solid rgba(201,168,76,0.2)' }}>
+              <span style={{ fontSize: 18 }}>🔒</span>
+              <div>
+                <div className="text-xs font-bold" style={{ color: '#C9A84C' }}>Connection required</div>
+                <div className="text-xs mt-0.5" style={{ color: '#8A9BB0' }}>
+                  {connectionStatus === 'pending'
+                    ? 'Your request is pending — messaging unlocks when accepted'
+                    : 'Send a connection request to start messaging'}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="px-5 pt-3"
+            style={{
+              paddingBottom: 'max(env(safe-area-inset-bottom), 20px)',
+              backgroundColor: '#FFFFFF',
+              borderTop: '1px solid #EEE9E0',
+              flexShrink: 0,
+            }}>
+            <div className="flex items-center gap-3">
+              <input
+                className="flex-1 px-4 py-3 rounded-2xl text-sm outline-none"
+                style={{ backgroundColor: '#F7F5F0', color: '#0D1520' }}
+                placeholder="Write a message..."
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSend()}
+              />
+              <button onClick={handleSend}
+                disabled={chatSending || !chatInput.trim()}
+                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
+                style={{
+                  backgroundColor: chatInput.trim() ? '#C9A84C' : '#EEE9E0',
+                }}>
+                {chatSending
+                  ? <RefreshCw size={14} className="animate-spin" style={{ color: '#FFFFFF' }} />
+                  : <Send size={14} style={{ color: chatInput.trim() ? '#FFFFFF' : '#B0A898' }} />}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
