@@ -228,3 +228,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 })
   }
 }
+
+export async function PATCH(req: Request) {
+  try {
+    const { userId } = await auth()
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const body = await req.json()
+    const { notification_prefs, region } = body
+
+    const updates: string[] = []
+    if (notification_prefs !== undefined) updates.push(`notification_prefs = '${JSON.stringify(notification_prefs)}'`)
+    if (region !== undefined) updates.push(`region = '${region}'`)
+
+    if (updates.length === 0) return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
+
+    const result = await sql`
+      UPDATE connect_profiles
+      SET ${sql.unsafe(updates.join(', '))}
+      WHERE clerk_user_id = ${userId}
+      RETURNING id, notification_prefs, region
+    `
+    if (!result.length) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    return NextResponse.json(result[0])
+  } catch (err) {
+    console.error('PATCH /api/connect360/profiles error:', err)
+    return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
+  }
+}
