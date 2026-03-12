@@ -36,10 +36,10 @@ export default function AboutPage() {
           <h2 className="text-sm font-bold mb-3" style={{ color: '#0D1520' }}>Why we built this</h2>
           <div className="space-y-3 text-xs leading-relaxed" style={{ color: '#4B5563' }}>
             <p>
-              Every harvest season, farmers across the prairies face the same problem — not enough time, not enough hands, and no good way to find the right people fast. You'd ask around at the coffee shop, post in a Facebook group, or rely on word of mouth that may or may not come through before the combine needs to roll.
+              Every harvest season, farmers across the world face the same problem — not enough time, not enough hands, and no good way to find the right people fast. You'd ask around at the coffee shop, post in a Facebook group, or rely on word of mouth that may or may not come through before the combine needs to roll.
             </p>
             <p>
-              Connect360 wasn't built in a boardroom or designed by someone who learned about farming from a Google search. It was built at <span className="font-semibold" style={{ color: '#0D1520' }}>Murphy Farms</span> in Swift Current, Saskatchewan — on the same land it was meant to serve.
+              Connect360 wasn't built in a boardroom or designed by someone who learned about farming from a Google search. It was built by a caring <span className="font-semibold" style={{ color: '#0D1520' }}>Farmer</span> in Saskatchewan, Canada — on the same land it was meant to serve.
             </p>
             <p>
               We know what it's like to need a Class 1 driver at 6am. We know what it's like to be three weeks from seeding and still short a good operator. We know what it feels like when the right connection — the right person — shows up at the right time and makes everything click.

@@ -106,8 +106,8 @@ export default function MorePage() {
           icon: Star,
           label: 'My reviews',
           sublabel: 'See what others are saying',
-          action: () => {},
-          badge: 'Soon',
+          action: () => router.push('/profile'),
+          badge: 'Soon' as const,
         },
       ...(profile?.type === 'farmer' ? [{
         icon: Briefcase,
