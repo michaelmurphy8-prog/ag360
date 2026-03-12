@@ -97,30 +97,29 @@ export default function MorePage() {
       action: () => router.push(profile ? '/profile' : '/register'),
     },
     {
-      icon: Bookmark,
-      label: 'Saved providers',
-      sublabel: 'Providers you\'ve bookmarked',
-      action: () => router.push('/network?tab=saved'),
-    },
-    {
-      icon: Star,
-      label: 'My reviews',
-      sublabel: 'See what others are saying',
-      action: () => router.push('/profile'),
-      badge: 'Soon',
-    },
-    ...(profile?.type === 'farmer' ? [{
-      icon: Briefcase,
-      label: 'My job posts',
-      sublabel: 'Manage jobs you\'ve posted',
-      action: () => router.push('/jobs?tab=mine'),
-    }] : [{
-      icon: Briefcase,
-      label: 'My applications',
-      sublabel: 'Jobs you\'ve applied to',
-      action: () => router.push('/jobs?tab=applied'),
-      badge: 'Soon' as string,
-    }]),
+          icon: Bookmark,
+          label: 'Saved providers',
+          sublabel: 'Providers you\'ve bookmarked',
+          action: () => router.push('/network?tab=saved'),
+        },
+        {
+          icon: Star,
+          label: 'My reviews',
+          sublabel: 'See what others are saying',
+          action: () => {},
+          badge: 'Soon',
+        },
+      ...(profile?.type === 'farmer' ? [{
+        icon: Briefcase,
+        label: 'My job posts',
+        sublabel: 'Manage jobs you\'ve posted',
+        action: () => router.push('/jobs?tab=mine'),
+      }] : [{
+        icon: Briefcase,
+        label: 'My applications',
+        sublabel: 'Jobs you\'ve applied to',
+        action: () => router.push('/jobs?tab=applied'),
+      }]),
   ]
 
   const sections: { title: string; rows: MenuRow[] }[] = [
@@ -128,9 +127,9 @@ export default function MorePage() {
     {
       title: 'Account',
       rows: [
-        { icon: Bell, label: 'Notifications', sublabel: 'Manage alerts and messages', action: () => {}, badge: 'Soon' },
-        { icon: Shield, label: 'Privacy & safety', action: () => {}, badge: 'Soon' },
-        { icon: Globe, label: 'Language & region', action: () => {}, badge: 'Soon' },
+        { icon: Bell, label: 'Notifications', sublabel: 'Manage alerts and messages', action: () => router.push('/notifications') },
+        { icon: Shield, label: 'Privacy & safety', action: () => router.push('/privacy-safety') },
+        { icon: Globe, label: 'Language & region', action: () => router.push('/language-region') },
       ],
     },
     {
@@ -138,8 +137,8 @@ export default function MorePage() {
       rows: [
         { icon: HelpCircle, label: 'Help center', action: () => window.open('mailto:hello@ag360.farm', '_blank') },
         { icon: MessageSquare, label: 'Send feedback', action: () => window.open('mailto:hello@ag360.farm?subject=Connect360 Feedback', '_blank') },
-        { icon: FileText, label: 'Terms & privacy', action: () => window.open('https://ag360.farm/privacy', '_blank') },
-        { icon: Info, label: 'About Connect360', sublabel: 'Version 1.0 · For AG, by a farmer.', action: () => {} },
+        { icon: FileText, label: 'Terms & privacy', action: () => router.push('/terms-privacy') },
+        { icon: Info, label: 'About Connect360', sublabel: 'Version 1.0 · For AG, by a farmer.', action: () => router.push('/about') },
       ],
     },
     {
