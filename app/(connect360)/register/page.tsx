@@ -704,6 +704,8 @@ export default function RegisterPage() {
                   onChange={e => set('bio', e.target.value)}
                   placeholder={form.type === 'professional'
                     ? 'Describe your practice, areas of expertise, and how you help agricultural clients.'
+                    : form.type === 'farmer'
+                    ? 'Describe your operation — what you grow, the type of help you need, and what makes your farm a great place to work. This is what providers see first — make it count.'
                     : 'Describe your experience, what you offer, and what makes you a great hire. This is what farmers see first — make it count.'} />
                 {!form.bio.trim() && (
                   <p className="text-xs mt-1" style={{ color: '#B0A898' }}>Required before submitting.</p>
