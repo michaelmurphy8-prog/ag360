@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     const tid = threadId(senderId, otherTenantId)
 
     const messages = await sql`
-      SELECT id, sender_id, body, read_at, created_at
+      SELECT id, sender_id, body, attachment_url, attachment_name, attachment_type, read_at, created_at
       FROM connect_messages
       WHERE thread_id = ${tid}
       ORDER BY created_at ASC
@@ -102,8 +102,8 @@ export async function POST(req: NextRequest) {
     const senderId = tenantId ?? userId
     if (!senderId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { profile_id, body } = await req.json()
-    if (!profile_id || !body?.trim()) {
+    const { profile_id, body, attachment_url, attachment_name, attachment_type } = await req.json()
+    if (!profile_id || (!body?.trim() && !attachment_url)) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
     }
 
@@ -118,9 +118,9 @@ export async function POST(req: NextRequest) {
     const recipientId = profile.clerk_user_id
     const tid = threadId(senderId, recipientId)
     const [message] = await sql`
-      INSERT INTO connect_messages (thread_id, sender_id, recipient_id, profile_id, body)
-      VALUES (${tid}, ${senderId}, ${recipientId}, ${profile_id}, ${body.trim()})
-      RETURNING id, sender_id, body, read_at, created_at
+      INSERT INTO connect_messages (thread_id, sender_id, recipient_id, profile_id, body, attachment_url, attachment_name, attachment_type)
+      VALUES (${tid}, ${senderId}, ${recipientId}, ${profile_id}, ${body?.trim() ?? null}, ${attachment_url ?? null}, ${attachment_name ?? null}, ${attachment_type ?? null})
+      RETURNING id, sender_id, body, attachment_url, attachment_name, attachment_type, read_at, created_at
     `
 
     return NextResponse.json({ success: true, message })

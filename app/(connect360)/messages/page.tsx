@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import {
-  ArrowLeft, Send, RefreshCw, MessageCircle,
+  ArrowLeft, Send, RefreshCw, MessageCircle, Paperclip, FileText, X,
   Truck, Sprout, Users, Briefcase, Search
 } from 'lucide-react'
 
@@ -24,6 +24,9 @@ interface Message {
   id: string
   sender_id: string
   body: string
+  attachment_url?: string
+  attachment_name?: string
+  attachment_type?: string
   created_at: string
   read_at?: string
 }
@@ -56,6 +59,8 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [chatInput, setChatInput] = useState('')
   const [chatSending, setChatSending] = useState(false)
+  const [attachment, setAttachment] = useState<{ url: string; name: string; type: string } | null>(null)
+  const [uploading, setUploading] = useState(false)
   const [chatLoading, setChatLoading] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<string | null>(null)
   const [statusLoading, setStatusLoading] = useState(false)
@@ -110,27 +115,51 @@ export default function MessagesPage() {
   }
 
   async function handleSend() {
-    if (!chatInput.trim() || !activeThread) return
+    if (!chatInput.trim() && !attachment) return
+    if (!activeThread) return
     setChatSending(true)
     const body = chatInput.trim()
     setChatInput('')
+    const att = attachment
+    setAttachment(null)
     try {
       const res = await fetch('/api/connect360/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile_id: activeThread.profile_id, body }),
+        body: JSON.stringify({
+          profile_id: activeThread.profile_id,
+          body,
+          attachment_url: att?.url ?? null,
+          attachment_name: att?.name ?? null,
+          attachment_type: att?.type ?? null,
+        }),
       })
       const data = await res.json()
       setMessages(m => [...m, data.message])
-      // Update thread preview
       setThreads(ts => ts.map(t =>
         t.profile_id === activeThread.profile_id
-          ? { ...t, last_message: body, last_message_at: new Date().toISOString(), unread_count: 0 }
+          ? { ...t, last_message: att && !body ? `📎 ${att.name}` : body, last_message_at: new Date().toISOString(), unread_count: 0 }
           : t
       ))
     } catch {} finally {
       setChatSending(false)
     }
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) { alert('File must be under 10MB'); return }
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('folder', 'messages')
+      const res = await fetch('/api/connect360/upload-attachment', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.url) setAttachment({ url: data.url, name: file.name, type: file.type })
+    } catch { alert('Upload failed. Please try again.') }
+    finally { setUploading(false); e.target.value = '' }
   }
 
   const filtered = threads.filter(t => {
@@ -191,7 +220,7 @@ export default function MessagesPage() {
               return (
                 <div key={m.id ?? i} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                   <div className="max-w-[78%]">
-                    <div className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
+                    <div className="rounded-2xl text-sm leading-relaxed overflow-hidden"
                       style={{
                         backgroundColor: isMine ? '#C9A84C' : '#FFFFFF',
                         color: isMine ? '#FFFFFF' : '#0D1520',
@@ -199,7 +228,28 @@ export default function MessagesPage() {
                         borderBottomRightRadius: isMine ? 4 : 16,
                         borderBottomLeftRadius: isMine ? 16 : 4,
                       }}>
-                      {m.body}
+                      {m.body && <div className="px-4 py-2.5">{m.body}</div>}
+                      {m.attachment_url && (
+                        <a href={m.attachment_url} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-3 px-4 py-3 transition-all"
+                          style={{
+                            backgroundColor: isMine ? 'rgba(0,0,0,0.15)' : '#F7F5F0',
+                            borderTop: m.body ? `1px solid ${isMine ? 'rgba(255,255,255,0.2)' : '#EEE9E0'}` : 'none',
+                            textDecoration: 'none',
+                          }}>
+                          <FileText size={16} style={{ color: isMine ? '#FFFFFF' : '#C9A84C', flexShrink: 0 }} />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-semibold truncate"
+                              style={{ color: isMine ? '#FFFFFF' : '#0D1520' }}>
+                              {m.attachment_name}
+                            </div>
+                            <div className="text-[10px] mt-0.5"
+                              style={{ color: isMine ? 'rgba(255,255,255,0.7)' : '#8A9BB0' }}>
+                              Tap to open
+                            </div>
+                          </div>
+                        </a>
+                      )}
                     </div>
                     <div className={`text-[10px] mt-1 ${isMine ? 'text-right' : 'text-left'}`}
                       style={{ color: '#B0A898' }}>
@@ -257,7 +307,26 @@ export default function MessagesPage() {
               borderTop: '1px solid #EEE9E0',
               flexShrink: 0,
             }}>
+            {attachment && (
+              <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-xl"
+                style={{ backgroundColor: '#FDF8EE', border: '1px solid rgba(201,168,76,0.3)' }}>
+                <FileText size={14} style={{ color: '#C9A84C', flexShrink: 0 }} />
+                <span className="text-xs font-medium flex-1 truncate" style={{ color: '#0D1520' }}>{attachment.name}</span>
+                <button onClick={() => setAttachment(null)}>
+                  <X size={14} style={{ color: '#8A9BB0' }} />
+                </button>
+              </div>
+            )}
             <div className="flex items-center gap-3">
+              <label className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 cursor-pointer transition-all"
+                style={{ backgroundColor: '#F7F5F0' }}>
+                <input type="file" className="hidden"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  onChange={handleFileUpload} />
+                {uploading
+                  ? <RefreshCw size={14} className="animate-spin" style={{ color: '#C9A84C' }} />
+                  : <Paperclip size={14} style={{ color: '#8A9BB0' }} />}
+              </label>
               <input
                 className="flex-1 px-4 py-3 rounded-2xl text-sm outline-none"
                 style={{ backgroundColor: '#F7F5F0', color: '#0D1520' }}
@@ -267,14 +336,14 @@ export default function MessagesPage() {
                 onKeyDown={e => e.key === 'Enter' && handleSend()}
               />
               <button onClick={handleSend}
-                disabled={chatSending || !chatInput.trim()}
+                disabled={chatSending || (!chatInput.trim() && !attachment)}
                 className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
                 style={{
-                  backgroundColor: chatInput.trim() ? '#C9A84C' : '#EEE9E0',
+                  backgroundColor: (chatInput.trim() || attachment) ? '#C9A84C' : '#EEE9E0',
                 }}>
                 {chatSending
                   ? <RefreshCw size={14} className="animate-spin" style={{ color: '#FFFFFF' }} />
-                  : <Send size={14} style={{ color: chatInput.trim() ? '#FFFFFF' : '#B0A898' }} />}
+                  : <Send size={14} style={{ color: (chatInput.trim() || attachment) ? '#FFFFFF' : '#B0A898' }} />}
               </button>
             </div>
           </div>
