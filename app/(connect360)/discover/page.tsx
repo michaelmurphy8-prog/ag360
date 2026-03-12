@@ -312,6 +312,7 @@ function DiscoverContent() {
             const rating = p.avg_rating ? Number(p.avg_rating).toFixed(1) : null
             const location = [p.base_city, p.base_province].filter(Boolean).join(', ')
 
+            const isClosed = p.type === 'farmer' && p.availability === 'unavailable'
             return (
               <button key={p.id}
                 onClick={() => router.push(`/profile/${p.id}`)}
@@ -321,6 +322,7 @@ function DiscoverContent() {
                   borderRadius: 20,
                   boxShadow: '0 2px 16px rgba(0,0,0,0.07)',
                   overflow: 'hidden',
+                  opacity: isClosed ? 0.5 : 1,
                 }}>
                 <div className="flex items-start gap-4 p-4">
                   {/* Avatar */}
@@ -341,12 +343,19 @@ function DiscoverContent() {
                           style={{ color: '#C9A84C' }}>{cfg.label}</div>
                       </div>
                       {/* Availability badge */}
-                      <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
-                        <div className="w-1.5 h-1.5 rounded-full"
-                          style={{ backgroundColor: avail.dot }} />
-                        <span className="text-[10px] font-semibold"
-                          style={{ color: avail.text }}>{avail.label}</span>
-                      </div>
+                      {isClosed ? (
+                        <div className="flex items-center gap-1 flex-shrink-0 mt-0.5 px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: '#F3F4F6', border: '1px solid #E5E7EB' }}>
+                          <span className="text-[10px] font-semibold" style={{ color: '#9CA3AF' }}>Closed</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
+                          <div className="w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: avail.dot }} />
+                          <span className="text-[10px] font-semibold"
+                            style={{ color: avail.text }}>{avail.label}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Meta row */}
