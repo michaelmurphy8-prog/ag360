@@ -39,11 +39,12 @@ const AVAIL_CONFIG: Record<string, { label: string; dot: string; text: string }>
 }
 
 const FILTER_TABS = [
-  { key: '',             label: 'All'           },
-  { key: 'trucker',      label: 'Truckers'      },
-  { key: 'applicator',   label: 'Applicators'   },
-  { key: 'worker',       label: 'Workers'       },
-  { key: 'professional', label: 'Professionals' },
+  { key: '',             label: 'All'             },
+  { key: 'farmer',       label: 'Farmers'         },
+  { key: 'worker',       label: 'Workers'         },
+  { key: 'trucker',      label: 'Transport'       },
+  { key: 'applicator',   label: 'Custom Work'     },
+  { key: 'professional', label: 'Professionals'   },
 ]
 
 const SORT_OPTIONS = [
