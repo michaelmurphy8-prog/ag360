@@ -308,21 +308,49 @@ export default function Connect360HomePage() {
             {Object.entries(TYPE_CONFIG).map(([key, cfg]) => {
               const Icon = cfg.icon
               const count = stats?.types[key as keyof typeof stats.types]
+              const isFarmer = key === 'farmer'
               return (
                 <button key={key}
                   onClick={() => router.push(`/discover?type=${key}`)}
-                  className="flex items-center gap-3 p-4 rounded-2xl text-left transition-all active:scale-95"
-                  style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: cfg.bg }}>
-                    <Icon size={18} style={{ color: cfg.color }} />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold" style={{ color: '#0D1520' }}>{cfg.label}</div>
-                    <div className="text-xs mt-0.5" style={{ color: '#8A9BB0' }}>
-                      {count !== undefined ? `${count} available` : '—'}
+                  className={`p-4 rounded-2xl text-left transition-all active:scale-95 ${isFarmer ? 'col-span-2' : ''}`}
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    boxShadow: isFarmer
+                      ? '0 0 0 2px rgba(34,197,94,0.25), 0 4px 20px rgba(34,197,94,0.15)'
+                      : '0 2px 12px rgba(0,0,0,0.06)',
+                    border: isFarmer ? '1px solid rgba(34,197,94,0.3)' : '1px solid transparent',
+                  }}>
+                  {isFarmer ? (
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: '#FDF8EE' }}>
+                        <Icon size={22} style={{ color: '#C9A84C' }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold" style={{ color: '#0D1520' }}>{cfg.label}</div>
+                        <div className="text-xs mt-0.5" style={{ color: '#8A9BB0' }}>
+                          {count !== undefined ? `${count} available` : '—'}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0"
+                        style={{ backgroundColor: '#FDF8EE', color: '#C9A84C' }}>
+                        Connect Now →
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: '#FDF8EE' }}>
+                        <Icon size={18} style={{ color: '#C9A84C' }} />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold" style={{ color: '#0D1520' }}>{cfg.label}</div>
+                        <div className="text-xs mt-0.5" style={{ color: '#8A9BB0' }}>
+                          {count !== undefined ? `${count} available` : '—'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </button>
               )
             })}
