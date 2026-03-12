@@ -1,7 +1,7 @@
 'use client'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
-import { Compass, Users, MessageCircle, User, Grid3X3 } from 'lucide-react'
+import { Compass, Users, MessageCircle, User, Grid3X3, Home } from 'lucide-react'
 
 const TABS = [
   { href: '/discover', icon: Compass,       label: 'Discover'  },
@@ -12,6 +12,7 @@ const TABS = [
 ]
 
 const NO_TAB_ROUTES = ['/splash', '/auth', '/register']
+const NO_HOME_BUTTON = ['/splash', '/auth', '/register', '/home']
 
 export default function Connect360Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -19,6 +20,7 @@ export default function Connect360Layout({ children }: { children: React.ReactNo
   const { userId, isLoaded } = useAuth()
 
   const showTabs = isLoaded && userId && !NO_TAB_ROUTES.some(r => pathname.includes(r))
+  const showHomeButton = isLoaded && userId && !NO_HOME_BUTTON.some(r => pathname.includes(r))
 
   function isActive(href: string) {
     return pathname.includes(href.replace('/', ''))
@@ -32,6 +34,19 @@ export default function Connect360Layout({ children }: { children: React.ReactNo
       <main className={`flex-1 overflow-y-auto ${showTabs ? 'pb-24' : ''}`}>
         {children}
       </main>
+      {showHomeButton && (
+        <button
+          onClick={() => router.push('/home')}
+          className="fixed top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-2 rounded-full"
+          style={{
+            backgroundColor: '#0D1520',
+            color: '#FFFFFF',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
+          }}>
+          <Home size={13} />
+          <span className="text-[11px] font-bold">Home</span>
+        </button>
+      )}
 
       {showTabs && (
         <nav
