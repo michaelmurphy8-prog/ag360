@@ -1,18 +1,17 @@
 'use client'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
-import { Compass, Users, MessageCircle, User, Grid3X3, Home } from 'lucide-react'
-
+import { Compass, Users, MessageCircle, Briefcase, Grid3X3, Home } from 'lucide-react'
 const TABS = [
   { href: '/discover', icon: Compass,       label: 'Discover'  },
-  { href: '/network',  icon: Users,         label: 'Network'   },
+  { href: '/jobs',     icon: Briefcase,     label: 'Jobs'      },
   { href: '/messages', icon: MessageCircle, label: 'Messages'  },
-  { href: '/profile',  icon: User,          label: 'Profile'   },
+  { href: '/network',  icon: Users,         label: 'Network'   },
   { href: '/more',     icon: Grid3X3,       label: 'More'      },
 ]
 
 const NO_TAB_ROUTES = ['/splash', '/auth', '/register']
-const NO_HOME_BUTTON = ['/splash', '/auth', '/register', '/home']
+const NO_HOME_BUTTON = ['/splash', '/auth', '/register', '/home', '/jobs']
 
 export default function Connect360Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
