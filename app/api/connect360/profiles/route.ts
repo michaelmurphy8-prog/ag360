@@ -164,6 +164,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'A profile with this email already exists' }, { status: 409 })
     }
 
+
+    // ── Geocode base_city + base_province/base_country via Mapbox ──
+    let lat: number | null = null
+    let lng: number | null = null
+    try {
+      const geoQuery = [base_city, base_province, base_country].filter(Boolean).join(', ')
+      const geoRes = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(geoQuery)}.json?limit=1&types=place,region,locality&access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`
+      )
+      const geoData = await geoRes.json()
+      if (geoData.features?.length > 0) {
+        const [geoLng, geoLat] = geoData.features[0].center
+        lat = geoLat
+        lng = geoLng
+      }
+    } catch {
+      // Geocoding failure is non-fatal — profile still saves, lat/lng stay null
+    }
+
     const result = await sql`
       INSERT INTO connect_profiles (
         clerk_user_id, type, first_name, last_name, email, phone,
@@ -174,7 +193,7 @@ export async function POST(req: NextRequest) {
         crops_experienced, availability, cv_url,
         operations_experience, equipment_brands, worldwide,
         holds_licence, driver_licence_type, driver_licence_province,
-        available_from, available_to, farmer_sub_types, sponsorship_offered, website_url, status
+        available_from, available_to, farmer_sub_types, sponsorship_offered, website_url, lat, lng, status
       ) VALUES (
         ${clerk_user_id ?? null}, ${type}, ${first_name}, ${last_name},
         ${email}, ${phone ?? null}, ${photo_url ?? null},
@@ -193,7 +212,7 @@ export async function POST(req: NextRequest) {
         ${driver_licence_province ?? null},
         ${available_from ?? null}, ${available_to ?? null},
         ${farmer_sub_types ?? []}, ${sponsorship_offered ?? []},
-        ${website_url ?? null}, 'pending'
+        ${website_url ?? null}, ${lat}, ${lng}, 'pending'
       )
       RETURNING id, status, created_at
     `
