@@ -18,9 +18,9 @@ export async function GET(req: NextRequest) {
         SELECT
           r.id, r.rating, r.body, r.hire_type, r.season_year,
           r.would_rehire, r.created_at,
-          fp.farm_name AS reviewer_farm
+          COALESCE(fp.farm_name, 'Anonymous') AS reviewer_farm
         FROM connect_reviews r
-        LEFT JOIN farm_profiles fp ON fp.tenant_id = r.tenant_id
+        LEFT JOIN farm_profiles fp ON r.tenant_id IS NOT NULL AND fp.tenant_id = r.tenant_id
         WHERE r.profile_id = ${profileId}
         ORDER BY r.created_at DESC
       `
