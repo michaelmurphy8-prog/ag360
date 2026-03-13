@@ -1,4 +1,5 @@
 'use client'
+import { useUser } from '@clerk/nextjs'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
@@ -138,6 +139,7 @@ export default function RegisterPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
+  const { user } = useUser()
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [cvFile, setCvFile] = useState<File | null>(null)
@@ -210,6 +212,8 @@ export default function RegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
+          email: user?.primaryEmailAddress?.emailAddress ?? form.email,
+          clerk_user_id: user?.id ?? null,
           base_country: form.base_country === 'Other' ? form.base_country_other : form.base_country,
           base_province: form.base_province === 'Other' ? form.province_other : form.base_province,
           years_experience: form.years_experience === '' ? null : Number(form.years_experience),

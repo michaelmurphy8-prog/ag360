@@ -25,6 +25,9 @@ export async function GET(req: NextRequest) {
     if (myProfile) {
       const { userId } = await auth()
       if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      // Get email from Clerk to use as fallback lookup
+      const { sessionClaims } = await auth()
+      const email = sessionClaims?.email as string ?? null
       const result = await sql`
         SELECT cp.*, 
           ROUND(AVG(cr.rating)::numeric, 1) as avg_rating,
@@ -32,9 +35,14 @@ export async function GET(req: NextRequest) {
         FROM connect_profiles cp
         LEFT JOIN connect_reviews cr ON cr.profile_id = cp.id
         WHERE cp.clerk_user_id = ${userId}
+           OR (${email}::text IS NOT NULL AND cp.email = ${email})
         GROUP BY cp.id
         LIMIT 1
       `
+      // Patch clerk_user_id if missing so future lookups work
+      if (result[0] && result[0].clerk_user_id !== userId) {
+        await sql`UPDATE connect_profiles SET clerk_user_id = ${userId} WHERE id = ${result[0].id}`
+      }
       return NextResponse.json({ profile: result[0] ?? null })
     }
     let profiles = await sql`
@@ -196,7 +204,7 @@ export async function POST(req: NextRequest) {
         holds_licence, driver_licence_type, driver_licence_province,
         available_from, available_to, farmer_sub_types, sponsorship_offered, website_url, lat, lng, status
       ) VALUES (
-        ${clerk_user_id ?? null}, ${type}, ${first_name}, ${last_name},
+        ${resolvedClerkId}, ${type}, ${first_name}, ${last_name},
         ${email}, ${phone ?? null}, ${photo_url ?? null},
         ${business_name ?? null}, ${business_number ?? null},
         ${insurance_confirmed ?? false}, ${licence_number ?? null},
