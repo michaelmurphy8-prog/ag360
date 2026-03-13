@@ -13,6 +13,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/webhooks(.*)",
   "/api/waitlist",
   "/api/connect360/public-stats",
+  "/api/connect360/session",
   "/api/connect360(.*)",
   "/home(.*)",
   "/discover(.*)",
