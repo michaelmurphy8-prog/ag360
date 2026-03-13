@@ -35,6 +35,8 @@ const PROFESSIONAL_SUB_TYPES = [
   { value: 'hvac_plumbing', label: 'HVAC & Plumbing', desc: 'Heating, cooling, ventilation, plumbing for farm facilities', licenceLabel: 'Trade Licence Number', licenceHint: '', licenceHintUrl: '' },
   { value: 'mechanic', label: 'Mechanic & Technician', desc: 'Farm equipment repair, diagnostics, welding, mobile service', licenceLabel: 'Trade Certification / Red Seal', licenceHint: '', licenceHintUrl: '' },
   { value: 'buildings_storage', label: 'Buildings & Storage', desc: 'Bins, grain storage, farm buildings, steel structures', licenceLabel: 'Business / Contractor Registration', licenceHint: '', licenceHintUrl: '' },
+  { value: 'land', label: 'Land — Rental & Sales', desc: 'Farmland rental, land for sale, crop share, pasture leasing', licenceLabel: 'Real Estate Licence / Business Registration', licenceHint: '', licenceHintUrl: '' },
+  { value: 'equipment_dealer', label: 'Equipment — Sales & Auctions', desc: 'Farm equipment sales, machinery auctions, dealerships', licenceLabel: 'Business / Auctioneer Registration', licenceHint: '', licenceHintUrl: '' },
 ]
 
 function getServicesForSubType(sub: string): string[] {
@@ -55,6 +57,8 @@ function getServicesForSubType(sub: string): string[] {
     hvac_plumbing: ['Heating Systems','Ventilation','Air Conditioning','Plumbing Install','Repairs & Maintenance','Shop HVAC','Livestock Facility HVAC'],
     mechanic: ['Equipment Repair','Diagnostics','Welding','Mobile Service','Preventive Maintenance','Hydraulics','Electrical'],
     buildings_storage: ['Grain Bins','Bin Floors & Aeration','Farm Buildings','Steel Structures','Hopper Bottoms','Flat Storage','Bin Installation'],
+    land: ['Cropland Rental','Pasture Rental','Hay Land Rental','Crop Share Agreements','Farmland for Sale','Acreage for Sale','Long-Term Leases','Seasonal Leases','Land Appraisal'],
+    equipment_dealer: ['New Equipment Sales','Used Equipment Sales','Equipment Auctions','Online Auctions','Trade-Ins','Consignment Sales','Parts & Accessories','Financing Available'],
   }
   return map[sub] ?? []
 }
@@ -785,6 +789,66 @@ export default function RegisterPage() {
                 )}
               </div>
             </div>
+
+            {/* Land — tailored fields */}
+            {form.type === 'professional' && form.professional_sub_type === 'land' && (
+              <div className="rounded-2xl p-4 space-y-3"
+                style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <label style={labelStyle}>I offer</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Land for Rent','Land for Sale','Crop Share','Pasture Rental','Hay Land','Acreage for Sale'].map(s => (
+                    <Chip key={s} label={s} active={form.services_offered.includes(s)} onClick={() => toggleItem('services_offered', s)} color="#A855F7" />
+                  ))}
+                </div>
+                <label style={labelStyle}>Land Types Available</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Cropland','Pasture','Hay Land','Mixed Farm','Bush/Woodlot','Irrigated','Dryland'].map(s => (
+                    <Chip key={s} label={s} active={form.services_offered.includes(s)} onClick={() => toggleItem('services_offered', s)} color="#A855F7" />
+                  ))}
+                </div>
+                <label style={labelStyle}>Role</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Landlord','Realtor / Agent','Both'].map(s => (
+                    <Chip key={s} label={s} active={form.services_offered.includes(s)} onClick={() => toggleItem('services_offered', s)} color="#A855F7" />
+                  ))}
+                </div>
+                <label style={labelStyle}>Website / MLS Link <span style={{ fontWeight: 400, color: '#B0A898' }}>(optional)</span></label>
+                <input style={inputStyle} type="url"
+                  value={form.website_url}
+                  onChange={e => set('website_url', e.target.value)}
+                  placeholder="e.g. realtor.ca/listing or yourwebsite.ca" />
+              </div>
+            )}
+
+            {/* Equipment dealer — tailored fields */}
+            {form.type === 'professional' && form.professional_sub_type === 'equipment_dealer' && (
+              <div className="rounded-2xl p-4 space-y-3"
+                style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <label style={labelStyle}>I offer</label>
+                <div className="flex flex-wrap gap-2">
+                  {['New Equipment','Used Equipment','Auction Sales','Online Auctions','Consignment','Trade-Ins','Parts & Accessories'].map(s => (
+                    <Chip key={s} label={s} active={form.services_offered.includes(s)} onClick={() => toggleItem('services_offered', s)} color="#A855F7" />
+                  ))}
+                </div>
+                <label style={labelStyle}>Equipment Categories</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Tractors','Combines','Seeding Equipment','Tillage','Sprayers','Trucks & Trailers','Grain Handling','Hay Equipment','Attachments','Other'].map(s => (
+                    <Chip key={s} label={s} active={form.services_offered.includes(s)} onClick={() => toggleItem('services_offered', s)} color="#A855F7" />
+                  ))}
+                </div>
+                <label style={labelStyle}>Role</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Dealership','Auctioneer','Private Seller','Broker'].map(s => (
+                    <Chip key={s} label={s} active={form.services_offered.includes(s)} onClick={() => toggleItem('services_offered', s)} color="#A855F7" />
+                  ))}
+                </div>
+                <label style={labelStyle}>Website / Auction Platform <span style={{ fontWeight: 400, color: '#B0A898' }}>(optional)</span></label>
+                <input style={inputStyle} type="url"
+                  value={form.website_url}
+                  onChange={e => set('website_url', e.target.value)}
+                  placeholder="e.g. ironplanet.com or yourwebsite.ca" />
+              </div>
+            )}
 
             {/* Worker sponsorship */}
             {form.type === 'worker' && (
