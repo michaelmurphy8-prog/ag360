@@ -33,31 +33,31 @@ export default function AboutPage() {
       <div className="px-5 mt-5 space-y-4">
         {/* Origin story */}
         <div className="rounded-2xl p-5" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-          <h2 className="text-sm font-bold mb-3" style={{ color: '#0D1520' }}>Why we built this</h2>
+          <h2 className="text-sm font-bold mb-3" style={{ color: '#0D1520' }}>Mike Murphy-Founder/CEO — Why I built this?</h2>
           <div className="space-y-3 text-xs leading-relaxed" style={{ color: '#4B5563' }}>
             <p>
               Every harvest season, farmers across the world face the same problem — not enough time, not enough hands, and no good way to find the right people fast. You'd ask around at the coffee shop, post in a Facebook group, or rely on word of mouth that may or may not come through before the combine needs to roll.
             </p>
             <p>
-              Connect360 wasn't built in a boardroom or designed by someone who learned about farming from a Google search. It was built by a caring <span className="font-semibold" style={{ color: '#0D1520' }}>Farmer</span> in Saskatchewan, Canada — on the same land it was meant to serve.
+              Connect360 wasn't built in a boardroom or designed by someone who learned about farming from a Google search. I built it — on the same land it was meant to serve, in Saskatchewan, Canada.
             </p>
             <p>
-              We know what it's like to need a Class 1 driver at 6am. We know what it's like to be three weeks from seeding and still short a good operator. We know what it feels like when the right connection — the right person — shows up at the right time and makes everything click.
+              I know what it's like to need a Class 1 driver at 6am. I know what it's like to be three weeks from seeding and still short a good operator. I know what it feels like when the right connection — the right person — shows up at the right time and makes everything click.
             </p>
             <p>
-              That's the gap Connect360 fills. Not another generic job board. Not another app built by a tech company that has never smelled a freshly cut canola field. A real platform, built by people who live this — for the farmers, workers, truckers, agronomists, and service providers who keep agriculture moving.
+              That's the gap Connect360 fills. Not another generic job board. Not another app built by a tech company that has never smelled a freshly cut canola field. I taught myself to code to build this — because no one else was going to build it the right way. For the farmers, workers, truckers, agronomists, and service providers who keep agriculture moving.
             </p>
             <p style={{ color: '#C9A84C', fontWeight: 600 }}>
-              For AG, by a farmer. That's not a tagline. It's a commitment.
+              "For AG, by a farmer. That's not a tagline. It's a commitment."
             </p>
           </div>
         </div>
 
         {/* Stats/mission */}
         <div className="rounded-2xl p-5" style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-          <h2 className="text-sm font-bold mb-3" style={{ color: '#0D1520' }}>Our mission</h2>
+          <h2 className="text-sm font-bold mb-3" style={{ color: '#0D1520' }}>My mission</h2>
           <p className="text-xs leading-relaxed" style={{ color: '#4B5563' }}>
-            To build the most trusted agricultural network in the world — where every farmer can find the right people, and every person in agriculture can find their place. We're starting on the Canadian prairies and we're not stopping there.
+            To build the most trusted agricultural network in the world — where every farmer can find the right people, and every person in agriculture can find their place. I'm starting on the Canadian prairies and I'm not stopping here.
           </p>
         </div>
 
