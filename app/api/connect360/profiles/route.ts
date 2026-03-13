@@ -157,7 +157,12 @@ export async function POST(req: NextRequest) {
       website_url,
     } = body
 
-    if (!type || !first_name || !last_name || !email) {
+    const { userId: authedUserId } = await auth()
+    const c360 = await getC360Auth()
+    const resolvedClerkId = authedUserId ?? c360.userId ?? clerk_user_id ?? null
+    const resolvedEmail = (email ?? c360.email ?? null) as string | null
+
+    if (!type || !first_name || !last_name || !resolvedEmail) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
@@ -166,9 +171,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid provider type' }, { status: 400 })
     }
 
-    const existing = await sql`
-      SELECT id FROM connect_profiles WHERE email = ${email}
-    `
+    const existing = await sql`SELECT id FROM connect_profiles WHERE email = ${resolvedEmail}`
     if (existing.length > 0) {
       return NextResponse.json({ error: 'A profile with this email already exists' }, { status: 409 })
     }

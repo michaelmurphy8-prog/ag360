@@ -75,6 +75,19 @@ export default function Connect360AuthPage() {
     transition: 'border-color 0.2s',
   }
 
+  async function setC360Session() {
+    try {
+      const token = await clerkInstance?.session?.getToken()
+      const email = clerkInstance?.user?.primaryEmailAddress?.emailAddress ?? ''
+      const userId = clerkInstance?.user?.id ?? ''
+      if (token) await fetch('/api/connect360/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, email, userId }),
+      })
+    } catch {}
+  }
+
   async function handleSubmit() {
     if (!signInLoaded || !signUpLoaded) return
     setLoading(true)
@@ -84,6 +97,7 @@ export default function Connect360AuthPage() {
         const result = await signIn.create({ identifier: email, password })
         if (result.status === 'complete') {
           await setActiveSignIn({ session: result.createdSessionId })
+          await setC360Session()
           window.location.href = '/home'
         } else if (result.status === 'needs_second_factor') {
           await signIn.prepareSecondFactor({ strategy: 'email_code' })
@@ -96,6 +110,7 @@ export default function Connect360AuthPage() {
           setVerifying(true)
         } else if (result.status === 'complete') {
           await setActiveSignUp({ session: result.createdSessionId })
+          await setC360Session()
           window.location.href = '/home'
         }
       }

@@ -1,6 +1,6 @@
 'use client'
 import { useUser } from '@clerk/nextjs'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Truck, Sprout, Users, Briefcase, Tractor, ChevronLeft,
@@ -140,7 +140,15 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
   const { user } = useUser()
+  const [c360Email, setC360Email] = useState<string | null>(null)
+  const [c360UserId, setC360UserId] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
+  useEffect(() => {
+    fetch('/api/connect360/session').then(r => r.json()).then(d => {
+      if (d.email) setC360Email(d.email)
+      if (d.userId) setC360UserId(d.userId)
+    }).catch(() => {})
+  }, [])
   const [error, setError] = useState<string | null>(null)
   const [cvFile, setCvFile] = useState<File | null>(null)
 
@@ -212,8 +220,8 @@ export default function RegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
-          email: user?.primaryEmailAddress?.emailAddress ?? form.email,
-          clerk_user_id: user?.id ?? null,
+          email: c360Email ?? user?.primaryEmailAddress?.emailAddress ?? form.email,
+          clerk_user_id: c360UserId ?? user?.id ?? null,
           base_country: form.base_country === 'Other' ? form.base_country_other : form.base_country,
           base_province: form.base_province === 'Other' ? form.province_other : form.base_province,
           years_experience: form.years_experience === '' ? null : Number(form.years_experience),
