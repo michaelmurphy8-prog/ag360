@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { auth } from '@clerk/nextjs/server'
+import { getC360Auth } from '@/lib/connect360-auth'
 import { getTenantAuth } from '@/lib/tenant-auth'
 
 const sql = neon(process.env.DATABASE_URL!)
@@ -14,7 +15,9 @@ export async function GET(req: NextRequest) {
   const my_jobs = searchParams.get('my_jobs') === 'true'
   const my_posts = searchParams.get('my_posts') === 'true'
   const my_applications = searchParams.get('my_applications') === 'true'
-  const { userId } = await auth()
+  const { userId: ag360Id } = await auth()
+    const c360 = await getC360Auth()
+    const userId = ag360Id ?? c360.userId
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     if (my_applications) {
@@ -52,7 +55,9 @@ export async function GET(req: NextRequest) {
 
 // POST — create a job
 export async function POST(req: NextRequest) {
-  const { userId } = await auth()
+  const { userId: ag360Id } = await auth()
+    const c360 = await getC360Auth()
+    const userId = ag360Id ?? c360.userId
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { tenantId } = await getTenantAuth()
 
@@ -92,7 +97,9 @@ export async function POST(req: NextRequest) {
 
 // PATCH — close/fill a job (owner only)
 export async function PATCH(req: NextRequest) {
-  const { userId } = await auth()
+  const { userId: ag360Id } = await auth()
+    const c360 = await getC360Auth()
+    const userId = ag360Id ?? c360.userId
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {

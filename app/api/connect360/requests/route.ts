@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { getTenantAuth } from '@/lib/tenant-auth'
 import { auth } from '@clerk/nextjs/server'
+import { getC360Auth } from '@/lib/connect360-auth'
 import { Resend } from 'resend'
 const sql = neon(process.env.DATABASE_URL!)
 const resend = new Resend(process.env.RESEND_API_KEY!)
@@ -15,7 +16,9 @@ export async function GET(req: NextRequest) {
 
   // Standalone Connect360 users — fall back to Clerk userId
   if (!tenantId) {
-    const { userId } = await auth()
+    const { userId: ag360Id } = await auth()
+    const c360 = await getC360Auth()
+    const userId = ag360Id ?? c360.userId
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     try {
       // Check if a specific profile connection exists
@@ -87,7 +90,9 @@ export async function GET(req: NextRequest) {
 // POST — farmer sends a connection request to a provider
 export async function POST(req: NextRequest) {
   const { tenantId } = await getTenantAuth()
-  const { userId } = await auth()
+  const { userId: ag360Id } = await auth()
+    const c360 = await getC360Auth()
+    const userId = ag360Id ?? c360.userId
   if (!tenantId && !userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const body = await req.json()
@@ -197,7 +202,9 @@ export async function POST(req: NextRequest) {
 }
 // PATCH — accept or decline a connection request (recipient only)
 export async function PATCH(req: NextRequest) {
-  const { userId } = await auth()
+  const { userId: ag360Id } = await auth()
+    const c360 = await getC360Auth()
+    const userId = ag360Id ?? c360.userId
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {

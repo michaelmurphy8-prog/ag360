@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { getTenantAuth } from '@/lib/tenant-auth'
 import { auth } from '@clerk/nextjs/server'
+import { getC360Auth } from '@/lib/connect360-auth'
 
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -9,7 +10,9 @@ const sql = neon(process.env.DATABASE_URL!)
 export async function GET(req: NextRequest) {
   try {
     const { tenantId } = await getTenantAuth()
-    const { userId } = await auth()
+    const { userId: ag360Id } = await auth()
+    const c360 = await getC360Auth()
+    const userId = ag360Id ?? c360.userId
     if (!tenantId && !userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const saved = await sql`
       SELECT
@@ -43,7 +46,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const { tenantId } = await getTenantAuth()
-    const { userId } = await auth()
+    const { userId: ag360Id } = await auth()
+    const c360 = await getC360Auth()
+    const userId = ag360Id ?? c360.userId
     if (!tenantId && !userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { profile_id, label } = await req.json()
     if (!profile_id) return NextResponse.json({ error: 'Missing profile_id' }, { status: 400 })
@@ -65,7 +70,9 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const { tenantId } = await getTenantAuth()
-    const { userId } = await auth()
+    const { userId: ag360Id } = await auth()
+    const c360 = await getC360Auth()
+    const userId = ag360Id ?? c360.userId
     if (!tenantId && !userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { profile_id } = await req.json()
     if (!profile_id) return NextResponse.json({ error: 'Missing profile_id' }, { status: 400 })

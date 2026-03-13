@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
 import { auth } from '@clerk/nextjs/server'
+import { getC360Auth } from '@/lib/connect360-auth'
 
 const MAX_SIZE = 10 * 1024 * 1024 // 10MB
 
@@ -16,7 +17,9 @@ const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp']
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId: ag360Id } = await auth()
+    const c360 = await getC360Auth()
+    const userId = ag360Id ?? c360.userId
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const formData = await req.formData()

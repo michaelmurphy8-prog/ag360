@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { auth } from '@clerk/nextjs/server'
+import { getC360Auth } from '@/lib/connect360-auth'
 import { getTenantAuth } from '@/lib/tenant-auth'
 
 const sql = neon(process.env.DATABASE_URL!)
