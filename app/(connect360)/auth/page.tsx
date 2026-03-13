@@ -42,6 +42,9 @@ export default function Connect360AuthPage() {
         if (result.status === 'complete') {
           await setActiveSignIn({ session: result.createdSessionId })
           window.location.href = '/home'
+        } else if (result.status === 'needs_second_factor') {
+          await signIn.prepareSecondFactor({ strategy: 'email_code' })
+          setVerifying(true)
         }
       } else {
         const result = await signUp.create({ emailAddress: email, password, firstName, lastName })
@@ -61,14 +64,22 @@ export default function Connect360AuthPage() {
   }
 
   async function handleVerify() {
-    if (!signUpLoaded) return
+    if (!signUpLoaded || !signInLoaded) return
     setLoading(true)
     setError('')
     try {
-      const result = await signUp.attemptEmailAddressVerification({ code })
-      if (result.status === 'complete') {
-        await setActiveSignUp({ session: result.createdSessionId })
-        window.location.href = '/home'
+      if (mode === 'signup') {
+        const result = await signUp.attemptEmailAddressVerification({ code })
+        if (result.status === 'complete') {
+          await setActiveSignUp({ session: result.createdSessionId })
+          window.location.href = '/home'
+        }
+      } else {
+        const result = await signIn.attemptSecondFactor({ strategy: 'email_code', code })
+        if (result.status === 'complete') {
+          await setActiveSignIn({ session: result.createdSessionId })
+          window.location.href = '/home'
+        }
       }
     } catch (err: any) {
       setError(err?.errors?.[0]?.message ?? 'Invalid code. Please try again.')
