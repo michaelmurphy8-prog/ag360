@@ -111,9 +111,9 @@ export default function ProfilePage() {
     if (!id) return
     Promise.all([
       fetch(`/api/connect360/profiles/${id}`).then(r => r.json()),
-      fetch(`/api/connect360/reviews?profile_id=${id}`).then(r => r.json()),
-      fetch(`/api/connect360/saved`).then(r => r.json()),
-      fetch(`/api/connect360/requests?profile_id=${id}`).then(r => r.json()).catch(() => ({ status: null })),
+      fetch(`/api/connect360/reviews?profile_id=${id}`).then(r => r.json()).catch(() => ({ reviews: [], total: 0, average: null })),
+      fetch(`/api/connect360/saved`).then(r => r.ok ? r.json() : { saved: [] }).catch(() => ({ saved: [] })),
+      fetch(`/api/connect360/requests?profile_id=${id}`).then(r => r.ok ? r.json() : { status: null }).catch(() => ({ status: null })),
     ]).then(([profileData, reviewData, savedData, requestData]) => {
       setProfile(profileData.profile ?? profileData)
       setReviews(reviewData.reviews ?? [])
