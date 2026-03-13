@@ -211,7 +211,7 @@ export async function POST(req: NextRequest) {
         ${worldwide ?? false},
         ${holds_licence ?? false}, ${driver_licence_type ?? null},
         ${driver_licence_province ?? null},
-        ${available_from ?? null}, ${available_to ?? null},
+        ${available_from || null}, ${available_to || null},
         ${farmer_sub_types ?? []}, ${sponsorship_offered ?? []},
         ${website_url ?? null}, ${lat}, ${lng}, 'approved'
       )
