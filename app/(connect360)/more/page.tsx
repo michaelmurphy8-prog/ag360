@@ -64,7 +64,11 @@ export default function MorePage() {
 
   async function handleSignOut() {
     setSigningOut(true)
-    await signOut({ redirectUrl: '/auth' })
+    // Clear Connect360 cookie session
+    await fetch('/api/connect360/session', { method: 'DELETE' })
+    // Also sign out of Clerk instance if active
+    try { await signOut() } catch {}
+    window.location.href = '/auth'
   }
 
   const name = user?.fullName || user?.firstName || 'Your Account'
