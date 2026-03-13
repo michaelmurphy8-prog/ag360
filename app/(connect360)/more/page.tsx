@@ -148,7 +148,7 @@ export default function MorePage() {
         { icon: Bell, label: 'Notifications', sublabel: 'Manage alerts and messages', action: () => router.push('/notifications') },
         { icon: Fingerprint, label: 'Face ID / Touch ID', sublabel: 'Set up biometric sign in', action: handlePasskeySetup },
         { icon: Shield, label: 'Privacy & safety', action: () => router.push('/privacy-safety') },
-        { icon: UserX, label: 'Hidden from', sublabel: 'Control who can see your profile', action: () => router.push('/hidden-from') },
+        { icon: UserX, label: 'Hidden from', sublabel: 'Control who can see your profile', action: () => {}, badge: 'Soon' as const },
         { icon: Globe, label: 'Language & region', action: () => router.push('/language-region') },
       ],
     },
