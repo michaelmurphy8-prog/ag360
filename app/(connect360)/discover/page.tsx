@@ -538,21 +538,32 @@ function DiscoverContent() {
                   className="w-full text-left transition-all active:scale-95"
                   style={{
                     backgroundColor: '#FFFFFF', borderRadius: 20,
-                    boxShadow: '0 2px 16px rgba(0,0,0,0.07)',
-                    overflow: 'hidden', opacity: isClosed ? 0.5 : 1,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                    overflow: 'hidden', opacity: isClosed ? 0.55 : 1,
+                    border: '1px solid rgba(0,0,0,0.04)',
                   }}>
-                  <div className="flex items-start gap-4 p-4">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: cfg.bg }}>
+                  {/* Accent bar */}
+                  <div style={{ height: 3, background: `linear-gradient(90deg, ${cfg.color}, ${cfg.color}44)` }} />
+                  <div className="flex items-center gap-4 p-4">
+                    {/* Avatar */}
+                    <div style={{
+                      width: 56, height: 56, borderRadius: 16, flexShrink: 0,
+                      backgroundColor: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      border: `1.5px solid ${cfg.color}30`, overflow: 'hidden', position: 'relative',
+                    }}>
                       {p.photo_url
-                        ? <img src={p.photo_url} className="w-14 h-14 rounded-2xl object-cover" alt="" />
+                        ? <img src={p.photo_url} style={{ width: 56, height: 56, objectFit: 'cover' }} alt="" />
                         : <Icon size={22} style={{ color: cfg.color }} />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <div className="font-bold text-sm leading-tight truncate" style={{ color: '#0D1520' }}>{name}</div>
-                          <div className="text-xs mt-0.5 font-medium" style={{ color: '#C9A84C' }}>{cfg.label}</div>
+                          <span style={{
+                            display: 'inline-block', marginTop: 3, fontSize: 10, fontWeight: 700,
+                            paddingInline: 8, paddingBlock: 2, borderRadius: 20,
+                            backgroundColor: `${cfg.color}15`, color: cfg.color, letterSpacing: '0.02em',
+                          }}>{cfg.label}</span>
                         </div>
                         {isClosed ? (
                           <div className="flex items-center gap-1 flex-shrink-0 mt-0.5 px-2 py-0.5 rounded-full"
