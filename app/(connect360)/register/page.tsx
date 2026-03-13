@@ -779,7 +779,11 @@ export default function RegisterPage() {
                   style={{ ...inputStyle, resize: 'none' }}
                   value={form.bio}
                   onChange={e => set('bio', e.target.value)}
-                  placeholder={form.type === 'professional'
+                  placeholder={form.type === 'professional' && form.professional_sub_type === 'land'
+                    ? 'Describe your land offerings — location, acreage range, lease terms, and what makes your land a great opportunity for farmers.'
+                    : form.type === 'professional' && form.professional_sub_type === 'equipment_dealer'
+                    ? 'Describe your inventory, specialties, and how you work with buyers — auction dates, financing options, and brands you carry.'
+                    : form.type === 'professional'
                     ? 'Describe your practice, areas of expertise, and how you help agricultural clients.'
                     : form.type === 'farmer'
                     ? 'Describe your operation — what you grow, the type of help you need, and what makes your farm a great place to work. This is what providers see first — make it count.'
