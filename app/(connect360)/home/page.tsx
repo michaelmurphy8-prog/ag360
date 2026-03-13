@@ -350,65 +350,7 @@ export default function Connect360HomePage() {
           </div>
         </div>
 
-        {/* Recently added */}
-        {recent.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold" style={{ color: '#0D1520' }}>Recently added</h2>
-              <button onClick={() => router.push('/discover')}
-                className="text-xs font-semibold flex items-center gap-0.5"
-                style={{ color: '#C9A84C' }}>
-                See all <ChevronRight size={13} />
-              </button>
-            </div>
-            <div className="space-y-3">
-              {recent.map(p => {
-                const cfg = TYPE_CONFIG[p.type] ?? TYPE_CONFIG.worker
-                const Icon = cfg.icon
-                const avail = AVAIL_CONFIG[p.availability] ?? AVAIL_CONFIG.unavailable
-                const name = p.business_name || `${p.first_name} ${p.last_name}`
-                const rating = p.avg_rating ? Number(p.avg_rating).toFixed(1) : null
-                return (
-                  <button key={p.id}
-                    onClick={() => router.push(`/profile/${p.id}`)}
-                    className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all active:scale-95"
-                    style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: cfg.bg }}>
-                      {p.photo_url
-                        ? <img src={p.photo_url} className="w-12 h-12 rounded-2xl object-cover" alt="" />
-                        : <Icon size={20} style={{ color: cfg.color }} />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-sm truncate" style={{ color: '#0D1520' }}>{name}</div>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        {(p.base_city || p.base_province) && (
-                          <span className="flex items-center gap-0.5 text-xs" style={{ color: '#8A9BB0' }}>
-                            <MapPin size={10} />
-                            {[p.base_city, p.base_province].filter(Boolean).join(', ')}
-                          </span>
-                        )}
-                        {rating && (
-                          <span className="flex items-center gap-0.5 text-xs font-semibold" style={{ color: '#D97706' }}>
-                            <Star size={10} fill="#F59E0B" style={{ color: '#F59E0B' }} /> {rating}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: avail.dot }} />
-                      <span className="text-[9px] font-semibold" style={{ color: avail.color }}>
-                        {avail.label}
-                      </span>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Register CTA */}
+                {/* Register CTA */}
         <button onClick={() => router.push('/register')}
           className="w-full p-5 rounded-2xl flex items-center justify-between transition-all active:scale-95 mb-4"
           style={{
