@@ -53,8 +53,7 @@ export default function MorePage() {
 
   async function handleSignOut() {
     setSigningOut(true)
-    await signOut()
-    router.replace('/auth')
+    await signOut({ redirectUrl: '/auth' })
   }
 
   const name = user?.fullName || user?.firstName || 'Your Account'
