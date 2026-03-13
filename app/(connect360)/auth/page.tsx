@@ -115,6 +115,11 @@ export default function Connect360AuthPage() {
         }
       }
     } catch (err: any) {
+      const msg = err?.errors?.[0]?.code ?? ''
+      if (msg === 'session_exists' || err?.errors?.[0]?.message?.toLowerCase().includes('session already exists')) {
+        window.location.href = '/home'
+        return
+      }
       setError(err?.errors?.[0]?.message ?? 'Something went wrong. Please try again.')
     } finally {
       setLoading(false)
