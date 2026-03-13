@@ -16,6 +16,8 @@ interface ConnectProfile {
   first_name: string
   last_name: string
   business_name?: string
+  avg_rating?: number
+  review_count?: number
 }
 
 interface MenuRow {
@@ -47,7 +49,7 @@ export default function MorePage() {
   useEffect(() => {
     fetch('/api/connect360/profiles?my_profile=true')
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.id) setProfile(d) })
+      .then(d => { if (d?.profile?.id) setProfile(d.profile) })
       .finally(() => setProfileLoading(false))
   }, [])
 
@@ -175,23 +177,59 @@ export default function MorePage() {
 
         {/* Profile card */}
         <button
-          onClick={() => router.push(profile ? '/profile' : '/register')}
-          className="w-full flex items-center gap-4 p-4 rounded-2xl text-left"
+          onClick={() => router.push(profile ? `/profile/${profile.id}` : '/register')}
+          className="w-full text-left rounded-2xl overflow-hidden"
           style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          {user?.imageUrl ? (
-            <img src={user.imageUrl} className="w-14 h-14 rounded-2xl object-cover flex-shrink-0" alt="" />
-          ) : (
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 text-lg font-bold"
-              style={{ backgroundColor: '#FDF8EE', color: '#C9A84C' }}>
-              {initials}
+          {/* Top row — avatar + identity */}
+          <div className="flex items-center gap-4 p-4 pb-3">
+            {user?.imageUrl ? (
+              <img src={user.imageUrl} className="w-14 h-14 rounded-2xl object-cover flex-shrink-0" alt="" />
+            ) : (
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 text-lg font-bold"
+                style={{ backgroundColor: '#FDF8EE', color: '#C9A84C' }}>
+                {initials}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-base truncate" style={{ color: '#0D1520' }}>{name}</div>
+              <div className="text-xs truncate mt-0.5" style={{ color: '#8A9BB0' }}>{email}</div>
+              <div className="mt-1.5"><StatusBadge /></div>
+            </div>
+            <ChevronRight size={16} style={{ color: '#D1D5DB', flexShrink: 0 }} />
+          </div>
+          {/* Stats strip — only when profile exists */}
+          {profile && (
+            <div className="flex items-center border-t mx-4 py-3 gap-0"
+              style={{ borderColor: '#F0EDE8' }}>
+              <div className="flex-1 text-center">
+                <div className="text-base font-black" style={{ color: '#0D1520' }}>
+                  {profile.avg_rating ? Number(profile.avg_rating).toFixed(1) : '—'}
+                </div>
+                <div className="text-[10px] mt-0.5 font-medium" style={{ color: '#B0A898' }}>Rating</div>
+              </div>
+              <div className="w-px h-8" style={{ backgroundColor: '#F0EDE8' }} />
+              <div className="flex-1 text-center">
+                <div className="text-base font-black" style={{ color: '#0D1520' }}>
+                  {profile.review_count ?? 0}
+                </div>
+                <div className="text-[10px] mt-0.5 font-medium" style={{ color: '#B0A898' }}>Reviews</div>
+              </div>
+              <div className="w-px h-8" style={{ backgroundColor: '#F0EDE8' }} />
+              <div className="flex-1 text-center">
+                <div className="text-base font-black" style={{ color: '#C9A84C' }}>
+                  {TYPE_LABELS[profile.type] ?? profile.type}
+                </div>
+                <div className="text-[10px] mt-0.5 font-medium" style={{ color: '#B0A898' }}>Type</div>
+              </div>
             </div>
           )}
-          <div className="flex-1 min-w-0">
-            <div className="font-bold text-base truncate" style={{ color: '#0D1520' }}>{name}</div>
-            <div className="text-xs truncate mt-0.5" style={{ color: '#8A9BB0' }}>{email}</div>
-            <div className="mt-1.5"><StatusBadge /></div>
-          </div>
-          <ChevronRight size={16} style={{ color: '#D1D5DB', flexShrink: 0 }} />
+          {/* No profile CTA */}
+          {!profile && !profileLoading && (
+            <div className="mx-4 mb-4 px-4 py-2.5 rounded-xl text-center text-xs font-bold"
+              style={{ backgroundColor: '#C9A84C', color: '#FFFFFF' }}>
+              Register as a provider →
+            </div>
+          )}
         </button>
       </div>
 

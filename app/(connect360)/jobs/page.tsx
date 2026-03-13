@@ -592,9 +592,10 @@ export default function JobsPage() {
         </div>
 
         {/* Submit */}
-        <div className="fixed bottom-0 left-0 right-0 px-5 pt-4"
+        <div className="fixed left-0 right-0 px-5 pt-4"
           style={{
-            paddingBottom: 'max(env(safe-area-inset-bottom), 24px)',
+            bottom: 'calc(64px + env(safe-area-inset-bottom))',
+            paddingBottom: 12,
             backgroundColor: '#F7F5F0', borderTop: '1px solid #EEE9E0',
           }}>
           {postSuccess ? (
