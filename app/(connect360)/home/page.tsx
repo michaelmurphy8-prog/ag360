@@ -416,7 +416,7 @@ export default function Connect360HomePage() {
               List your services
             </div>
             <div className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              Register as a provider · Free 30-day trial
+              Register as a provider · Start Connecting
             </div>
           </div>
           <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"

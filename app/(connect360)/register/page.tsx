@@ -170,15 +170,23 @@ export default function RegisterPage() {
     set(key, (arr.includes(val) ? arr.filter(c => c !== val) : [...arr, val]) as FormData[typeof key])
   }
 
+  const totalSteps = form.type === 'professional' ? 5 : 4
+  const contentStep = form.type === 'professional' ? (step === 1 ? 1 : step - 1) : step
   function canAdvance() {
     if (step === 1) return !!form.type
     if (step === 2) {
-      const base = !!(form.first_name && form.last_name && form.email)
-      if (form.type === 'professional') return base && !!form.professional_sub_type
-      return base
+      if (form.type === 'professional') return !!form.professional_sub_type
+      return !!(form.first_name && form.last_name && form.email)
     }
-    if (step === 3) return !!(form.base_city && (form.base_province || form.province_other || !['Canada','USA'].includes(form.base_country)))
-    if (step === 4) return !!form.bio.trim()
+    if (step === 3) {
+      if (form.type === 'professional') return !!(form.first_name && form.last_name && form.email)
+      return !!(form.base_city && (form.base_province || form.province_other || !['Canada','USA'].includes(form.base_country)))
+    }
+    if (step === 4) {
+      if (form.type === 'professional') return !!(form.base_city && (form.base_province || form.province_other || !['Canada','USA'].includes(form.base_country)))
+      return !!form.bio.trim()
+    }
+    if (step === 5) return !!form.bio.trim()
     return true
   }
 
@@ -216,7 +224,7 @@ export default function RegisterPage() {
   }
 
   const stepLabels = form.type === 'professional'
-    ? ['Provider Type', 'Business Details', 'Location & Availability', 'Experience & Details']
+    ? ['Provider Type', 'Service Type', 'Personal & Business', 'Location & Availability', 'Experience & Details']
     : ['Provider Type', 'Personal & Business', 'Location & Availability', 'Experience & Details']
 
   // ── Success ──
@@ -266,12 +274,12 @@ export default function RegisterPage() {
           </button>
           <div className="flex-1">
             <h1 className="text-base font-bold" style={{ color: '#0D1520' }}>Register as a Provider</h1>
-            <p className="text-xs" style={{ color: '#8A9BB0' }}>Step {step} of 4 — {stepLabels[step - 1]}</p>
+            <p className="text-xs" style={{ color: '#8A9BB0' }}>Step {step} of {totalSteps} — {stepLabels[step - 1]}</p>
           </div>
         </div>
         {/* Progress */}
         <div className="flex gap-1.5">
-          {[1,2,3,4].map(s => (
+          {Array.from({ length: totalSteps }, (_, i) => i + 1).map(s => (
             <div key={s} className="flex-1 h-1 rounded-full transition-all"
               style={{ backgroundColor: s <= step ? '#C9A84C' : '#EEE9E0' }} />
           ))}
@@ -324,8 +332,33 @@ export default function RegisterPage() {
           </>
         )}
 
-        {/* ── Step 2 — Personal & Business Info ── */}
-        {step === 2 && (
+        {/* ── Step 2 — Service Type (Professional only) ── */}
+        {step === 2 && form.type === 'professional' && (
+          <>
+            <div className="space-y-3">
+              <div className="text-xs font-bold uppercase tracking-widest px-1" style={{ color: '#B0A898' }}>Service Type *</div>
+              {PROFESSIONAL_SUB_TYPES.map(sub => (
+                <button key={sub.value} type="button"
+                  onClick={() => { set('professional_sub_type', sub.value); set('services_offered', []) }}
+                  className="w-full flex items-start gap-3 p-4 rounded-2xl text-left transition-all"
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    border: `1px solid ${form.professional_sub_type === sub.value ? '#A855F7' : '#EEE9E0'}`,
+                    boxShadow: form.professional_sub_type === sub.value ? '0 2px 16px rgba(168,85,247,0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
+                  }}>
+                  <div className="flex-1">
+                    <div className="font-bold text-sm" style={{ color: '#0D1520' }}>{sub.label}</div>
+                    <div className="text-xs mt-0.5" style={{ color: '#8A9BB0' }}>{sub.desc}</div>
+                  </div>
+                  {form.professional_sub_type === sub.value && <CheckCircle size={16} style={{ color: '#A855F7', flexShrink: 0 }} />}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ── Step 2 (non-professional) / Step 3 (professional) — Personal & Business Info ── */}
+        {contentStep === 2 && (
           <>
             {/* Farmer sub-type picker */}
             {form.type === 'farmer' && (
@@ -347,26 +380,7 @@ export default function RegisterPage() {
                 </div>
               </div>
             )}
-            {/* Professional sub-type picker */}
-            {form.type === 'professional' && (
-              <div className="rounded-2xl p-4 space-y-3"
-                style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                <label style={labelStyle}>Service Type *</label>
-                <div className="space-y-2">
-                  {PROFESSIONAL_SUB_TYPES.map(s => (
-                    <button key={s.value} type="button" onClick={() => set('professional_sub_type', s.value)}
-                      className="w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all"
-                      style={{
-                        border: `1px solid ${form.professional_sub_type === s.value ? '#C9A84C' : '#EEE9E0'}`,
-                        backgroundColor: form.professional_sub_type === s.value ? '#FDF8EE' : '#FFFFFF',
-                        color: form.professional_sub_type === s.value ? '#C9A84C' : '#0D1520',
-                      }}>
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+
             <div className="rounded-2xl p-4 space-y-3"
               style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
               <div className="grid grid-cols-2 gap-3">
@@ -571,35 +585,11 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* Professional */}
-            {form.type === 'professional' && (
-              <div className="space-y-3">
-                <div className="text-xs font-bold uppercase tracking-widest px-1" style={{ color: '#B0A898' }}>Service Type *</div>
-                {PROFESSIONAL_SUB_TYPES.map(sub => (
-                  <button key={sub.value} type="button"
-                    onClick={() => { set('professional_sub_type', sub.value); set('services_offered', []) }}
-                    className="w-full flex items-start gap-3 p-4 rounded-2xl text-left transition-all"
-                    style={{
-                      backgroundColor: '#FFFFFF',
-                      border: `1px solid ${form.professional_sub_type === sub.value ? '#A855F7' : '#EEE9E0'}`,
-                      boxShadow: form.professional_sub_type === sub.value ? '0 2px 16px rgba(168,85,247,0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
-                    }}>
-                    <div className="flex-1">
-                      <div className="font-bold text-sm" style={{ color: '#0D1520' }}>{sub.label}</div>
-                      <div className="text-xs mt-0.5" style={{ color: '#8A9BB0' }}>{sub.desc}</div>
-                    </div>
-                    {form.professional_sub_type === sub.value && <CheckCircle size={16} style={{ color: '#A855F7', flexShrink: 0 }} />}
-                  </button>
-                ))}
-
-            
-              </div>
-            )}
           </>
         )}
 
-        {/* ── Step 3 — Location & Availability ── */}
-        {step === 3 && (
+        {/* ── Step 3 (non-professional) / Step 4 (professional) — Location & Availability ── */}
+        {contentStep === 3 && (
           <>
             <div className="rounded-2xl p-4 space-y-3"
               style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
@@ -776,8 +766,8 @@ export default function RegisterPage() {
           </>
         )}
 
-        {/* ── Step 4 — Experience & Details ── */}
-        {step === 4 && (
+        {/* ── Step 4 (non-professional) / Step 5 (professional) — Experience & Details ── */}
+        {contentStep === 4 && (
           <>
             <div className="rounded-2xl p-4 space-y-4"
               style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
@@ -1108,7 +1098,7 @@ export default function RegisterPage() {
           backgroundColor: '#F7F5F0',
           borderTop: '1px solid #EEE9E0',
         }}>
-        {step < 4 ? (
+        {step < totalSteps ? (
           <button
             onClick={() => canAdvance() && setStep(s => s + 1)}
             disabled={!canAdvance()}
