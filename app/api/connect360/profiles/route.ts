@@ -63,6 +63,18 @@ export async function GET(req: NextRequest) {
           LOWER(cp.first_name || ' ' || cp.last_name) LIKE ${'%' + (search?.toLowerCase() ?? '') + '%'} OR
           LOWER(COALESCE(cp.business_name, '')) LIKE ${'%' + (search?.toLowerCase() ?? '') + '%'}
         )
+        AND cp.id NOT IN (
+          SELECT blocked_profile_id FROM connect_blocks
+          WHERE blocker_profile_id = (
+            SELECT id FROM connect_profiles WHERE clerk_user_id = ${(await auth()).userId ?? ''}
+          )
+        )
+        AND cp.id NOT IN (
+          SELECT blocker_profile_id FROM connect_blocks
+          WHERE blocked_profile_id = (
+            SELECT id FROM connect_profiles WHERE clerk_user_id = ${(await auth()).userId ?? ''}
+          )
+        )
       GROUP BY cp.id
       ORDER BY cp.verified_at DESC NULLS LAST, cp.created_at DESC
       ${limit ? sql`LIMIT ${limit}` : sql``}

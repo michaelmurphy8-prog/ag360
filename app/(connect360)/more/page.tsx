@@ -6,7 +6,7 @@ import {
   User, Bell, Shield, HelpCircle, LogOut,
   ChevronRight, Star, Bookmark, FileText,
   Globe, Info, MessageSquare, Briefcase,
-  Home, Tractor, Truck, Users, Sprout, CheckCircle, Clock, XCircle, Fingerprint
+  Home, Tractor, Truck, Users, Sprout, CheckCircle, Clock, XCircle, Fingerprint, UserX
 } from 'lucide-react'
 
 interface ConnectProfile {
@@ -138,6 +138,7 @@ export default function MorePage() {
         { icon: Bell, label: 'Notifications', sublabel: 'Manage alerts and messages', action: () => router.push('/notifications') },
         { icon: Fingerprint, label: 'Face ID / Touch ID', sublabel: 'Set up biometric sign in', action: handlePasskeySetup },
         { icon: Shield, label: 'Privacy & safety', action: () => router.push('/privacy-safety') },
+        { icon: UserX, label: 'Hidden from', sublabel: 'Control who can see your profile', action: () => router.push('/hidden-from') },
         { icon: Globe, label: 'Language & region', action: () => router.push('/language-region') },
       ],
     },
