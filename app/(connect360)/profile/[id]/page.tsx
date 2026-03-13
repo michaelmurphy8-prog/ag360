@@ -8,7 +8,7 @@ import {
   Bookmark, BookmarkCheck, Send, RefreshCw,
   Award, Calendar, Globe, Shield, ChevronRight,
   X, CheckCircle2, Flag
-} from 'lucide-react'
+, Camera } from 'lucide-react'
 
 interface Profile {
   id: string
@@ -99,7 +99,13 @@ export default function ProfilePage() {
   const [reportReason, setReportReason] = useState('')
   const [reportSent, setReportSent] = useState(false)
 
-  const isOwner = user && profile?.clerk_user_id === user.id
+  const c360Email = typeof window !== 'undefined' ? localStorage.getItem('c360_email') : null
+  const c360Uid = typeof window !== 'undefined' ? localStorage.getItem('c360_uid') : null
+  const isOwner = !!(
+    (user && profile?.clerk_user_id === user.id) ||
+    (c360Uid && profile?.clerk_user_id === c360Uid) ||
+    (c360Email && profile?.email === c360Email)
+  )
 
   useEffect(() => {
     if (!id) return
@@ -244,6 +250,28 @@ export default function ProfilePage() {
             {profile.photo_url
               ? <img src={profile.photo_url} className="w-24 h-24 rounded-3xl object-cover" alt="" />
               : <Icon size={36} style={{ color: cfg.color }} />}
+            {isOwner && (
+              <label className="absolute inset-0 flex items-center justify-center rounded-3xl cursor-pointer"
+                style={{ backgroundColor: 'rgba(0,0,0,0.35)' }}>
+                <Camera size={20} color="#fff" />
+                <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  const fd = new FormData()
+                  fd.append('file', file)
+                  const res = await fetch('/api/connect360/upload-cv', { method: 'POST', body: fd })
+                  const data = await res.json()
+                  if (data.url) {
+                    await fetch(`/api/connect360/profiles/${profile.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ photo_url: data.url }),
+                    })
+                    window.location.reload()
+                  }
+                }} />
+              </label>
+            )}
             {profile.verified_at && (
               <div className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: '#22C55E', border: '2px solid #0A1018' }}>

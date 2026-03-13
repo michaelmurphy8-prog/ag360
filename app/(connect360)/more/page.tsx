@@ -75,8 +75,8 @@ export default function MorePage() {
     window.location.href = '/auth'
   }
 
-  const name = user?.fullName || user?.firstName || 'Your Account'
-  const email = user?.primaryEmailAddress?.emailAddress ?? ''
+  const name = profile ? `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() : (user?.fullName || user?.firstName || 'Your Account')
+  const email = (typeof window !== 'undefined' ? localStorage.getItem('c360_email') : null) ?? user?.primaryEmailAddress?.emailAddress ?? ''
   const initials = name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
 
   const ProfileIcon = profile ? (TYPE_ICONS[profile.type] ?? User) : User
@@ -190,8 +190,8 @@ export default function MorePage() {
           style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           {/* Top row — avatar + identity */}
           <div className="flex items-center gap-4 p-4 pb-3">
-            {user?.imageUrl ? (
-              <img src={user.imageUrl} className="w-14 h-14 rounded-2xl object-cover flex-shrink-0" alt="" />
+            {profile?.photo_url || user?.imageUrl ? (
+              <img src={profile?.photo_url ?? user?.imageUrl} className="w-14 h-14 rounded-2xl object-cover flex-shrink-0" alt="" />
             ) : (
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 text-lg font-bold"
                 style={{ backgroundColor: '#FDF8EE', color: '#C9A84C' }}>
