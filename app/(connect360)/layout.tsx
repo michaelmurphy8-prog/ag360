@@ -19,8 +19,8 @@ export default function Connect360Layout({ children }: { children: React.ReactNo
   const router = useRouter()
   const { userId, isLoaded } = useAuth()
 
-  const showTabs = isLoaded && userId && !NO_TAB_ROUTES.some(r => pathname.includes(r))
-  const showHomeButton = isLoaded && userId && !NO_HOME_BUTTON.some(r => pathname.includes(r))
+  const showTabs = !NO_TAB_ROUTES.some(r => pathname.includes(r))
+  const showHomeButton = !NO_HOME_BUTTON.some(r => pathname.includes(r))
 
   function isActive(href: string) {
     return pathname.includes(href.replace('/', ''))
