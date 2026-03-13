@@ -75,10 +75,11 @@ export default function Connect360AuthPage() {
     transition: 'border-color 0.2s',
   }
 
-  function setC360Session(emailAddr: string, uid: string) {
+  function setC360Session(emailAddr: string, uid: string, first?: string) {
     try {
       if (emailAddr) localStorage.setItem('c360_email', emailAddr)
       if (uid) localStorage.setItem('c360_uid', uid)
+      if (first) localStorage.setItem('c360_first_name', first)
     } catch (e) { console.error('setC360Session failed:', e) }
   }
 
@@ -104,7 +105,7 @@ export default function Connect360AuthPage() {
           setVerifying(true)
         } else if (result.status === 'complete') {
           await setActiveSignUp({ session: result.createdSessionId })
-          await setC360Session(email, result.createdUserId ?? '')
+          await setC360Session(email, result.createdUserId ?? '', firstName)
           window.location.href = '/home'
         }
       }
@@ -130,7 +131,7 @@ export default function Connect360AuthPage() {
         const result = await signUp.attemptEmailAddressVerification({ code })
         if (result.status === 'complete') {
           await setActiveSignUp({ session: result.createdSessionId })
-          await setC360Session(email, result.createdUserId ?? '')
+          await setC360Session(email, result.createdUserId ?? '', firstName)
           window.location.href = '/home'
         }
       } else {
