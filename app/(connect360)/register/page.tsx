@@ -171,10 +171,10 @@ export default function RegisterPage() {
   }
 
   function canAdvance() {
-    if (step === 1) return !!form.type
+    if (step === 1) return !!form.type && (form.type !== 'professional' || !!form.professional_sub_type)
     if (step === 2) {
       const base = !!(form.first_name && form.last_name && form.email)
-      if (form.type === 'professional') return base && !!form.professional_sub_type
+      if (form.type === 'professional') return base
       return base
     }
     if (step === 3) return !!(form.base_city && (form.base_province || form.province_other || !['Canada','USA'].includes(form.base_country)))
@@ -215,7 +215,9 @@ export default function RegisterPage() {
     finally { setSubmitting(false) }
   }
 
-  const stepLabels = ['Provider Type', 'Personal & Business', 'Location & Availability', 'Experience & Details']
+  const stepLabels = form.type === 'professional'
+    ? ['Provider Type', 'Business Details', 'Location & Availability', 'Experience & Details']
+    : ['Provider Type', 'Personal & Business', 'Location & Availability', 'Experience & Details']
 
   // ── Success ──
   if (submitted) {
@@ -367,6 +369,83 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {/* Professional — Business & Licence Details */}
+            {form.type === 'professional' && subTypeConfig && (
+              <div className="rounded-2xl p-4 space-y-4"
+                style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <div className="text-xs font-bold uppercase tracking-widest" style={{ color: '#B0A898' }}>Business Details</div>
+                <div>
+                  <label style={labelStyle}>{subTypeConfig.licenceLabel}</label>
+                  <input style={inputStyle} value={form.licence_number} onChange={e => set('licence_number', e.target.value)} placeholder="Registration or licence number" />
+                  {subTypeConfig.licenceHint && (
+                    <a href={subTypeConfig.licenceHintUrl} target="_blank" rel="noopener noreferrer"
+                      className="text-[10px] mt-1 inline-block" style={{ color: '#C9A84C' }}>
+                      {subTypeConfig.licenceHint} ↗
+                    </a>
+                  )}
+                </div>
+                <div>
+                  <label style={labelStyle}>Business / Practice Name</label>
+                  <input style={inputStyle} value={form.business_name} onChange={e => set('business_name', e.target.value)} placeholder="e.g. Prairie Immigration Services" />
+                </div>
+                <div>
+                  <label style={labelStyle}>Services Offered</label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {getServicesForSubType(form.professional_sub_type).map(s => (
+                      <Chip key={s} label={s} active={form.services_offered.includes(s)} onClick={() => toggleItem('services_offered', s)} color="#A855F7" />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label style={labelStyle}>Languages Spoken</label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {LANGUAGES.map(l => (
+                      <Chip key={l} label={l} active={form.languages_spoken.includes(l)} onClick={() => toggleItem('languages_spoken', l)} color="#A855F7" />
+                    ))}
+                  </div>
+                </div>
+                {form.professional_sub_type === 'immigration_consultant' && (
+                  <>
+                    <div>
+                      <label style={labelStyle}>Worker Origin Countries</label>
+                      <p className="text-xs mb-2" style={{ color: '#B0A898' }}>Countries you have experience processing workers from</p>
+                      <div className="flex flex-wrap gap-2">
+                        {WORKER_ORIGIN_COUNTRIES.map(c => (
+                          <Chip key={c} label={c} active={form.worker_origin_countries.includes(c)} onClick={() => toggleItem('worker_origin_countries', c)} color="#A855F7" />
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Countries Served</label>
+                      <div className="flex gap-2">
+                        {['Canada','USA','Both'].map(c => {
+                          const active = c === 'Both'
+                            ? (form.countries_served.includes('Canada') && form.countries_served.includes('USA'))
+                            : (form.countries_served.includes(c) && form.countries_served.length === 1)
+                          return (
+                            <button key={c} type="button"
+                              onClick={() => set('countries_served', c === 'Both' ? ['Canada','USA'] : [c])}
+                              className="flex-1 py-2.5 rounded-xl text-xs font-semibold"
+                              style={{ border: `1px solid ${active ? '#A855F7' : '#EEE9E0'}`, backgroundColor: active ? 'rgba(168,85,247,0.08)' : '#FFFFFF', color: active ? '#A855F7' : '#8A9BB0' }}>
+                              {c}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+                <CheckRow checked={form.remote_service} onChange={v => set('remote_service', v)}
+                  label="Available for Remote / Virtual Consultations"
+                  sublabel="Clients can work with you from anywhere" color="#A855F7" />
+                <div className="flex items-start gap-2 p-3 rounded-xl text-xs"
+                  style={{ backgroundColor: '#F7F5F0', color: '#8A9BB0' }}>
+                  <Scale size={13} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>Connect360 is a directory only. You are responsible for all professional advice and services provided.</span>
+                </div>
+              </div>
+            )}
+
             {/* Trucker / Applicator */}
             {(form.type === 'trucker' || form.type === 'applicator') && (
               <div className="rounded-2xl p-4 space-y-3"
@@ -493,80 +572,7 @@ export default function RegisterPage() {
                   </button>
                 ))}
 
-                {subTypeConfig && (
-                  <div className="rounded-2xl p-4 space-y-4"
-                    style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                    <div>
-                      <label style={labelStyle}>{subTypeConfig.licenceLabel}</label>
-                      <input style={inputStyle} value={form.licence_number} onChange={e => set('licence_number', e.target.value)} placeholder="Registration or licence number" />
-                      {subTypeConfig.licenceHint && (
-                        <a href={subTypeConfig.licenceHintUrl} target="_blank" rel="noopener noreferrer"
-                          className="text-[10px] mt-1 inline-block" style={{ color: '#C9A84C' }}>
-                          {subTypeConfig.licenceHint} ↗
-                        </a>
-                      )}
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Business / Practice Name</label>
-                      <input style={inputStyle} value={form.business_name} onChange={e => set('business_name', e.target.value)} placeholder="e.g. Prairie Immigration Services" />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Services Offered</label>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {getServicesForSubType(form.professional_sub_type).map(s => (
-                          <Chip key={s} label={s} active={form.services_offered.includes(s)} onClick={() => toggleItem('services_offered', s)} color="#A855F7" />
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Languages Spoken</label>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {LANGUAGES.map(l => (
-                          <Chip key={l} label={l} active={form.languages_spoken.includes(l)} onClick={() => toggleItem('languages_spoken', l)} color="#A855F7" />
-                        ))}
-                      </div>
-                    </div>
-                    {form.professional_sub_type === 'immigration_consultant' && (
-                      <>
-                        <div>
-                          <label style={labelStyle}>Worker Origin Countries</label>
-                          <p className="text-xs mb-2" style={{ color: '#B0A898' }}>Countries you have experience processing workers from</p>
-                          <div className="flex flex-wrap gap-2">
-                            {WORKER_ORIGIN_COUNTRIES.map(c => (
-                              <Chip key={c} label={c} active={form.worker_origin_countries.includes(c)} onClick={() => toggleItem('worker_origin_countries', c)} color="#A855F7" />
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <label style={labelStyle}>Countries Served</label>
-                          <div className="flex gap-2">
-                            {['Canada','USA','Both'].map(c => {
-                              const active = c === 'Both'
-                                ? (form.countries_served.includes('Canada') && form.countries_served.includes('USA'))
-                                : (form.countries_served.includes(c) && form.countries_served.length === 1)
-                              return (
-                                <button key={c} type="button"
-                                  onClick={() => set('countries_served', c === 'Both' ? ['Canada','USA'] : [c])}
-                                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold"
-                                  style={{ border: `1px solid ${active ? '#A855F7' : '#EEE9E0'}`, backgroundColor: active ? 'rgba(168,85,247,0.08)' : '#FFFFFF', color: active ? '#A855F7' : '#8A9BB0' }}>
-                                  {c}
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                    <CheckRow checked={form.remote_service} onChange={v => set('remote_service', v)}
-                      label="Available for Remote / Virtual Consultations"
-                      sublabel="Clients can work with you from anywhere" color="#A855F7" />
-                    <div className="flex items-start gap-2 p-3 rounded-xl text-xs"
-                      style={{ backgroundColor: '#F7F5F0', color: '#8A9BB0' }}>
-                      <Scale size={13} style={{ flexShrink: 0, marginTop: 1 }} />
-                      <span>Connect360 is a directory only. You are responsible for all professional advice and services provided.</span>
-                    </div>
-                  </div>
-                )}
+            
               </div>
             )}
           </>
