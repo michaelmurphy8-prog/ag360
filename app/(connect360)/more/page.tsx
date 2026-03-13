@@ -46,10 +46,12 @@ export default function MorePage() {
   const [profile, setProfile] = useState<ConnectProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(true)
 
+  const [c360Email, setC360Email] = useState<string | null>(null)
   useEffect(() => {
-    const c360Email = typeof window !== 'undefined' ? localStorage.getItem('c360_email') : null
-    const url = c360Email 
-      ? `/api/connect360/profiles?my_profile=true&c360_email=${encodeURIComponent(c360Email)}`
+    const stored = localStorage.getItem('c360_email')
+    if (stored) setC360Email(stored)
+    const url = stored
+      ? `/api/connect360/profiles?my_profile=true&c360_email=${encodeURIComponent(stored)}`
       : '/api/connect360/profiles?my_profile=true'
     fetch(url)
       .then(r => r.ok ? r.json() : null)
@@ -76,7 +78,7 @@ export default function MorePage() {
   }
 
   const name = profile ? `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() : (user?.fullName || user?.firstName || 'Your Account')
-  const email = (typeof window !== 'undefined' ? localStorage.getItem('c360_email') : null) ?? user?.primaryEmailAddress?.emailAddress ?? ''
+  const email = c360Email ?? user?.primaryEmailAddress?.emailAddress ?? ''
   const initials = name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
 
   const ProfileIcon = profile ? (TYPE_ICONS[profile.type] ?? User) : User
