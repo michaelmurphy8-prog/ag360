@@ -141,7 +141,11 @@ export default function Connect360HomePage() {
       }).catch(() => {})
   }, [])
 
-  const firstName = user?.firstName ?? 'there'
+  const storedFirstName = typeof window !== 'undefined' ? localStorage.getItem('c360_first_name') : null
+  const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('c360_email') : null
+  const emailFirst = storedEmail ? storedEmail.split('@')[0].split('.')[0] : null
+  const emailFirstCap = emailFirst ? emailFirst.charAt(0).toUpperCase() + emailFirst.slice(1) : null
+  const firstName = user?.firstName ?? storedFirstName ?? emailFirstCap ?? 'there'
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F7F5F0' }}>
