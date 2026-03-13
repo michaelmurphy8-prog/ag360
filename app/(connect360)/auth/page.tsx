@@ -75,20 +75,14 @@ export default function Connect360AuthPage() {
     transition: 'border-color 0.2s',
   }
 
-  async function setC360Session() {
+  function setC360Session(emailAddr: string, uid: string) {
     try {
-      const token = await clerkInstance?.session?.getToken()
-      const email = clerkInstance?.user?.primaryEmailAddress?.emailAddress ?? ''
-      const userId = clerkInstance?.user?.id ?? ''
-      if (token) await fetch('/api/connect360/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, email, userId }),
-      })
-    } catch {}
+      if (emailAddr) localStorage.setItem('c360_email', emailAddr)
+      if (uid) localStorage.setItem('c360_uid', uid)
+    } catch (e) { console.error('setC360Session failed:', e) }
   }
 
-  async function handleSubmit() {
+    async function handleSubmit() {
     if (!signInLoaded || !signUpLoaded) return
     setLoading(true)
     setError('')
@@ -97,7 +91,7 @@ export default function Connect360AuthPage() {
         const result = await signIn.create({ identifier: email, password })
         if (result.status === 'complete') {
           await setActiveSignIn({ session: result.createdSessionId })
-          await setC360Session()
+          await setC360Session(email, result.createdUserId ?? '')
           window.location.href = '/home'
         } else if (result.status === 'needs_second_factor') {
           await signIn.prepareSecondFactor({ strategy: 'email_code' })
@@ -110,13 +104,14 @@ export default function Connect360AuthPage() {
           setVerifying(true)
         } else if (result.status === 'complete') {
           await setActiveSignUp({ session: result.createdSessionId })
-          await setC360Session()
+          await setC360Session(email, result.createdUserId ?? '')
           window.location.href = '/home'
         }
       }
     } catch (err: any) {
       const msg = err?.errors?.[0]?.code ?? ''
       if (msg === 'session_exists' || err?.errors?.[0]?.message?.toLowerCase().includes('session already exists')) {
+        setC360Session(email, '')
         window.location.href = '/home'
         return
       }
@@ -135,12 +130,14 @@ export default function Connect360AuthPage() {
         const result = await signUp.attemptEmailAddressVerification({ code })
         if (result.status === 'complete') {
           await setActiveSignUp({ session: result.createdSessionId })
+          await setC360Session(email, result.createdUserId ?? '')
           window.location.href = '/home'
         }
       } else {
         const result = await signIn.attemptSecondFactor({ strategy: 'email_code', code })
         if (result.status === 'complete') {
           await setActiveSignIn({ session: result.createdSessionId })
+          await setC360Session(email, result.createdUserId ?? '')
           window.location.href = '/home'
         }
       }

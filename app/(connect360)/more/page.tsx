@@ -47,7 +47,11 @@ export default function MorePage() {
   const [profileLoading, setProfileLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/connect360/profiles?my_profile=true')
+    const c360Email = typeof window !== 'undefined' ? localStorage.getItem('c360_email') : null
+    const url = c360Email 
+      ? `/api/connect360/profiles?my_profile=true&c360_email=${encodeURIComponent(c360Email)}`
+      : '/api/connect360/profiles?my_profile=true'
+    fetch(url)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.profile?.id) setProfile(d.profile) })
       .finally(() => setProfileLoading(false))

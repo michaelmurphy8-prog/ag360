@@ -144,10 +144,10 @@ export default function RegisterPage() {
   const [c360UserId, setC360UserId] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
   useEffect(() => {
-    fetch('/api/connect360/session').then(r => r.json()).then(d => {
-      if (d.email) setC360Email(d.email)
-      if (d.userId) setC360UserId(d.userId)
-    }).catch(() => {})
+    const email = typeof window !== 'undefined' ? localStorage.getItem('c360_email') : null
+    const uid = typeof window !== 'undefined' ? localStorage.getItem('c360_uid') : null
+    if (email) setC360Email(email)
+    if (uid) setC360UserId(uid)
   }, [])
   const [error, setError] = useState<string | null>(null)
   const [cvFile, setCvFile] = useState<File | null>(null)

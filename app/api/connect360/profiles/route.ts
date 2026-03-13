@@ -24,11 +24,12 @@ export async function GET(req: NextRequest) {
   try {
     // Own profile lookup — returns single profile for current user
     if (myProfile) {
-      const { userId } = await auth()
-      if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-      // Get email from Clerk to use as fallback lookup
-      const { sessionClaims } = await auth()
-      const email = sessionClaims?.email as string ?? null
+      const { userId: ag360UserId } = await auth()
+      const c360 = await getC360Auth()
+      const queryEmail = req.nextUrl.searchParams.get('c360_email')
+      const userId = ag360UserId ?? c360.userId
+      const email = queryEmail ?? c360.email
+      if (!userId && !email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       const result = await sql`
         SELECT cp.*, 
           ROUND(AVG(cr.rating)::numeric, 1) as avg_rating,
@@ -40,8 +41,7 @@ export async function GET(req: NextRequest) {
         GROUP BY cp.id
         LIMIT 1
       `
-      // Patch clerk_user_id if missing so future lookups work
-      if (result[0] && result[0].clerk_user_id !== userId) {
+      if (result[0] && result[0].clerk_user_id !== userId && userId) {
         await sql`UPDATE connect_profiles SET clerk_user_id = ${userId} WHERE id = ${result[0].id}`
       }
       return NextResponse.json({ profile: result[0] ?? null })
