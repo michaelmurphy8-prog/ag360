@@ -414,19 +414,12 @@ export default function RegisterProviderPage() {
             style={{ backgroundColor: 'rgba(212,175,55,0.15)' }}>
             <CheckCircle size={32} className="text-[var(--ag-accent)]" />
           </div>
-          <h2 className="text-xl font-bold text-ag-primary">Profile Submitted</h2>
+          <h2 className="text-xl font-bold text-ag-primary">You're Live!</h2>
           <p className="text-sm text-ag-muted">
-            Your profile is under review. AG360 manually verifies all providers
-            before they appear in the directory. You'll be contacted at{' '}
-            <span className="text-ag-primary font-medium">{form.email}</span> once approved.
+            Welcome to Connect360. Your profile is now live and visible to farmers across the network.
+            Confirmation has been sent to{' '}
+            <span className="text-ag-primary font-medium">{form.email}</span>.
           </p>
-          {form.type === 'professional' && (
-            <p className="text-xs text-ag-muted px-4 py-3 rounded-lg border"
-              style={{ borderColor: 'var(--ag-border)', backgroundColor: 'var(--ag-bg-hover)' }}>
-              Professional profiles include a licence verification step. Please ensure your registration
-              number is accurate to avoid delays.
-            </p>
-          )}
           <p className="text-xs text-ag-muted">
             Questions? Contact <a href="mailto:mike@ag360.farm" className="text-[var(--ag-accent)]">mike@ag360.farm</a>
           </p>
