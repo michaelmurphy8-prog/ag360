@@ -264,11 +264,10 @@ export default function Connect360HomePage() {
             }}>
             <div className="grid grid-cols-4">
               {[
-                { label: 'Farmers',      count: stats?.types.farmer       ?? 0 },
-                { label: 'Workers',      count: stats?.types.worker       ?? 0 },
-                { label: 'Transport',    count: stats?.types.trucker      ?? 0 },
-                { label: 'Custom',       count: stats?.types.applicator   ?? 0 },
-                { label: 'Professional', count: stats?.types.professional ?? 0 },
+                { label: 'Farmers',   count: stats?.types.farmer     ?? 0 },
+                { label: 'Workers',   count: stats?.types.worker     ?? 0 },
+                { label: 'Transport', count: stats?.types.trucker    ?? 0 },
+                { label: 'Custom',    count: stats?.types.applicator ?? 0 },
               ].map((s, i) => (
                 <div key={s.label}
                   className="text-center px-1 py-1"
