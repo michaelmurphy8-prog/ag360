@@ -517,8 +517,9 @@ export default function ProfilePage() {
 
       {/* Fixed bottom action bar */}
       {!isOwner && (
-        <div className="fixed left-1/2 -translate-x-1/2 w-full max-w-md z-30 px-5" style={{ bottom: "calc(64px + env(safe-area-inset-bottom))" }}
+        <div className="fixed left-1/2 -translate-x-1/2 w-full max-w-md z-30 px-5"
           style={{
+            bottom: 'calc(64px + env(safe-area-inset-bottom))',
             paddingBottom: 'max(env(safe-area-inset-bottom), 20px)',
             paddingTop: 12,
             backgroundColor: '#F7F5F0',
