@@ -6,7 +6,7 @@ import {
   User, Bell, Shield, HelpCircle, LogOut,
   ChevronRight, Star, Bookmark, FileText,
   Globe, Info, MessageSquare, Briefcase,
-  Home, Tractor, Truck, Users, Sprout, CheckCircle, Clock, XCircle
+  Home, Tractor, Truck, Users, Sprout, CheckCircle, Clock, XCircle, Fingerprint
 } from 'lucide-react'
 
 interface ConnectProfile {
@@ -50,6 +50,15 @@ export default function MorePage() {
       .then(d => { if (d?.id) setProfile(d) })
       .finally(() => setProfileLoading(false))
   }, [])
+
+  async function handlePasskeySetup() {
+    try {
+      await user?.createPasskey()
+      alert('Face ID / Touch ID set up successfully!')
+    } catch (err: any) {
+      alert(err?.errors?.[0]?.message ?? 'Setup failed. Please try again.')
+    }
+  }
 
   async function handleSignOut() {
     setSigningOut(true)
@@ -127,6 +136,7 @@ export default function MorePage() {
       title: 'Account',
       rows: [
         { icon: Bell, label: 'Notifications', sublabel: 'Manage alerts and messages', action: () => router.push('/notifications') },
+        { icon: Fingerprint, label: 'Face ID / Touch ID', sublabel: 'Set up biometric sign in', action: handlePasskeySetup },
         { icon: Shield, label: 'Privacy & safety', action: () => router.push('/privacy-safety') },
         { icon: Globe, label: 'Language & region', action: () => router.push('/language-region') },
       ],

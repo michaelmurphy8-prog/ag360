@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSignIn, useSignUp } from '@clerk/nextjs'
 import { Eye, EyeOff, ArrowRight, RefreshCw, CheckCircle2 } from 'lucide-react'
@@ -7,6 +7,31 @@ import { Eye, EyeOff, ArrowRight, RefreshCw, CheckCircle2 } from 'lucide-react'
 export default function Connect360AuthPage() {
   const router = useRouter()
   const { signIn, setActive: setActiveSignIn, isLoaded: signInLoaded } = useSignIn()
+  const [passkeySupported, setPasskeySupported] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.PublicKeyCredential) {
+      window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+        .then(setPasskeySupported)
+    }
+  }, [])
+
+  async function handlePasskey() {
+    if (!signInLoaded) return
+    setLoading(true)
+    setError('')
+    try {
+      const result = await signIn.authenticateWithPasskey()
+      if (result.status === 'complete') {
+        await setActiveSignIn({ session: result.createdSessionId })
+        window.location.href = '/home'
+      }
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.message ?? 'Face ID sign in failed. Try email instead.')
+    } finally {
+      setLoading(false)
+    }
+  }
   const { signUp, setActive: setActiveSignUp, isLoaded: signUpLoaded } = useSignUp()
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
@@ -218,6 +243,27 @@ export default function Connect360AuthPage() {
 
           {error && <p className="text-sm mt-3" style={{ color: '#EF4444' }}>{error}</p>}
 
+          {mode === 'signin' && passkeySupported && (
+            <>
+              <button
+                onClick={handlePasskey}
+                disabled={loading}
+                className="w-full mt-5 flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-semibold transition-all"
+                style={{
+                  backgroundColor: '#F0EDE8',
+                  color: '#6B7280',
+                  border: '1px solid #E5E1DB',
+                  opacity: loading ? 0.5 : 1,
+                }}>
+                Sign in with Face ID / Touch ID
+              </button>
+              <div className="flex items-center gap-3 my-4">
+                <div className="flex-1 h-px" style={{ backgroundColor: '#EEE9E0' }} />
+                <span className="text-xs" style={{ color: '#B0A898' }}>or use email</span>
+                <div className="flex-1 h-px" style={{ backgroundColor: '#EEE9E0' }} />
+              </div>
+            </>
+          )}
           <button
             onClick={handleSubmit}
             disabled={loading || !email || !password}
