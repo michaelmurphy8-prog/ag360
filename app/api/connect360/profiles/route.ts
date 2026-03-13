@@ -213,7 +213,7 @@ export async function POST(req: NextRequest) {
         ${driver_licence_province ?? null},
         ${available_from ?? null}, ${available_to ?? null},
         ${farmer_sub_types ?? []}, ${sponsorship_offered ?? []},
-        ${website_url ?? null}, ${lat}, ${lng}, 'pending'
+        ${website_url ?? null}, ${lat}, ${lng}, 'approved'
       )
       RETURNING id, status, created_at
     `
@@ -253,7 +253,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       profile: result[0],
-      message: 'Your profile has been submitted and is pending verification.',
+      message: 'Your profile is live on Connect360. Welcome to the network!',
     }, { status: 201 })
   } catch (err) {
     console.error('POST /api/connect360/profiles error:', err)

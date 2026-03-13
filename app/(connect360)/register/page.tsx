@@ -237,23 +237,18 @@ export default function RegisterPage() {
             style={{ backgroundColor: '#FDF8EE' }}>
             <CheckCircle size={32} style={{ color: '#C9A84C' }} />
           </div>
-          <h2 className="text-xl font-bold" style={{ color: '#0D1520' }}>Profile Submitted</h2>
+          <h2 className="text-xl font-bold" style={{ color: '#0D1520' }}>You're Live!</h2>
           <p className="text-sm leading-relaxed" style={{ color: '#8A9BB0' }}>
-            Your profile is under review. AG360 manually verifies all providers before they appear in the directory.
-            You'll be contacted at <span style={{ color: '#0D1520', fontWeight: 600 }}>{form.email}</span> once approved.
+            Welcome to Connect360. Your profile is now live and visible to farmers across the network.
+            Confirmation has been sent to <span style={{ color: '#0D1520', fontWeight: 600 }}>{form.email}</span>.
           </p>
-          {form.type === 'professional' && (
-            <p className="text-xs px-4 py-3 rounded-2xl" style={{ backgroundColor: '#FDF8EE', color: '#8A9BB0' }}>
-              Professional profiles include a licence verification step. Ensure your registration number is accurate.
-            </p>
-          )}
           <p className="text-xs" style={{ color: '#B0A898' }}>
             Questions? <a href="mailto:mike@ag360.farm" style={{ color: '#C9A84C' }}>mike@ag360.farm</a>
           </p>
           <button onClick={() => router.push('/discover')}
             className="w-full py-3 rounded-2xl text-sm font-bold"
-            style={{ backgroundColor: '#0D1520', color: '#FFFFFF' }}>
-            Browse providers
+            style={{ backgroundColor: '#C9A84C', color: '#FFFFFF' }}>
+            View the network
           </button>
         </div>
       </div>
