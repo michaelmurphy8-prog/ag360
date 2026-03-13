@@ -8,7 +8,7 @@ import {
   Bookmark, BookmarkCheck, Send, RefreshCw,
   Award, Calendar, Globe, Shield, ChevronRight,
   X, CheckCircle2, Flag
-, Camera } from 'lucide-react'
+, Camera , Tractor } from 'lucide-react'
 
 interface Profile {
   id: string
@@ -56,7 +56,8 @@ interface Review {
 const TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string; bg: string }> = {
   trucker:      { label: 'Trucker',      icon: Truck,     color: '#C9A84C', bg: '#FDF8EE' },
   applicator:   { label: 'Applicator',   icon: Sprout,    color: '#C9A84C', bg: '#FDF8EE' },
-  worker:       { label: 'Worker',       icon: Users,     color: '#C9A84C', bg: '#FDF8EE' },
+  farmer:       { label: 'Farmer',       icon: Tractor,   color: '#16A34A', bg: '#F0FDF4' },
+  worker:       { label: 'Worker',       icon: Users,     color: '#60A5FA', bg: '#EFF6FF' },
   professional: { label: 'Professional', icon: Briefcase, color: '#C9A84C', bg: '#FDF8EE' },
 }
 
