@@ -1,12 +1,31 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSignIn, useSignUp } from '@clerk/nextjs'
+import { Clerk } from '@clerk/clerk-js'
 import { Eye, EyeOff, ArrowRight, RefreshCw, CheckCircle2 } from 'lucide-react'
 
 export default function Connect360AuthPage() {
   const router = useRouter()
-  const { signIn, setActive: setActiveSignIn, isLoaded: signInLoaded } = useSignIn()
+  const [clerkInstance, setClerkInstance] = useState<any>(null)
+  const [signInLoaded, setSignInLoaded] = useState(false)
+  const [signUpLoaded, setSignUpLoaded] = useState(false)
+  const signInLoaded_ref = { current: null as any }
+  useEffect(() => {
+    const clerk = new Clerk(process.env.NEXT_PUBLIC_CLERK_CONNECT360_PUBLISHABLE_KEY!)
+    clerk.load().then(() => {
+      setClerkInstance(clerk)
+      setSignInLoaded(true)
+      setSignUpLoaded(true)
+    })
+  }, [])
+  const signIn = clerkInstance?.client?.signIn
+  const signUp = clerkInstance?.client?.signUp
+  function setActiveSignIn({ session }: { session: string }) {
+    return clerkInstance?.setActive({ session })
+  }
+  function setActiveSignUp({ session }: { session: string }) {
+    return clerkInstance?.setActive({ session })
+  }
   const [passkeySupported, setPasskeySupported] = useState(false)
 
   useEffect(() => {
@@ -32,7 +51,6 @@ export default function Connect360AuthPage() {
       setLoading(false)
     }
   }
-  const { signUp, setActive: setActiveSignUp, isLoaded: signUpLoaded } = useSignUp()
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
@@ -284,7 +302,7 @@ export default function Connect360AuthPage() {
               style={{ backgroundColor: '#F0FAF6' }}>
               <CheckCircle2 size={14} style={{ color: '#22C55E', flexShrink: 0 }} />
               <p className="text-xs" style={{ color: '#16A34A' }}>
-                30-day free trial · No credit card required
+                Free to use · No credit card required
               </p>
             </div>
           )}

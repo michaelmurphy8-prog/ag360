@@ -13,6 +13,7 @@
     "@capacitor/cli": "^8.2.0",
     "@capacitor/core": "^8.2.0",
     "@capacitor/ios": "^8.2.0",
+    "@clerk/clerk-js": "^6.3.0",
     "@clerk/nextjs": "^6.37.5",
     "@mapbox/mapbox-gl-draw": "^1.5.1",
     "@neondatabase/serverless": "^1.0.2",
