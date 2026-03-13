@@ -35,6 +35,8 @@ interface Profile {
   driver_licence_type?: string
   cv_url?: string
   farmer_sub_types?: string[]
+  crops_experienced?: string[]
+  professional_sub_type?: string
   sponsorship_offered?: string[]
   website_url?: string
   avg_rating?: number
@@ -260,6 +262,12 @@ export default function ProfilePage() {
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: avail.dot }} />
               {avail.label}
             </span>
+            {profile.professional_sub_type && (
+              <span className="text-xs font-semibold px-2 py-1 rounded-full"
+                style={{ backgroundColor: 'rgba(168,85,247,0.18)', color: '#C084FC' }}>
+                {profile.professional_sub_type}
+              </span>
+            )}
           </div>
           {location && (
             <span className="flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>
@@ -410,6 +418,23 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+        {/* Crop experience — farmer only */}
+        {profile.type === 'farmer' && profile.crops_experienced && profile.crops_experienced.length > 0 && (
+          <div className="p-4 rounded-2xl"
+            style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <h3 className="text-xs font-bold uppercase tracking-wide mb-3"
+              style={{ color: '#8A9BB0' }}>Crop Experience</h3>
+            <div className="flex flex-wrap gap-2">
+              {profile.crops_experienced.map(c => (
+                <span key={c} className="px-3 py-1.5 rounded-full text-xs font-semibold"
+                  style={{ backgroundColor: '#FDF8EE', color: '#C9A84C' }}>
+                  {c}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Sponsorship offered — farmer only */}
         {profile.type === 'farmer' && profile.sponsorship_offered && profile.sponsorship_offered.length > 0 && (
           <div className="p-4 rounded-2xl"
