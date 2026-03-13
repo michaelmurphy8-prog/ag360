@@ -171,10 +171,10 @@ export default function RegisterPage() {
   }
 
   function canAdvance() {
-    if (step === 1) return !!form.type && (form.type !== 'professional' || !!form.professional_sub_type)
+    if (step === 1) return !!form.type
     if (step === 2) {
       const base = !!(form.first_name && form.last_name && form.email)
-      if (form.type === 'professional') return base
+      if (form.type === 'professional') return base && !!form.professional_sub_type
       return base
     }
     if (step === 3) return !!(form.base_city && (form.base_province || form.province_other || !['Canada','USA'].includes(form.base_country)))
@@ -342,6 +342,26 @@ export default function RegisterPage() {
                         color: form.farmer_sub_types.includes(s) ? '#C9A84C' : '#8A9BB0',
                       }}>
                       {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Professional sub-type picker */}
+            {form.type === 'professional' && (
+              <div className="rounded-2xl p-4 space-y-3"
+                style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <label style={labelStyle}>Service Type *</label>
+                <div className="space-y-2">
+                  {PROFESSIONAL_SUB_TYPES.map(s => (
+                    <button key={s.value} type="button" onClick={() => set('professional_sub_type', s.value)}
+                      className="w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all"
+                      style={{
+                        border: `1px solid ${form.professional_sub_type === s.value ? '#C9A84C' : '#EEE9E0'}`,
+                        backgroundColor: form.professional_sub_type === s.value ? '#FDF8EE' : '#FFFFFF',
+                        color: form.professional_sub_type === s.value ? '#C9A84C' : '#0D1520',
+                      }}>
+                      {s.label}
                     </button>
                   ))}
                 </div>
