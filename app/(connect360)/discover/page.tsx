@@ -6,7 +6,7 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 import {
   Search, SlidersHorizontal, Truck, Sprout, Users, Briefcase,
   MapPin, Star, ChevronDown, X, ArrowUpDown, Map, List, ChevronRight
-} from 'lucide-react'
+, Tractor } from 'lucide-react'
 
 interface Provider {
   id: string
@@ -31,7 +31,8 @@ interface Provider {
 const TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string; bg: string }> = {
   trucker:      { label: 'Trucker',      icon: Truck,     color: '#C9A84C', bg: '#FDF8EE' },
   applicator:   { label: 'Applicator',   icon: Sprout,    color: '#C9A84C', bg: '#FDF8EE' },
-  worker:       { label: 'Worker',       icon: Users,     color: '#C9A84C', bg: '#FDF8EE' },
+  farmer:       { label: 'Farmer',       icon: Tractor,   color: '#16A34A', bg: '#F0FDF4' },
+  worker:       { label: 'Worker',       icon: Users,     color: '#60A5FA', bg: '#EFF6FF' },
   professional: { label: 'Professional', icon: Briefcase, color: '#C9A84C', bg: '#FDF8EE' },
 }
 
