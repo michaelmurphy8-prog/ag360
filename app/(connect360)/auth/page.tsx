@@ -75,11 +75,17 @@ export default function Connect360AuthPage() {
     transition: 'border-color 0.2s',
   }
 
-  function setC360Session(emailAddr: string, uid: string, first?: string) {
+  async function setC360Session(emailAddr: string, uid: string, first?: string) {
     try {
       if (emailAddr) localStorage.setItem('c360_email', emailAddr)
       if (uid) localStorage.setItem('c360_uid', uid)
       if (first) localStorage.setItem('c360_first_name', first)
+      // Also set server-side cookie for API auth
+      await fetch('/api/connect360/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailAddr, userId: uid }),
+      })
     } catch (e) { console.error('setC360Session failed:', e) }
   }
 
