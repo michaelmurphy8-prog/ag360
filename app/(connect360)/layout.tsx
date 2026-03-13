@@ -1,4 +1,5 @@
 'use client'
+import { ClerkProvider } from '@clerk/nextjs'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
 import { Compass, Users, MessageCircle, Briefcase, Grid3X3, Home } from 'lucide-react'
@@ -26,6 +27,7 @@ export default function Connect360Layout({ children }: { children: React.ReactNo
   }
 
   return (
+    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_CONNECT360_PUBLISHABLE_KEY!}>
     <div
       className="flex flex-col min-h-screen max-w-md mx-auto relative"
       style={{ backgroundColor: '#F7F5F0', color: '#0D1520' }}
@@ -81,5 +83,6 @@ export default function Connect360Layout({ children }: { children: React.ReactNo
         </nav>
       )}
     </div>
+    </ClerkProvider>
   )
 }
