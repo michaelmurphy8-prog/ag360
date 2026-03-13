@@ -244,7 +244,7 @@ function DiscoverContent() {
   const [activeType, setActiveType] = useState(searchParams.get('type') ?? '')
   const [sortBy, setSortBy] = useState('recent')
   const [showSort, setShowSort] = useState(false)
-  const [province, setProvince] = useState('')
+  const [country, setCountry] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [availability, setAvailability] = useState('')
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
@@ -255,7 +255,7 @@ function DiscoverContent() {
     try {
       const params = new URLSearchParams()
       if (activeType) params.set('type', activeType)
-      if (province) params.set('province', province)
+      if (country) params.set('country', country)
       if (availability) params.set('availability', availability)
       if (search) params.set('search', search)
       if (sortBy) params.set('sort', sortBy)
@@ -266,7 +266,7 @@ function DiscoverContent() {
     } catch { /* silent */ } finally {
       setLoading(false)
     }
-  }, [activeType, province, availability, search, sortBy])
+  }, [activeType, country, availability, search, sortBy])
 
   useEffect(() => {
     const t = setTimeout(fetchProviders, 300)
@@ -274,7 +274,7 @@ function DiscoverContent() {
   }, [fetchProviders])
 
   const activeSortLabel = SORT_OPTIONS.find(s => s.key === sortBy)?.label ?? 'Sort'
-  const hasActiveFilters = province || availability
+  const hasActiveFilters = country || availability
   const mappableCount = providers.filter(p => p.lat != null && p.lng != null).length
 
   return (
@@ -414,15 +414,24 @@ function DiscoverContent() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] font-semibold tracking-wide uppercase mb-1.5 block"
-                  style={{ color: '#8A9BB0' }}>Province</label>
+                  style={{ color: '#8A9BB0' }}>Country</label>
                 <div className="relative">
-                  <select value={province} onChange={e => setProvince(e.target.value)}
+                  <select value={country} onChange={e => setCountry(e.target.value)}
                     className="w-full appearance-none text-sm rounded-xl px-3 py-2.5 pr-8 outline-none"
                     style={{ backgroundColor: '#F7F5F0', color: '#0D1520', border: '1px solid #EEE9E0' }}>
                     <option value="">All</option>
-                    {['AB','BC','MB','NB','NL','NS','ON','PE','QC','SK'].map(p => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
+                    <option value="Canada">Canada</option>
+                    <option value="United States">United States</option>
+                    <option value="Australia">Australia</option>
+                    <option value="New Zealand">New Zealand</option>
+                    <option value="United Kingdom">United Kingdom</option>
+                    <option value="Germany">Germany</option>
+                    <option value="France">France</option>
+                    <option value="Brazil">Brazil</option>
+                    <option value="Argentina">Argentina</option>
+                    <option value="South Africa">South Africa</option>
+                    <option value="Ukraine">Ukraine</option>
+                    <option value="India">India</option>
                   </select>
                   <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
                     style={{ color: '#8A9BB0' }} />
@@ -446,7 +455,7 @@ function DiscoverContent() {
               </div>
             </div>
             {hasActiveFilters && (
-              <button onClick={() => { setProvince(''); setAvailability('') }}
+              <button onClick={() => { setCountry(''); setAvailability('') }}
                 className="mt-3 text-xs font-semibold" style={{ color: '#EF4444' }}>
                 Clear filters
               </button>
@@ -516,7 +525,7 @@ function DiscoverContent() {
               <p className="text-sm" style={{ color: '#8A9BB0' }}>Try adjusting your search or filters</p>
               {(search || activeType || hasActiveFilters) && (
                 <button
-                  onClick={() => { setSearch(''); setActiveType(''); setProvince(''); setAvailability('') }}
+                  onClick={() => { setSearch(''); setActiveType(''); setCountry(''); setAvailability('') }}
                   className="mt-4 px-5 py-2.5 rounded-full text-xs font-bold"
                   style={{ backgroundColor: '#0D1520', color: '#FFFFFF' }}>
                   Clear all
