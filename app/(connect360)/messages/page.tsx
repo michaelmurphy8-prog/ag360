@@ -300,7 +300,7 @@ export default function MessagesPage() {
         {connectionStatus !== 'accepted' && !statusLoading ? (
           <div className="px-5 pt-3 flex-shrink-0"
             style={{
-              paddingBottom: 'max(env(safe-area-inset-bottom), 20px)',
+              paddingBottom: 'max(env(safe-area-inset-bottom), 90px)',
               backgroundColor: '#FFFFFF',
               borderTop: '1px solid #EEE9E0',
             }}>
@@ -320,7 +320,7 @@ export default function MessagesPage() {
         ) : (
           <div className="px-5 pt-3"
             style={{
-              paddingBottom: 'max(env(safe-area-inset-bottom), 20px)',
+              paddingBottom: 'max(env(safe-area-inset-bottom), 90px)',
               backgroundColor: '#FFFFFF',
               borderTop: '1px solid #EEE9E0',
               flexShrink: 0,
@@ -372,7 +372,7 @@ export default function MessagesPage() {
 
   // ── INBOX VIEW ──
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F7F5F0' }}>
+    <div className="min-h-screen pb-24" style={{ backgroundColor: '#F7F5F0' }}>
 
       {/* Header */}
       <div className="px-5 pt-14 pb-5" style={{ background: 'linear-gradient(160deg, #0A1018 0%, #162030 100%)', borderRadius: '0 0 28px 28px', marginBottom: 12 }}>

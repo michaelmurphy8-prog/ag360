@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
           m.profile_id,
           m.sender_id,
           m.recipient_id,
-          m.body AS last_message,
+          COALESCE(NULLIF(m.body, ''), CASE WHEN m.attachment_name IS NOT NULL THEN '📎 ' || m.attachment_name ELSE NULL END) AS last_message,
           m.created_at AS last_message_at,
           other_profile.id AS other_profile_id,
           other_profile.first_name, other_profile.last_name, 
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
           AND unread.read_at IS NULL
         WHERE m.sender_id = ${senderId} OR m.recipient_id = ${senderId}
         GROUP BY m.thread_id, m.profile_id, m.sender_id, m.recipient_id,
-                 m.body, m.created_at, other_profile.id, other_profile.first_name, other_profile.last_name,
+                 m.body, m.attachment_name, m.created_at, other_profile.id, other_profile.first_name, other_profile.last_name,
                  other_profile.business_name, other_profile.photo_url, other_profile.type
         ORDER BY m.thread_id, m.created_at DESC
       `
