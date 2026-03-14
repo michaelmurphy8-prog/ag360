@@ -681,7 +681,7 @@ export default function ProfilePage() {
             })}
           </div>
           <div className="px-5 pt-3"
-            style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid #EEE9E0', paddingBottom: 'max(env(safe-area-inset-bottom), 24px)' }}>
+            style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid #EEE9E0', paddingBottom: 'max(env(safe-area-inset-bottom), 90px)' }}>
             <div className="flex gap-3 items-center">
               <input
                 className="flex-1 px-4 py-3 rounded-2xl text-sm outline-none"
