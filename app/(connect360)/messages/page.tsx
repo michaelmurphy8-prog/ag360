@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
+import { useC360Session } from '@/lib/use-c360-session'
 import {
   ArrowLeft, Send, RefreshCw, MessageCircle, Paperclip, FileText, X,
   Truck, Sprout, Users, Briefcase, Search
@@ -52,6 +53,7 @@ function timeAgo(dateStr: string) {
 export default function MessagesPage() {
   const router = useRouter()
   const { user } = useUser()
+  const c360Session = useC360Session()
   const [threads, setThreads] = useState<Thread[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -233,8 +235,7 @@ export default function MessagesPage() {
             </div>
           ) : (
             messages.map((m, i) => {
-              const c360uid = typeof window !== 'undefined' ? localStorage.getItem('c360_uid') : null
-              const isMine = m.sender_id === (c360uid ?? user?.id)
+              const isMine = m.sender_id === (c360Session.uid ?? user?.id)
               return (
                 <div key={m.id ?? i} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                   <div className="max-w-[78%]">

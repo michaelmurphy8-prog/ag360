@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
+import { useC360Session } from '@/lib/use-c360-session'
 import {
   ArrowLeft, Truck, Sprout, Users, Briefcase,
   MapPin, Star, Phone, Mail, MessageCircle,
@@ -102,12 +103,11 @@ export default function ProfilePage() {
   const [reportReason, setReportReason] = useState('')
   const [reportSent, setReportSent] = useState(false)
 
-  const c360Email = typeof window !== 'undefined' ? localStorage.getItem('c360_email') : null
-  const c360Uid = typeof window !== 'undefined' ? localStorage.getItem('c360_uid') : null
+  const c360Session = useC360Session()
   const isOwner = !!(
     (user && profile?.clerk_user_id === user.id) ||
-    (c360Uid && profile?.clerk_user_id === c360Uid) ||
-    (c360Email && profile?.email === c360Email)
+    (c360Session.uid && profile?.clerk_user_id === c360Session.uid) ||
+    (c360Session.email && profile?.email === c360Session.email)
   )
 
   useEffect(() => {
@@ -115,8 +115,8 @@ export default function ProfilePage() {
     Promise.all([
       fetch(`/api/connect360/profiles/${id}`).then(r => r.json()),
       fetch(`/api/connect360/reviews?profile_id=${id}`).then(r => r.json()).catch(() => ({ reviews: [], total: 0, average: null })),
-      fetch(`/api/connect360/saved?c360_uid=${typeof window !== 'undefined' ? (localStorage.getItem('c360_uid') ?? '') : ''}`).then(r => r.ok ? r.json() : { saved: [] }).catch(() => ({ saved: [] })),
-      fetch(`/api/connect360/requests?profile_id=${id}&c360_uid=${typeof window !== 'undefined' ? (localStorage.getItem('c360_uid') ?? '') : ''}`).then(r => r.ok ? r.json() : { status: null }).catch(() => ({ status: null })),
+      fetch(`/api/connect360/saved?c360_uid=${c360Session.uid ?? ''}`).then(r => r.ok ? r.json() : { saved: [] }).catch(() => ({ saved: [] })),
+      fetch(`/api/connect360/requests?profile_id=${id}&c360_uid=${c360Session.uid ?? ''}`).then(r => r.ok ? r.json() : { status: null }).catch(() => ({ status: null })),
     ]).then(([profileData, reviewData, savedData, requestData]) => {
       setProfile(profileData.profile ?? profileData)
       setReviews(reviewData.reviews ?? [])
