@@ -7,8 +7,12 @@ const ALLOWED_TYPES = [
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
 ]
-const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx']
+const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp', 'heic']
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,7 +35,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Upload to Vercel Blob
-    const filename = `connect360/cv/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+    const isImage = file.type.startsWith('image/')
+const folder = isImage ? 'connect360/photos' : 'connect360/cv'
+const filename = `${folder}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
     const blob = await put(filename, file, {
       access: 'public',
       contentType: file.type,

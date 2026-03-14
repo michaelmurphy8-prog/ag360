@@ -70,7 +70,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const {
-      poster_type, title, provider_type_needed, provider_sub_type, description,
+      poster_type, title, provider_type_needed, description,
+      provider_sub_type,
       location_city, location_province, start_date, end_date,
       rate, rate_type
     } = body

@@ -78,7 +78,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const setClauses = Object.keys(updates).map((k, i) => `${k} = $${i + 2}`).join(', ')
     const values = [id, ...Object.values(updates)]
-    await sql.unsafe(`UPDATE connect_profiles SET ${setClauses} WHERE id = $1`, values)
+    await (sql as any).query(`UPDATE connect_profiles SET ${setClauses} WHERE id = $1`, values)
 
     return NextResponse.json({ ok: true })
   } catch (err) {

@@ -18,6 +18,7 @@ interface ConnectProfile {
   business_name?: string
   avg_rating?: number
   review_count?: number
+  photo_url?: string
 }
 
 interface MenuRow {
@@ -53,7 +54,7 @@ export default function MorePage() {
     // Only fetch profile if signed into Connect360
     if (!stored) {
       setProfile(null)
-      setLoading(false)
+      setProfileLoading(false)
       return
     }
     const url = `/api/connect360/profiles?my_profile=true&c360_email=${encodeURIComponent(stored)}`

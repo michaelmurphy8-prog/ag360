@@ -319,9 +319,21 @@ function RegisterPageInner() {
       )
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Something went wrong.'); return }
-      // Store first name for greeting
-      if (form.first_name) localStorage.setItem('c360_first_name', form.first_name)
-      setSubmitted(true)
+      // Store session in localStorage so all pages can detect the profile
+const resolvedEmail = c360Email ?? user?.primaryEmailAddress?.emailAddress ?? form.email
+const resolvedUid = c360UserId ?? user?.id ?? data.profile?.clerk_user_id ?? null
+if (resolvedEmail) localStorage.setItem('c360_email', resolvedEmail)
+if (resolvedUid) localStorage.setItem('c360_uid', resolvedUid)
+if (form.first_name) localStorage.setItem('c360_first_name', form.first_name)
+// Also sync to server cookie
+try {
+  await fetch('/api/connect360/session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: resolvedEmail, uid: resolvedUid }),
+  })
+} catch {}
+setSubmitted(true)
     } catch { setError('Network error. Please try again.') }
     finally { setSubmitting(false) }
   }
