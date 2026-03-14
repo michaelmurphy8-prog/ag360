@@ -232,6 +232,7 @@ export default function JobsPage() {
   const [applyMessage, setApplyMessage] = useState('')
   const [filterType, setFilterType] = useState('any')
   const [filterCountries, setFilterCountries] = useState<string[]>([])
+  const [filterLocation, setFilterLocation] = useState('')
 
   // Post form state
   const [posting, setPosting] = useState(false)
@@ -261,7 +262,7 @@ export default function JobsPage() {
 
   useEffect(() => {
     fetchJobs()
-  }, [feedTab, filterType, filterCountries])
+  }, [feedTab, filterType, filterCountries, filterLocation])
 
   async function fetchJobs() {
     setLoading(true)
@@ -278,6 +279,8 @@ export default function JobsPage() {
         const params = new URLSearchParams({ poster_type: feedTab })
         if (filterType !== 'any') params.set('provider_type', filterType)
         if (filterCountries.length > 0) params.set('countries', filterCountries.join(','))
+        if (filterLocation) params.set('location', filterLocation)
+        if (filterLocation) params.set('location', filterLocation)
         const res = await fetch(`/api/connect360/jobs?${params}`)
         const data = await res.json()
         setJobs(data.jobs ?? [])
@@ -684,16 +687,18 @@ export default function JobsPage() {
 
       {/* Filters */}
       <div className="px-5 mb-3 flex gap-2">
-        <select
-          className="flex-1 px-3 py-2 rounded-xl text-xs font-semibold outline-none"
-          style={{
-            backgroundColor: '#FFFFFF', color: '#0D1520',
-            border: '1px solid #EEE9E0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-          }}
-          value={filterType} onChange={e => setFilterType(e.target.value)}>
-          {PROVIDER_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-
+        {feedTab === 'farm' ? (
+          <input type="text" placeholder="Search by city, province, country..."
+            className="flex-1 px-3 py-2 rounded-xl text-xs font-semibold outline-none"
+            style={{ backgroundColor: '#FFFFFF', color: '#0D1520', border: '1px solid #EEE9E0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+            value={filterLocation} onChange={e => setFilterLocation(e.target.value)} />
+        ) : (
+          <select className="flex-1 px-3 py-2 rounded-xl text-xs font-semibold outline-none"
+            style={{ backgroundColor: '#FFFFFF', color: '#0D1520', border: '1px solid #EEE9E0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+            value={filterType} onChange={e => setFilterType(e.target.value)}>
+            {PROVIDER_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        )}
         <CountryMultiSelect selected={filterCountries} onChange={setFilterCountries} />
       </div>
 
