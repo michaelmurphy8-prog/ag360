@@ -103,7 +103,8 @@ export async function POST(req: NextRequest) {
   try {
     const { tenantId } = await getTenantAuth()
     const { userId } = await auth()
-    const senderId = tenantId ?? userId
+    const c360 = await getC360Auth()
+    const senderId = tenantId ?? userId ?? c360.userId
     if (!senderId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { profile_id, body, attachment_url, attachment_name, attachment_type } = await req.json()

@@ -173,7 +173,9 @@ export default function ProfilePage() {
         body: JSON.stringify({ profile_id: id, body }),
       })
       const data = await res.json()
-      setMessages(m => [...m, data.message])
+      if (res.ok && data.message) {
+        setMessages(m => [...m, data.message])
+      }
     } catch {} finally {
       setChatSending(false)
     }
@@ -649,15 +651,15 @@ export default function ProfilePage() {
 
       {/* Chat panel */}
       {showChat && (
-        <div className="fixed inset-0 z-50 flex flex-col"
+        <div className="fixed inset-0 z-[60] flex flex-col"
           style={{ backgroundColor: '#F7F5F0' }}>
           <div className="flex items-center gap-3 px-5 pt-12 pb-4"
-            style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #EEE9E0' }}>
+            style={{ background: 'linear-gradient(160deg, #0A1018 0%, #162030 100%)' }}>
             <button onClick={() => setShowChat(false)}>
-              <ArrowLeft size={20} style={{ color: '#0D1520' }} />
+              <ArrowLeft size={20} style={{ color: '#FFFFFF' }} />
             </button>
             <div className="flex-1">
-              <div className="font-bold text-sm" style={{ color: '#0D1520' }}>{name}</div>
+              <div className="font-bold text-sm" style={{ color: '#FFFFFF' }}>{name}</div>
               <div className="text-xs" style={{ color: '#8A9BB0' }}>Connected</div>
             </div>
           </div>
@@ -678,8 +680,8 @@ export default function ProfilePage() {
               )
             })}
           </div>
-          <div className="px-5 pb-8 pt-3"
-            style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid #EEE9E0' }}>
+          <div className="px-5 pt-3"
+            style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid #EEE9E0', paddingBottom: 'max(env(safe-area-inset-bottom), 24px)' }}>
             <div className="flex gap-3 items-center">
               <input
                 className="flex-1 px-4 py-3 rounded-2xl text-sm outline-none"
