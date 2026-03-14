@@ -33,7 +33,7 @@ export default function Connect360AuthPage() {
     clerk.load().then(async () => {
       // Clear any existing Connect360 Clerk session to prevent stale user contamination
       if (clerk.user) {
-        await clerk.signOut()
+        try { await clerk.signOut({ redirectUrl: '/auth' }) } catch {}
       }
       setClerkInstance(clerk)
       setSignInLoaded(true)

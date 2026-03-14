@@ -43,8 +43,8 @@ const [networkBadge, setNetworkBadge] = useState(0)
       .catch(() => {})
     // Unread messages
     fetch(`/api/connect360/messages?c360_uid=${uid}`)
-      .then(r => r.ok ? r.json() : { unread_count: 0 })
-      .then(d => setMessageBadge(d.unread_count ?? 0))
+      .then(r => r.ok ? r.json() : { threads: [] })
+      .then(d => setMessageBadge((d.threads ?? []).reduce((s: number, t: any) => s + (t.unread_count ?? 0), 0)))
       .catch(() => {})
   }, [pathname])
 

@@ -242,7 +242,7 @@ export default function ProfilePage() {
         position: 'relative',
       }}>
         {/* Nav row */}
-        <div className="flex items-center justify-between px-5 pt-12 pb-4">
+        <div className="flex items-center justify-between px-5 pt-16 pb-4">
           <button onClick={() => router.back()}
             className="w-9 h-9 rounded-xl flex items-center justify-center"
             style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
@@ -380,7 +380,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Body */}
-      <div className="px-5 pt-5 pb-8 space-y-4">
+      <div className="px-5 pt-5 pb-40 space-y-4">
 
         {/* Bio */}
         {profile.bio && (
