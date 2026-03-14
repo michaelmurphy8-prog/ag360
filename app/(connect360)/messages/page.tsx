@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import {
   ArrowLeft, Send, RefreshCw, MessageCircle, Paperclip, FileText, X,
@@ -65,11 +65,20 @@ export default function MessagesPage() {
   const [connectionStatus, setConnectionStatus] = useState<string | null>(null)
   const [statusLoading, setStatusLoading] = useState(false)
   // Fetch inbox
+  const searchParams = useSearchParams()
+  const openProfileId = searchParams.get('open')
   useEffect(() => {
     fetchThreads()
     const interval = setInterval(fetchThreads, 10000)
     return () => clearInterval(interval)
   }, [])
+  // Auto-open thread from ?open=profileId
+  useEffect(() => {
+    if (openProfileId && threads.length > 0 && !activeThread) {
+      const match = threads.find(t => t.profile_id === openProfileId)
+      if (match) setActiveThread(match)
+    }
+  }, [openProfileId, threads])
 
   async function fetchThreads() {
     try {
@@ -95,10 +104,15 @@ export default function MessagesPage() {
     if (!activeThread) return
     setStatusLoading(true)
     try {
-      const res = await fetch(`/api/connect360/requests?profile_id=${activeThread.profile_id}`)
+      const _c360uid = localStorage.getItem('c360_uid') ?? ''
+      const res = await fetch(`/api/connect360/requests?profile_id=${activeThread.profile_id}&c360_uid=${_c360uid}`)
       const data = await res.json()
-      setConnectionStatus(data.status ?? null)
-    } catch {} finally {
+      // If we're in a thread, we're connected (thread can only exist if connection was made)
+      setConnectionStatus(data.status ?? (activeThread.thread_id ? 'accepted' : null))
+    } catch {
+      // If check fails but thread exists, still treat as connected
+      setConnectionStatus(activeThread.thread_id ? 'accepted' : null)
+    } finally {
       setStatusLoading(false)
     }
   }
@@ -108,7 +122,7 @@ export default function MessagesPage() {
     setChatLoading(true)
     try {
       const _c360uid = localStorage.getItem('c360_uid') ?? ''
-      const res = await fetch(`/api/connect360/messages?profile_id=${activeThread.profile_id}&c360_uid=${_c360uid}`)
+      const res = await fetch(`/api/connect360/messages?thread_id=${activeThread.thread_id}&c360_uid=${_c360uid}`)
       const data = await res.json()
       setMessages(data.messages ?? [])
     } catch {} finally {
@@ -129,6 +143,7 @@ export default function MessagesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          thread_id: activeThread.thread_id,
           profile_id: activeThread.profile_id,
           body,
           attachment_url: att?.url ?? null,
@@ -180,11 +195,11 @@ export default function MessagesPage() {
       <div className="flex flex-col h-screen" style={{ backgroundColor: '#F7F5F0' }}>
         {/* Header */}
         <div className="flex items-center gap-3 px-5 pt-12 pb-4"
-          style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #EEE9E0', flexShrink: 0 }}>
+          style={{ background: 'linear-gradient(160deg, #0A1018 0%, #162030 100%)', flexShrink: 0 }}>
           <button onClick={() => { setActiveThread(null); setMessages([]) }}
             className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: '#F7F5F0' }}>
-            <ArrowLeft size={18} style={{ color: '#0D1520' }} />
+            style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+            <ArrowLeft size={18} style={{ color: '#FFFFFF' }} />
           </button>
           {/* Avatar */}
           <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -194,12 +209,12 @@ export default function MessagesPage() {
               : <Icon size={16} style={{ color: cfg.color }} />}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-bold text-sm truncate" style={{ color: '#0D1520' }}>{name}</div>
+            <div className="font-bold text-sm truncate" style={{ color: '#FFFFFF' }}>{name}</div>
             <div className="text-xs" style={{ color: '#8A9BB0' }}>Connected</div>
           </div>
           <button onClick={() => router.push(`/profile/${activeThread.profile_id}`)}
             className="text-xs font-semibold px-3 py-1.5 rounded-xl"
-            style={{ backgroundColor: '#F7F5F0', color: '#C9A84C' }}>
+            style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: '#C9A84C' }}>
             Profile
           </button>
         </div>
@@ -218,7 +233,8 @@ export default function MessagesPage() {
             </div>
           ) : (
             messages.map((m, i) => {
-              const isMine = m.sender_id === user?.id
+              const c360uid = typeof window !== 'undefined' ? localStorage.getItem('c360_uid') : null
+              const isMine = m.sender_id === (c360uid ?? user?.id)
               return (
                 <div key={m.id ?? i} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                   <div className="max-w-[78%]">
@@ -424,7 +440,7 @@ export default function MessagesPage() {
             const hasUnread = thread.unread_count > 0
 
             return (
-              <button key={thread.profile_id}
+              <button key={thread.thread_id}
                 onClick={() => setActiveThread(thread)}
                 className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all active:scale-95"
                 style={{

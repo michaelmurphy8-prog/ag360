@@ -26,8 +26,13 @@ export async function GET(req: NextRequest) {
       if (profileId) {
         const result = await sql`
           SELECT status FROM connect_requests
-          WHERE clerk_user_id = ${userId}
-          AND connect_profile_id = ${profileId}
+          WHERE (clerk_user_id = ${userId} AND connect_profile_id = ${profileId})
+             OR (connect_profile_id IN (
+               SELECT id FROM connect_profiles WHERE clerk_user_id = ${userId}
+             ) AND clerk_user_id IN (
+               SELECT clerk_user_id FROM connect_profiles WHERE id = ${profileId}
+             ))
+          ORDER BY CASE WHEN status = 'accepted' THEN 0 ELSE 1 END
           LIMIT 1
         `
         return NextResponse.json({ status: result[0]?.status ?? null })

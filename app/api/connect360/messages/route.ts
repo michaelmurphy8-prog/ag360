@@ -25,8 +25,9 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     const profileId = searchParams.get('profile_id')
+    const threadIdParam = searchParams.get('thread_id')
 
-    if (!profileId) {
+    if (!profileId && !threadIdParam) {
       // Return all threads with unread counts (for inbox)
       const threads = await sql`
         SELECT DISTINCT ON (m.thread_id)
@@ -52,7 +53,21 @@ export async function GET(req: NextRequest) {
       `
       return NextResponse.json({ threads })
     }
-
+// Direct thread fetch by thread_id
+    if (threadIdParam) {
+      const messages = await sql`
+        SELECT id, sender_id, body, attachment_url, attachment_name, attachment_type, read_at, created_at
+        FROM connect_messages
+        WHERE thread_id = ${threadIdParam}
+          AND (sender_id = ${senderId} OR recipient_id = ${senderId})
+        ORDER BY created_at ASC
+      `
+      await sql`
+        UPDATE connect_messages SET read_at = NOW()
+        WHERE thread_id = ${threadIdParam} AND recipient_id = ${senderId} AND read_at IS NULL
+      `
+      return NextResponse.json({ messages, thread_id: threadIdParam })
+    }
     // Fetch the profile to get its owner tenant_id
     const [profile] = await sql`
       SELECT clerk_user_id FROM connect_profiles WHERE id = ${profileId}
@@ -62,16 +77,18 @@ export async function GET(req: NextRequest) {
     const otherTenantId = profile.clerk_user_id
     if (!otherTenantId) return NextResponse.json({ error: 'Provider not registered' }, { status: 400 })
 
-    // Verify connection exists
-    const [connection] = await sql`
-      SELECT id FROM connect_requests
-      WHERE (clerk_user_id = ${senderId} AND connect_profile_id = ${profileId})
-         OR (clerk_user_id = ${otherTenantId} AND connect_profile_id IN (
-           SELECT id FROM connect_profiles WHERE clerk_user_id = ${senderId}
-         ))
-      LIMIT 1
-    `
-    if (!connection) return NextResponse.json({ error: 'Not connected' }, { status: 403 })
+    // Skip connection check if user owns this profile
+    if (senderId !== otherTenantId) {
+      const [connection] = await sql`
+        SELECT id FROM connect_requests
+        WHERE (clerk_user_id = ${senderId} AND connect_profile_id = ${profileId})
+           OR (clerk_user_id = ${otherTenantId} AND connect_profile_id IN (
+             SELECT id FROM connect_profiles WHERE clerk_user_id = ${senderId}
+           ))
+        LIMIT 1
+      `
+      if (!connection) return NextResponse.json({ error: 'Not connected' }, { status: 403 })
+    }
 
     const tid = threadId(senderId, otherTenantId)
 
@@ -107,7 +124,7 @@ export async function POST(req: NextRequest) {
     const senderId = tenantId ?? userId ?? c360.userId
     if (!senderId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { profile_id, body, attachment_url, attachment_name, attachment_type } = await req.json()
+    const { profile_id, body, attachment_url, attachment_name, attachment_type, thread_id: existingThreadId } = await req.json()
     if (!profile_id || (!body?.trim() && !attachment_url)) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
     }
@@ -121,7 +138,7 @@ export async function POST(req: NextRequest) {
     }
 
     const recipientId = profile.clerk_user_id
-    const tid = threadId(senderId, recipientId)
+    const tid = existingThreadId || threadId(senderId, recipientId)
     const [message] = await sql`
       INSERT INTO connect_messages (thread_id, sender_id, recipient_id, profile_id, body, attachment_url, attachment_name, attachment_type)
       VALUES (${tid}, ${senderId}, ${recipientId}, ${profile_id}, ${body?.trim() ?? null}, ${attachment_url ?? null}, ${attachment_name ?? null}, ${attachment_type ?? null})
