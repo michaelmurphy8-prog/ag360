@@ -264,6 +264,24 @@ export default function JobsPage() {
     fetchJobs()
   }, [feedTab, filterType, filterCountries, filterLocation])
 
+  async function fetchLocationSuggestions(query: string) {
+    if (query.length < 2) { setLocationSuggestions([]); return }
+    try {
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?types=place,locality,neighborhood&limit=5&access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`
+      )
+      const data = await res.json()
+      const suggestions = (data.features ?? []).map((f: any) => {
+        const parts = f.place_name.split(', ')
+        const city = parts[0]
+        const country = parts[parts.length - 1]
+        return { place_name: f.place_name, city, country }
+      })
+      setLocationSuggestions(suggestions)
+      setShowLocationDropdown(true)
+    } catch {}
+  }
+
   async function fetchJobs() {
     setLoading(true)
     try {
@@ -563,14 +581,48 @@ export default function JobsPage() {
           <div className="rounded-2xl p-4 space-y-3"
             style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
             <label style={labelStyle}>Location</label>
-            <div className="grid grid-cols-2 gap-3">
-              <input style={inputStyle} value={form.location_city}
-                onChange={e => setField('location_city', e.target.value)} placeholder="City / Town" />
-              <select style={inputStyle} value={form.location_country}
-                onChange={e => setField('location_country', e.target.value)}>
-                <option value="">Country</option>
-                {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+            <div style={{ position: 'relative' }}>
+              <input
+                style={inputStyle}
+                value={locationQuery || (form.location_city ? `${form.location_city}, ${form.location_country}` : '')}
+                onChange={e => {
+                  setLocationQuery(e.target.value)
+                  setField('location_city', '')
+                  setField('location_country', '')
+                  fetchLocationSuggestions(e.target.value)
+                }}
+                onFocus={() => locationSuggestions.length > 0 && setShowLocationDropdown(true)}
+                onBlur={() => setTimeout(() => setShowLocationDropdown(false), 200)}
+                placeholder="Search city or town..."
+              />
+              {showLocationDropdown && locationSuggestions.length > 0 && (
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                  backgroundColor: '#FFFFFF', borderRadius: 12, marginTop: 4,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)', overflow: 'hidden',
+                  border: '1px solid #EEE9E0',
+                }}>
+                  {locationSuggestions.map((s, i) => (
+                    <button key={i} type="button"
+                      onMouseDown={() => {
+                        setField('location_city', s.city)
+                        setField('location_country', s.country)
+                        setLocationQuery('')
+                        setShowLocationDropdown(false)
+                        setLocationSuggestions([])
+                      }}
+                      style={{
+                        width: '100%', textAlign: 'left', padding: '10px 14px',
+                        fontSize: 13, color: '#0D1520', backgroundColor: 'transparent',
+                        border: 'none', borderBottom: i < locationSuggestions.length - 1 ? '1px solid #F7F5F0' : 'none',
+                        cursor: 'pointer',
+                      }}>
+                      <div style={{ fontWeight: 600 }}>{s.city}</div>
+                      <div style={{ fontSize: 11, color: '#8A9BB0', marginTop: 1 }}>{s.place_name}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
