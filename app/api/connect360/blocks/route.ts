@@ -9,7 +9,8 @@ export async function GET() {
   try {
     const { userId: ag360Id } = await auth()
     const c360 = await getC360Auth()
-    const userId = ag360Id ?? c360.userId
+    const c360_uid_param = req.nextUrl?.searchParams?.get('c360_uid')
+    const userId = ag360Id ?? c360.userId ?? c360_uid_param
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const [me] = await sql`
@@ -37,7 +38,8 @@ export async function POST(req: NextRequest) {
   try {
     const { userId: ag360Id } = await auth()
     const c360 = await getC360Auth()
-    const userId = ag360Id ?? c360.userId
+    const c360_uid_param = req.nextUrl?.searchParams?.get('c360_uid')
+    const userId = ag360Id ?? c360.userId ?? c360_uid_param
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { blocked_profile_id } = await req.json()
@@ -66,7 +68,8 @@ export async function DELETE(req: NextRequest) {
   try {
     const { userId: ag360Id } = await auth()
     const c360 = await getC360Auth()
-    const userId = ag360Id ?? c360.userId
+    const c360_uid_param = req.nextUrl?.searchParams?.get('c360_uid')
+    const userId = ag360Id ?? c360.userId ?? c360_uid_param
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { blocked_profile_id } = await req.json()

@@ -41,7 +41,7 @@ export default function HiddenFromPage() {
   async function fetchBlocks() {
     setLoading(true)
     try {
-      const res = await fetch('/api/connect360/blocks')
+      const res = await fetch(`/api/connect360/blocks?c360_uid=${localStorage.getItem('c360_uid') ?? ''}`)
       const data = await res.json()
       setBlocks(data.blocks ?? [])
     } finally { setLoading(false) }
@@ -61,7 +61,7 @@ export default function HiddenFromPage() {
   async function handleBlock(profileId: string) {
     setBlocking(profileId)
     try {
-      await fetch('/api/connect360/blocks', {
+      await fetch(`/api/connect360/blocks?c360_uid={localStorage.getItem('c360_uid') ?? ''`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ blocked_profile_id: profileId }),
