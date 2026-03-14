@@ -73,7 +73,8 @@ export default function MessagesPage() {
 
   async function fetchThreads() {
     try {
-      const res = await fetch('/api/connect360/messages')
+      const _c360uid = localStorage.getItem('c360_uid') ?? ''
+      const res = await fetch(`/api/connect360/messages?c360_uid=${_c360uid}`)
       const data = await res.json()
       setThreads(data.threads ?? [])
     } catch {} finally {
@@ -106,7 +107,8 @@ export default function MessagesPage() {
     if (!activeThread) return
     setChatLoading(true)
     try {
-      const res = await fetch(`/api/connect360/messages?profile_id=${activeThread.profile_id}`)
+      const _c360uid = localStorage.getItem('c360_uid') ?? ''
+      const res = await fetch(`/api/connect360/messages?profile_id=${activeThread.profile_id}&c360_uid=${_c360uid}`)
       const data = await res.json()
       setMessages(data.messages ?? [])
     } catch {} finally {

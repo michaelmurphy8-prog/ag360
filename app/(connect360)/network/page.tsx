@@ -82,7 +82,7 @@ export default function NetworkPage() {
     setLoading(true)
     try {
       const [savedRes, connectedRes, pendingRes] = await Promise.all([
-        fetch('/api/connect360/saved').then(r => r.json()),
+        fetch(`/api/connect360/saved?c360_uid=${localStorage.getItem('c360_uid') ?? ''}`).then(r => r.json()),
         fetch('/api/connect360/requests?status=accepted').then(r => r.json()),
         fetch('/api/connect360/requests?incoming=true&status=pending').then(r => r.json()),
       ])
@@ -116,7 +116,7 @@ export default function NetworkPage() {
 
   async function handleUnsave(id: string) {
     setSaved(s => s.filter(p => p.id !== id))
-    await fetch('/api/connect360/saved', {
+    await fetch(`/api/connect360/saved?c360_uid=${localStorage.getItem('c360_uid') ?? ''}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ profile_id: id }),
