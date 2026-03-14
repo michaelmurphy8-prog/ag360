@@ -211,6 +211,26 @@ function RegisterPageInner() {
   }, [])
   const [error, setError] = useState<string | null>(null)
   const [editMode, setEditMode] = useState(false)
+  const [locQuery, setLocQuery] = useState('')
+  const [locSuggestions, setLocSuggestions] = useState<{place_name: string, city: string, province: string, country: string}[]>([])
+  const [showLocDrop, setShowLocDrop] = useState(false)
+
+  async function fetchLocSuggestions(query: string) {
+    if (query.length < 2) { setLocSuggestions([]); return }
+    try {
+      const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?types=place,locality&limit=6&access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`)
+      const data = await res.json()
+      const suggestions = (data.features ?? []).map((f: any) => {
+        const parts = f.place_name.split(', ')
+        const city = parts[0]
+        const country = parts[parts.length - 1]
+        const province = parts.length > 2 ? parts[1] : ''
+        return { place_name: f.place_name, city, province, country }
+      })
+      setLocSuggestions(suggestions)
+      setShowLocDrop(true)
+    } catch {}
+  }
   const [editProfileId, setEditProfileId] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const [cvFile, setCvFile] = useState<File | null>(null)
@@ -299,6 +319,8 @@ function RegisterPageInner() {
       )
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Something went wrong.'); return }
+      // Store first name for greeting
+      if (form.first_name) localStorage.setItem('c360_first_name', form.first_name)
       setSubmitted(true)
     } catch { setError('Network error. Please try again.') }
     finally { setSubmitting(false) }
@@ -474,7 +496,38 @@ function RegisterPageInner() {
               </div>
               <div>
                 <label style={labelStyle}>Phone Number</label>
-                <input style={inputStyle} type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+1 (306) 555-0000" />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <select
+                    style={{ ...inputStyle, width: 100, flexShrink: 0 }}
+                    value={form.phone.startsWith('+') ? form.phone.split(' ')[0] : '+1'}
+                    onChange={e => {
+                      const num = form.phone.replace(/^\+\d+\s?/, '')
+                      set('phone', `${e.target.value} ${num}`)
+                    }}>
+                    <option value="+1">🇨🇦 +1</option>
+                    <option value="+1">🇺🇸 +1</option>
+                    <option value="+44">🇬🇧 +44</option>
+                    <option value="+61">🇦🇺 +61</option>
+                    <option value="+64">🇳🇿 +64</option>
+                    <option value="+49">🇩🇪 +49</option>
+                    <option value="+33">🇫🇷 +33</option>
+                    <option value="+55">🇧🇷 +55</option>
+                    <option value="+54">🇦🇷 +54</option>
+                    <option value="+27">🇿🇦 +27</option>
+                    <option value="+380">🇺🇦 +380</option>
+                    <option value="+91">🇮🇳 +91</option>
+                    <option value="+48">🇵🇱 +48</option>
+                    <option value="+63">🇵🇭 +63</option>
+                    <option value="+52">🇲🇽 +52</option>
+                  </select>
+                  <input style={{ ...inputStyle, flex: 1 }} type="tel"
+                    value={form.phone.replace(/^\+\d+\s?/, '')}
+                    onChange={e => {
+                      const code = form.phone.startsWith('+') ? form.phone.split(' ')[0] : '+1'
+                      set('phone', `${code} ${e.target.value}`)
+                    }}
+                    placeholder="(306) 555-0000" />
+                </div>
               </div>
             </div>
 
@@ -678,24 +731,51 @@ function RegisterPageInner() {
                   <input style={{ ...inputStyle, marginTop: 8 }} value={form.base_country_other} onChange={e => set('base_country_other', e.target.value)} placeholder="Specify your country" />
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              <div>
                   <label style={labelStyle}>Base City / Town *</label>
-                  <input style={inputStyle} value={form.base_city} onChange={e => set('base_city', e.target.value)} placeholder="Swift Current" />
+                  <div style={{ position: 'relative' }}>
+                    <input style={inputStyle}
+                      value={locQuery || (form.base_city ? `${form.base_city}${form.base_province ? ', ' + form.base_province : ''}, ${form.base_country}` : '')}
+                      onChange={e => {
+                        setLocQuery(e.target.value)
+                        set('base_city', '')
+                        set('base_province', '')
+                        fetchLocSuggestions(e.target.value)
+                      }}
+                      onBlur={() => setTimeout(() => setShowLocDrop(false), 200)}
+                      placeholder="Start typing your city or town..." />
+                    {showLocDrop && locSuggestions.length > 0 && (
+                      <div style={{
+                        position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                        backgroundColor: '#FFFFFF', borderRadius: 12, marginTop: 4,
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)', overflow: 'hidden',
+                        border: '1px solid #EEE9E0',
+                      }}>
+                        {locSuggestions.map((s, i) => (
+                          <button key={i} type="button"
+                            onMouseDown={() => {
+                              set('base_city', s.city)
+                              set('base_province', s.province)
+                              set('base_country', s.country)
+                              setLocQuery('')
+                              setShowLocDrop(false)
+                              setLocSuggestions([])
+                            }}
+                            style={{
+                              width: '100%', textAlign: 'left', padding: '10px 14px',
+                              fontSize: 13, color: '#0D1520', backgroundColor: 'transparent',
+                              border: 'none', borderBottom: i < locSuggestions.length - 1 ? '1px solid #F7F5F0' : 'none',
+                              cursor: 'pointer',
+                            }}>
+                            <div style={{ fontWeight: 600 }}>{s.city}</div>
+                            <div style={{ fontSize: 11, color: '#8A9BB0' }}>{s.place_name}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <label style={labelStyle}>{['Canada','USA'].includes(form.base_country) ? 'Province / State *' : 'Region'}</label>
-                  {['Canada','USA'].includes(form.base_country) ? (
-                    <select style={inputStyle} value={form.base_province} onChange={e => set('base_province', e.target.value)}>
-                      <option value="">Select...</option>
-                      <optgroup label="Canada">{CANADIAN_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}</optgroup>
-                      <optgroup label="USA">{US_STATES.map(s => <option key={s} value={s}>{s}</option>)}</optgroup>
-                      <option value="Other">Other</option>
-                    </select>
-                  ) : (
-                    <input style={inputStyle} value={form.province_other} onChange={e => set('province_other', e.target.value)} placeholder="Region (optional)" />
-                  )}
-                </div>
+                <div style={{ display: 'none' }}>
               </div>
             </div>
 
