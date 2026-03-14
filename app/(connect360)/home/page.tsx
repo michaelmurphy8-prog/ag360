@@ -141,11 +141,14 @@ export default function Connect360HomePage() {
       }).catch(() => {})
   }, [])
 
-  const storedFirstName = typeof window !== 'undefined' ? localStorage.getItem('c360_first_name') : null
-  const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('c360_email') : null
-  const emailFirst = storedEmail ? storedEmail.split('@')[0].split('.')[0] : null
-  const emailFirstCap = emailFirst ? emailFirst.charAt(0).toUpperCase() + emailFirst.slice(1) : null
-  const firstName = user?.firstName ?? storedFirstName ?? emailFirstCap ?? 'there'
+  const [firstName, setFirstName] = useState('there')
+  useEffect(() => {
+    const stored = localStorage.getItem('c360_first_name')
+    const email = localStorage.getItem('c360_email')
+    const emailFirst = email ? email.split('@')[0].split('.')[0] : null
+    const emailFirstCap = emailFirst ? emailFirst.charAt(0).toUpperCase() + emailFirst.slice(1) : null
+    setFirstName(user?.firstName ?? stored ?? emailFirstCap ?? 'there')
+  }, [user])
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F7F5F0' }}>
