@@ -16,9 +16,12 @@ export async function GET(req: NextRequest) {
   const my_posts = searchParams.get('my_posts') === 'true'
   const my_applications = searchParams.get('my_applications') === 'true'
   const { userId: ag360Id } = await auth()
-    const c360 = await getC360Auth()
-    const userId = ag360Id ?? c360.userId
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const c360 = await getC360Auth()
+  const userId = ag360Id ?? c360.userId
+  // Only require auth for personal queries
+  if (!userId && (my_posts || my_applications)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   try {
     if (my_applications) {
       const jobs = await sql`
