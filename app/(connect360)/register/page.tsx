@@ -318,10 +318,9 @@ export default function RegisterPage() {
             style={{ backgroundColor: '#FDF8EE' }}>
             <CheckCircle size={32} style={{ color: '#C9A84C' }} />
           </div>
-          <h2 className="text-xl font-bold" style={{ color: '#0D1520' }}>You're Live!</h2>
+          <h2 className="text-xl font-bold" style={{ color: '#0D1520' }}>{editMode ? 'Profile Updated!' : "You're Live!"}</h2>
           <p className="text-sm leading-relaxed" style={{ color: '#8A9BB0' }}>
-            Welcome to Connect360. Your profile is now live and visible to farmers across the network.
-            Confirmation has been sent to <span style={{ color: '#0D1520', fontWeight: 600 }}>{form.email}</span>.
+            {editMode ? 'Your profile has been updated successfully.' : `Welcome to Connect360. Your profile is now live and visible to farmers across the network. Confirmation has been sent to ${form.email}.`}
           </p>
           <p className="text-xs" style={{ color: '#B0A898' }}>
             Questions? <a href="mailto:mike@ag360.farm" style={{ color: '#C9A84C' }}>mike@ag360.farm</a>
