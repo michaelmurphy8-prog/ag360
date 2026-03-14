@@ -1,6 +1,7 @@
 'use client'
 import { useUser } from '@clerk/nextjs'
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import {
   Truck, Sprout, Users, Briefcase, Tractor, ChevronLeft,
@@ -148,8 +149,70 @@ export default function RegisterPage() {
     const uid = typeof window !== 'undefined' ? localStorage.getItem('c360_uid') : null
     if (email) setC360Email(email)
     if (uid) setC360UserId(uid)
+    // Edit mode — pre-fill form with existing profile
+    if (searchParams.get('edit') === 'true' && email) {
+      setEditMode(true)
+      fetch(`/api/connect360/profiles?my_profile=true&c360_email=${encodeURIComponent(email)}`)
+        .then(r => r.json())
+        .then(data => {
+          const p = data.profile
+          if (!p) return
+          setEditProfileId(p.id)
+          setForm({
+            type: p.type ?? '',
+            first_name: p.first_name ?? '',
+            last_name: p.last_name ?? '',
+            email: p.email ?? '',
+            phone: p.phone ?? '',
+            business_name: p.business_name ?? '',
+            business_number: p.business_number ?? '',
+            insurance_confirmed: p.insurance_confirmed ?? false,
+            licence_number: p.licence_number ?? '',
+            licence_province: p.licence_province ?? '',
+            base_province: p.base_province ?? '',
+            base_city: p.base_city ?? '',
+            base_country: p.base_country ?? 'Canada',
+            base_country_other: '',
+            service_radius_km: p.service_radius_km ?? 250,
+            worldwide: p.worldwide ?? false,
+            province_other: '',
+            open_to_relocation: p.open_to_relocation ?? false,
+            work_countries: p.work_countries ?? ['Canada'],
+            bio: p.bio ?? '',
+            years_experience: p.years_experience?.toString() ?? '',
+            website_url: p.website_url ?? '',
+            equipment_owned: p.equipment_owned ?? '',
+            crops_experienced: p.crops_experienced ?? [],
+            operations_experience: p.operations_experience ?? [],
+            equipment_brands: p.equipment_brands ?? [],
+            holds_licence: p.holds_licence ?? false,
+            driver_licence_type: p.driver_licence_type ?? '',
+            driver_licence_province: p.driver_licence_province ?? '',
+            availability: p.availability ?? 'immediate',
+            available_from: p.available_from ?? '',
+            available_to: p.available_to ?? '',
+            professional_sub_type: p.professional_sub_type ?? '',
+            farmer_sub_types: p.farmer_sub_types ?? [],
+            sponsorship_offered: p.sponsorship_offered ?? [],
+            languages_spoken: p.languages_spoken ?? [],
+            services_offered: p.services_offered ?? [],
+            provinces_served: p.provinces_served ?? [],
+            countries_served: p.countries_served ?? ['Canada'],
+            remote_service: p.remote_service ?? true,
+            worker_origin_countries: p.worker_origin_countries ?? [],
+            seeking_tfw_sponsorship: p.seeking_tfw_sponsorship ?? false,
+            seeking_h2a_sponsorship: p.seeking_h2a_sponsorship ?? false,
+            citizenship_country: p.citizenship_country ?? '',
+          })
+          setStep(2) // Skip type selection in edit mode
+        })
+        .catch(() => {})
+    }
   }, [])
   const [error, setError] = useState<string | null>(null)
+  const [editMode, setEditMode] = useState(false)
+  const [editProfileId, setEditProfileId] = useState<string | null>(null)
+  const searchParams = useSearchParams()
   const [cvFile, setCvFile] = useState<File | null>(null)
 
   const [form, setForm] = useState<FormData>({
@@ -215,19 +278,25 @@ export default function RegisterPage() {
         if (!uploadRes.ok) { setError(uploadData.error ?? 'CV upload failed.'); setSubmitting(false); return }
         cv_url = uploadData.url
       }
-      const res = await fetch('/api/connect360/profiles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          email: c360Email ?? user?.primaryEmailAddress?.emailAddress ?? form.email,
-          clerk_user_id: c360UserId ?? user?.id ?? null,
-          base_country: form.base_country === 'Other' ? form.base_country_other : form.base_country,
-          base_province: form.base_province === 'Other' ? form.province_other : form.base_province,
-          years_experience: form.years_experience === '' ? null : Number(form.years_experience),
-          cv_url,
-        }),
-      })
+      const payload = {
+        ...form,
+        email: c360Email ?? user?.primaryEmailAddress?.emailAddress ?? form.email,
+        clerk_user_id: c360UserId ?? user?.id ?? null,
+        base_country: form.base_country === 'Other' ? form.base_country_other : form.base_country,
+        base_province: form.base_province === 'Other' ? form.province_other : form.base_province,
+        years_experience: form.years_experience === '' ? null : Number(form.years_experience),
+        cv_url,
+      }
+      const res = await fetch(
+        editMode && editProfileId
+          ? `/api/connect360/profiles/${editProfileId}?c360_uid=${c360UserId ?? ''}`
+          : '/api/connect360/profiles',
+        {
+          method: editMode ? 'PATCH' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      )
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Something went wrong.'); return }
       setSubmitted(true)
@@ -257,10 +326,10 @@ export default function RegisterPage() {
           <p className="text-xs" style={{ color: '#B0A898' }}>
             Questions? <a href="mailto:mike@ag360.farm" style={{ color: '#C9A84C' }}>mike@ag360.farm</a>
           </p>
-          <button onClick={() => router.push('/discover')}
+          <button onClick={() => router.push(editMode && editProfileId ? `/profile/${editProfileId}` : '/discover')}
             className="w-full py-3 rounded-2xl text-sm font-bold"
             style={{ backgroundColor: '#C9A84C', color: '#FFFFFF' }}>
-            View the network
+            {editMode ? 'Back to profile' : 'View the network'}
           </button>
         </div>
       </div>

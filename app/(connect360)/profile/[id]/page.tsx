@@ -235,7 +235,7 @@ export default function ProfilePage() {
                 : <Bookmark size={16} style={{ color: '#FFFFFF' }} />}
             </button>
             {isOwner && (
-              <button onClick={() => router.push(`/edit/${profile.id}`)}
+              <button onClick={() => router.push(`/register?edit=true`)}
                 className="px-3 py-2 rounded-xl text-xs font-bold"
                 style={{ backgroundColor: '#C9A84C', color: '#FFFFFF' }}>
                 Edit

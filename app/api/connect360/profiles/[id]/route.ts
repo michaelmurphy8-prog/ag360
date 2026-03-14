@@ -28,10 +28,58 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const { id } = await params
     const body = await req.json()
-    const { photo_url } = body
-    if (photo_url) {
-      await sql`UPDATE connect_profiles SET photo_url = ${photo_url} WHERE id = ${id}`
-    }
+    const { photo_url, first_name, last_name, phone, business_name, bio,
+      base_city, base_province, base_country, service_radius_km, worldwide,
+      open_to_relocation, work_countries, years_experience, website_url,
+      equipment_owned, crops_experienced, operations_experience, equipment_brands,
+      holds_licence, driver_licence_type, driver_licence_province,
+      availability, available_from, available_to, farmer_sub_types,
+      sponsorship_offered, languages_spoken, services_offered,
+      provinces_served, countries_served, remote_service, worker_origin_countries,
+    } = body
+
+    // Build dynamic update
+    const updates: Record<string, any> = {}
+    if (photo_url !== undefined) updates.photo_url = photo_url
+    if (first_name !== undefined) updates.first_name = first_name
+    if (last_name !== undefined) updates.last_name = last_name
+    if (phone !== undefined) updates.phone = phone
+    if (business_name !== undefined) updates.business_name = business_name
+    if (bio !== undefined) updates.bio = bio
+    if (base_city !== undefined) updates.base_city = base_city
+    if (base_province !== undefined) updates.base_province = base_province
+    if (base_country !== undefined) updates.base_country = base_country
+    if (service_radius_km !== undefined) updates.service_radius_km = service_radius_km
+    if (worldwide !== undefined) updates.worldwide = worldwide
+    if (open_to_relocation !== undefined) updates.open_to_relocation = open_to_relocation
+    if (work_countries !== undefined) updates.work_countries = work_countries
+    if (years_experience !== undefined) updates.years_experience = years_experience
+    if (website_url !== undefined) updates.website_url = website_url
+    if (equipment_owned !== undefined) updates.equipment_owned = equipment_owned
+    if (crops_experienced !== undefined) updates.crops_experienced = crops_experienced
+    if (operations_experience !== undefined) updates.operations_experience = operations_experience
+    if (equipment_brands !== undefined) updates.equipment_brands = equipment_brands
+    if (holds_licence !== undefined) updates.holds_licence = holds_licence
+    if (driver_licence_type !== undefined) updates.driver_licence_type = driver_licence_type
+    if (driver_licence_province !== undefined) updates.driver_licence_province = driver_licence_province
+    if (availability !== undefined) updates.availability = availability
+    if (available_from !== undefined) updates.available_from = available_from || null
+    if (available_to !== undefined) updates.available_to = available_to || null
+    if (farmer_sub_types !== undefined) updates.farmer_sub_types = farmer_sub_types
+    if (sponsorship_offered !== undefined) updates.sponsorship_offered = sponsorship_offered
+    if (languages_spoken !== undefined) updates.languages_spoken = languages_spoken
+    if (services_offered !== undefined) updates.services_offered = services_offered
+    if (provinces_served !== undefined) updates.provinces_served = provinces_served
+    if (countries_served !== undefined) updates.countries_served = countries_served
+    if (remote_service !== undefined) updates.remote_service = remote_service
+    if (worker_origin_countries !== undefined) updates.worker_origin_countries = worker_origin_countries
+
+    if (Object.keys(updates).length === 0) return NextResponse.json({ ok: true })
+
+    const setClauses = Object.keys(updates).map((k, i) => `${k} = $${i + 2}`).join(', ')
+    const values = [id, ...Object.values(updates)]
+    await sql.unsafe(`UPDATE connect_profiles SET ${setClauses} WHERE id = $1`, values)
+
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('PATCH profile error:', err)
