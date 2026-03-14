@@ -89,14 +89,18 @@ export default function Connect360AuthPage() {
 
   async function setC360Session(emailAddr: string, uid: string, first?: string) {
     try {
+      // Wait for clerk-js to settle then get real userId
+      await new Promise(r => setTimeout(r, 800))
+      const realUid = clerkInstance?.client?.activeSessions?.[0]?.user?.id
+        ?? clerkInstance?.user?.id
+        ?? uid
       if (emailAddr) localStorage.setItem('c360_email', emailAddr)
-      if (uid) localStorage.setItem('c360_uid', uid)
+      if (realUid) localStorage.setItem('c360_uid', realUid)
       if (first) localStorage.setItem('c360_first_name', first)
-      // Also set server-side cookie for API auth
       await fetch('/api/connect360/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailAddr, userId: uid }),
+        body: JSON.stringify({ email: emailAddr, userId: realUid }),
       })
     } catch (e) { console.error('setC360Session failed:', e) }
   }
