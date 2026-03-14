@@ -233,6 +233,10 @@ export default function JobsPage() {
   const [filterType, setFilterType] = useState('any')
   const [filterCountries, setFilterCountries] = useState<string[]>([])
   const [filterLocation, setFilterLocation] = useState('')
+  const [c360UidState, setC360UidState] = useState<string | null>(null)
+  useEffect(() => {
+    setC360UidState(localStorage.getItem('c360_uid'))
+  }, [])
   const [locationQuery, setLocationQuery] = useState('')
   const [locationSuggestions, setLocationSuggestions] = useState<{place_name: string, city: string, country: string}[]>([])
   const [showLocationDropdown, setShowLocationDropdown] = useState(false)
@@ -374,8 +378,7 @@ export default function JobsPage() {
 
   // ── JOB DETAIL VIEW ──────────────────────────────────────────────────────
   if (showDetail) {
-    const c360uid = typeof window !== 'undefined' ? localStorage.getItem('c360_uid') : null
-    const isOwn = showDetail.clerk_user_id === (c360uid ?? user?.id)
+    const isOwn = showDetail.clerk_user_id === (c360UidState ?? user?.id)
     const typeConfig = PROVIDER_TYPE_OPTIONS.find(t => t.value === showDetail.provider_type_needed) ?? PROVIDER_TYPE_OPTIONS[0]
     const Icon = typeConfig.icon
 
@@ -476,7 +479,7 @@ export default function JobsPage() {
                 <button
                   onClick={async () => {
                     if (!confirm('Delete this job posting?')) return
-                    const c360uid = localStorage.getItem('c360_uid') ?? ''
+                    const c360uid = c360UidState ?? ''
                     await fetch(`/api/connect360/jobs?id=${showDetail.id}&c360_uid=${c360uid}`, { method: 'DELETE' })
                     setShowDetail(null)
                     fetchJobs()
@@ -800,8 +803,7 @@ export default function JobsPage() {
           jobs.map(job => {
             const typeConfig = PROVIDER_TYPE_OPTIONS.find(t => t.value === job.provider_type_needed) ?? PROVIDER_TYPE_OPTIONS[0]
             const Icon = typeConfig.icon
-            const c360uid = typeof window !== 'undefined' ? localStorage.getItem('c360_uid') : null
-              const isOwn = job.clerk_user_id === (c360uid ?? user?.id)
+            const isOwn = job.clerk_user_id === (c360UidState ?? user?.id)
 
             return (
               <button key={job.id} onClick={() => setShowDetail(job)}
