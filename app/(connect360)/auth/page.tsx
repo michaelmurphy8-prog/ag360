@@ -7,6 +7,18 @@ import { Eye, EyeOff, ArrowRight, RefreshCw, CheckCircle2 } from 'lucide-react'
 export default function Connect360AuthPage() {
   const router = useRouter()
   const [clerkInstance, setClerkInstance] = useState<any>(null)
+  // On mount, sync localStorage to server cookie if already signed in
+  useEffect(() => {
+    const storedEmail = localStorage.getItem('c360_email')
+    const storedUid = localStorage.getItem('c360_uid')
+    if (storedEmail && storedUid) {
+      fetch('/api/connect360/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: storedEmail, userId: storedUid }),
+      }).catch(() => {})
+    }
+  }, [])
   const [signInLoaded, setSignInLoaded] = useState(false)
   const [signUpLoaded, setSignUpLoaded] = useState(false)
   const signInLoaded_ref = { current: null as any }

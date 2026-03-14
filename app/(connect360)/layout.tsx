@@ -1,5 +1,6 @@
 'use client'
 import { ClerkProvider } from '@clerk/nextjs'
+import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
 import { Compass, Users, MessageCircle, Briefcase, Grid3X3, Home } from 'lucide-react'
@@ -18,6 +19,18 @@ export default function Connect360Layout({ children }: { children: React.ReactNo
   const pathname = usePathname()
   const router = useRouter()
   const { userId, isLoaded } = useAuth()
+  // Sync localStorage session to server cookie on every page load
+  useEffect(() => {
+    const email = localStorage.getItem('c360_email')
+    const uid = localStorage.getItem('c360_uid')
+    if (email && uid) {
+      fetch('/api/connect360/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, userId: uid }),
+      }).catch(() => {})
+    }
+  }, [])
 
   const showTabs = !NO_TAB_ROUTES.some(r => pathname.includes(r))
   const showHomeButton = !NO_HOME_BUTTON.some(r => pathname.includes(r))
