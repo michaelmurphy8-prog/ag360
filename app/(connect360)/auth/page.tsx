@@ -7,18 +7,12 @@ import { Eye, EyeOff, ArrowRight, RefreshCw, CheckCircle2 } from 'lucide-react'
 export default function Connect360AuthPage() {
   const router = useRouter()
   const [clerkInstance, setClerkInstance] = useState<any>(null)
-  // On mount, sync localStorage to server cookie if already signed in
+  // Always start fresh on auth page — prevents stale session carryover
   useEffect(() => {
-    const storedEmail = localStorage.getItem('c360_email')
-    const storedUid = localStorage.getItem('c360_uid')
-    if (storedEmail && storedUid) {
-      fetch('/api/connect360/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: storedEmail, userId: storedUid }),
-      }).catch(() => {})
-    }
-    // If Clerk already has a session, store email from it
+    localStorage.removeItem('c360_email')
+    localStorage.removeItem('c360_uid')
+    localStorage.removeItem('c360_first_name')
+    fetch('/api/connect360/session', { method: 'DELETE' }).catch(() => {})
     const interval = setInterval(() => {
       const user = clerkInstance?.user
       if (user) {
