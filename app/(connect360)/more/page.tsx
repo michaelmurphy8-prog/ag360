@@ -181,6 +181,17 @@ export default function MorePage() {
   return (
     <div className="min-h-screen pb-10" style={{ backgroundColor: '#F7F5F0' }}>
 
+      {/* Sign-out overlay — covers AG360 flash */}
+      {signingOut && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center"
+          style={{ background: 'linear-gradient(160deg, #0A1018 0%, #162030 100%)' }}>
+          <div className="text-2xl font-black tracking-tight mb-3" style={{ color: '#FFFFFF' }}>
+            Connect<span style={{ color: '#C9A84C' }}>360</span>
+          </div>
+          <div className="text-xs" style={{ color: '#8A9BB0' }}>Signing out...</div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="px-5 pt-14 pb-6" style={{ background: 'linear-gradient(160deg, #0A1018 0%, #162030 100%)', borderRadius: '0 0 28px 28px', marginBottom: 4 }}>
         <div className="flex items-center justify-between mb-4">
