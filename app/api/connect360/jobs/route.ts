@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
         ${userId}, ${tenantId ?? null}, ${poster_type}, ${title},
         ${provider_type_needed ?? 'any'}, ${description},
         ${location_city ?? null}, ${location_province ?? null},
-        ${start_date ?? null}, ${end_date ?? null},
+        ${start_date || null}, ${end_date || null},
         ${rate ?? null}, ${rate_type ?? 'negotiable'}
       )
       RETURNING *
