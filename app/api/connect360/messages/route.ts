@@ -17,7 +17,10 @@ export async function GET(req: NextRequest) {
   try {
     const { tenantId } = await getTenantAuth()
     const { userId } = await auth()
-    const senderId = tenantId ?? userId
+    const { searchParams: _sp } = new URL(req.url)
+    const c360_uid_param = _sp.get('c360_uid')
+    const c360 = await getC360Auth()
+    const senderId = tenantId ?? userId ?? c360.userId ?? c360_uid_param
     if (!senderId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { searchParams } = new URL(req.url)
