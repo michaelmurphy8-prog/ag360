@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const {
-      poster_type, title, provider_type_needed, description,
+      poster_type, title, provider_type_needed, provider_sub_type, description,
       location_city, location_province, start_date, end_date,
       rate, rate_type
     } = body
@@ -80,12 +80,12 @@ export async function POST(req: NextRequest) {
     const result = await sql`
       INSERT INTO connect_jobs (
         clerk_user_id, tenant_id, poster_type, title,
-        provider_type_needed, description,
+        provider_type_needed, provider_sub_type, description,
         location_city, location_province,
         start_date, end_date, rate, rate_type
       ) VALUES (
         ${userId}, ${tenantId ?? null}, ${poster_type}, ${title},
-        ${provider_type_needed ?? 'any'}, ${description},
+        ${provider_type_needed ?? 'any'}, ${provider_sub_type ?? null}, ${description},
         ${location_city ?? null}, ${location_province ?? null},
         ${start_date || null}, ${end_date || null},
         ${rate ?? null}, ${rate_type ?? 'negotiable'}

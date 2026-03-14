@@ -18,6 +18,7 @@ interface Job {
   location_city?: string
   location_province?: string
   location_country?: string
+  provider_sub_type?: string
   start_date?: string
   end_date?: string
   rate?: string
@@ -43,6 +44,13 @@ const COUNTRIES = [
   'United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan',
   'Venezuela','Vietnam','Zimbabwe',
 ]
+
+const PROVIDER_SUB_TYPES: Record<string, string[]> = {
+  worker:      ['Operator', 'Seeding', 'Spraying', 'Harvest', 'Trucking', 'Livestock', 'Fencing', 'Irrigation', 'General Labour'],
+  trucker:     ['Grain Hauling', 'Livestock Transport', 'Equipment Moving', 'General Freight'],
+  applicator:  ['Spraying', 'Seeding', 'Tillage', 'Harvesting', 'Swathing', 'Baling', 'Fertilizing'],
+  professional: ['Immigration Consultant', 'Ag Accountant', 'Crop Consultant', 'Agrologist', 'Recruitment Agency', 'Agricultural Lawyer', 'Ag Insurance', 'Farm Lender', 'Veterinarian', 'Environmental Consultant', 'HR Consultant', 'Fuel & Oil', 'Construction', 'HVAC & Plumbing', 'Mechanic', 'Buildings & Storage', 'Land Rental & Sales', 'Equipment Sales'],
+}
 
 const PROVIDER_TYPE_OPTIONS = [
   { value: 'any',          label: 'Any Provider',     icon: Users     },
@@ -250,6 +258,7 @@ export default function JobsPage() {
     provider_type_needed: 'any',
     location_city: '',
     location_country: '',
+    provider_sub_type: '',
     start_date: '',
     end_date: '',
     rate: '',
@@ -345,6 +354,7 @@ export default function JobsPage() {
           setForm({
             title: '', description: '', provider_type_needed: 'any',
             location_city: '', location_country: '',
+              provider_sub_type: '',
             start_date: '', end_date: '', rate: '',
             rate_type: 'negotiable', farmer_sub_type: '',
           })
@@ -582,6 +592,28 @@ export default function JobsPage() {
               })}
             </div>
           </div>
+
+          {/* Provider Sub-type */}
+          {form.provider_type_needed && form.provider_type_needed !== 'any' && form.provider_type_needed !== 'farmer' && PROVIDER_SUB_TYPES[form.provider_type_needed] && (
+            <div className="rounded-2xl p-4 space-y-3"
+              style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+              <label style={labelStyle}>Specialisation <span style={{ color: '#B0A898', textTransform: 'none', letterSpacing: 0, fontWeight: 400 }}>(optional)</span></label>
+              <div className="flex flex-wrap gap-2">
+                {PROVIDER_SUB_TYPES[form.provider_type_needed].map(sub => (
+                  <button key={sub} type="button"
+                    onClick={() => setField('provider_sub_type', form.provider_sub_type === sub ? '' : sub)}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                    style={{
+                      backgroundColor: form.provider_sub_type === sub ? '#FDF8EE' : '#F7F5F0',
+                      color: form.provider_sub_type === sub ? '#C9A84C' : '#8A9BB0',
+                      border: `1px solid ${form.provider_sub_type === sub ? '#C9A84C' : '#EEE9E0'}`,
+                    }}>
+                    {sub}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Location */}
           <div className="rounded-2xl p-4 space-y-3"
