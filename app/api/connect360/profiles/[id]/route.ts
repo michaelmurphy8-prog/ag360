@@ -17,7 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       GROUP BY cp.id
     `
     if (!result[0]) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    return NextResponse.json(result[0])
+    return NextResponse.json({ profile: result[0] })
   } catch (err) {
     console.error('GET profile error:', err)
     return NextResponse.json({ error: 'Failed' }, { status: 500 })
