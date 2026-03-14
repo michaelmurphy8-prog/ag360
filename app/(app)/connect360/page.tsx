@@ -1123,23 +1123,6 @@ function ProfileCard({
           style={{ borderColor: 'var(--ag-border)', color: 'var(--ag-text-secondary)' }}>
           View Profile
         </a>
-        <button
-          onClick={() => !connected && onConnect(provider.id)}
-          disabled={connected || connecting}
-          className="flex-1 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5"
-          style={{
-            backgroundColor: connected ? 'var(--ag-bg-hover)' : 'var(--ag-accent)',
-            color: connected ? 'var(--ag-text-muted)' : 'var(--ag-bg-primary)',
-            cursor: connected ? 'default' : 'pointer',
-          }}>
-          {connecting ? (
-            <RefreshCw size={11} className="animate-spin" />
-          ) : connected ? (
-            <><CheckCircle size={11} /> Connected</>
-          ) : (
-            'Connect'
-          )}
-        </button>
       </div>
     </div>
   )
