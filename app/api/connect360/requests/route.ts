@@ -43,13 +43,16 @@ export async function GET(req: NextRequest) {
         const requests = await sql`
           SELECT
             cr.id, cr.status, cr.message, cr.created_at,
-            cp.id AS profile_id, cp.type, cp.first_name, cp.last_name,
-            cp.business_name, cp.photo_url,
-            cp.base_city, cp.base_province, cp.availability
+            cr.connect_profile_id AS profile_id,
+            requester.id AS requester_profile_id,
+            requester.type, requester.first_name, requester.last_name,
+            requester.business_name, requester.photo_url,
+            requester.base_city, requester.base_province, requester.availability
           FROM connect_requests cr
-          JOIN connect_profiles cp ON cp.id = cr.connect_profile_id
-          WHERE cp.clerk_user_id = ${userId}
-          ${statusFilter ? sql`AND cr.status = ${statusFilter}` : sql``}
+          JOIN connect_profiles my_profile ON my_profile.id = cr.connect_profile_id
+            AND my_profile.clerk_user_id = ${userId}
+          LEFT JOIN connect_profiles requester ON requester.clerk_user_id = cr.clerk_user_id
+          ${statusFilter ? sql`WHERE cr.status = ${statusFilter}` : sql``}
           ORDER BY cr.created_at DESC
         `
         return NextResponse.json({ requests })
@@ -127,11 +130,12 @@ export async function POST(req: NextRequest) {
     if (provider.length === 0) {
       return NextResponse.json({ error: 'Provider not found or not approved' }, { status: 404 })
     }
-    // Check for duplicate request
+    // Check for duplicate request (allow re-requesting after decline)
     const existing = await sql`
-      SELECT id FROM connect_requests
+      SELECT id, status FROM connect_requests
       WHERE (tenant_id = ${tenantId ?? null} OR clerk_user_id = ${userId ?? null})
       AND connect_profile_id = ${connect_profile_id}
+      AND status IN ('pending', 'accepted')
     `
     if (existing.length > 0) {
       return NextResponse.json({
