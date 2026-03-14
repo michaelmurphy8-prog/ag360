@@ -12,7 +12,8 @@ export async function GET(req: NextRequest) {
     const { tenantId } = await getTenantAuth()
     const { userId: ag360Id } = await auth()
     const c360 = await getC360Auth()
-    const userId = ag360Id ?? c360.userId
+    const c360_uid_param = req.nextUrl?.searchParams?.get('c360_uid')
+    const userId = ag360Id ?? c360.userId ?? c360_uid_param
     if (!tenantId && !userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const saved = await sql`
       SELECT
@@ -48,7 +49,8 @@ export async function POST(req: NextRequest) {
     const { tenantId } = await getTenantAuth()
     const { userId: ag360Id } = await auth()
     const c360 = await getC360Auth()
-    const userId = ag360Id ?? c360.userId
+    const c360_uid_param = req.nextUrl?.searchParams?.get('c360_uid')
+    const userId = ag360Id ?? c360.userId ?? c360_uid_param
     if (!tenantId && !userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { profile_id, label } = await req.json()
     if (!profile_id) return NextResponse.json({ error: 'Missing profile_id' }, { status: 400 })
@@ -72,7 +74,8 @@ export async function DELETE(req: NextRequest) {
     const { tenantId } = await getTenantAuth()
     const { userId: ag360Id } = await auth()
     const c360 = await getC360Auth()
-    const userId = ag360Id ?? c360.userId
+    const c360_uid_param = req.nextUrl?.searchParams?.get('c360_uid')
+    const userId = ag360Id ?? c360.userId ?? c360_uid_param
     if (!tenantId && !userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { profile_id } = await req.json()
     if (!profile_id) return NextResponse.json({ error: 'Missing profile_id' }, { status: 400 })

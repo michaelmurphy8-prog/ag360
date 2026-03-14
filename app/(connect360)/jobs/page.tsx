@@ -268,11 +268,13 @@ export default function JobsPage() {
     setLoading(true)
     try {
       if (feedTab === 'mine') {
-        const res = await fetch('/api/connect360/jobs?my_posts=true')
+        const c360uid = localStorage.getItem('c360_uid') ?? ''
+        const res = await fetch(`/api/connect360/jobs?my_posts=true&c360_uid=${c360uid}`)
         const data = await res.json()
         setJobs(data.jobs ?? [])
       } else if (feedTab === 'applied') {
-        const res = await fetch('/api/connect360/jobs?my_applications=true')
+        const c360uid = localStorage.getItem('c360_uid') ?? ''
+        const res = await fetch(`/api/connect360/jobs?my_applications=true&c360_uid=${c360uid}`)
         const data = await res.json()
         setJobs(data.jobs ?? [])
       } else {
@@ -687,7 +689,7 @@ export default function JobsPage() {
 
       {/* Filters */}
       <div className="px-5 mb-3 flex gap-2">
-        {feedTab === 'farm' ? (
+        {feedTab === 'farm' && typeof window !== 'undefined' ? (
           <input type="text" placeholder="Search by city, province, country..."
             className="flex-1 px-3 py-2 rounded-xl text-xs font-semibold outline-none"
             style={{ backgroundColor: '#FFFFFF', color: '#0D1520', border: '1px solid #EEE9E0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
