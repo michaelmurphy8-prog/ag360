@@ -50,9 +50,9 @@ export default function MorePage() {
   useEffect(() => {
     const stored = localStorage.getItem('c360_email')
     if (stored) setC360Email(stored)
-    const url = stored
-      ? `/api/connect360/profiles?my_profile=true&c360_email=${encodeURIComponent(stored)}`
-      : '/api/connect360/profiles?my_profile=true'
+    // Only fetch profile if signed into Connect360
+    if (!stored) return
+    const url = `/api/connect360/profiles?my_profile=true&c360_email=${encodeURIComponent(stored)}`
     fetch(url)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.profile?.id) setProfile(d.profile) })
