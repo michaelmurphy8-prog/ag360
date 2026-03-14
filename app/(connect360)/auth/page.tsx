@@ -98,7 +98,9 @@ export default function Connect360AuthPage() {
         const result = await signIn.create({ identifier: email, password })
         if (result.status === 'complete') {
           await setActiveSignIn({ session: result.createdSessionId })
-          await setC360Session(email, result.createdUserId ?? '')
+          await new Promise(r => setTimeout(r, 300))
+          const signInUid = clerkInstance?.client?.activeSessions?.[0]?.user?.id ?? result.createdUserId ?? ''
+          await setC360Session(email, signInUid)
           window.location.href = '/home'
         } else if (result.status === 'needs_second_factor') {
           await signIn.prepareSecondFactor({ strategy: 'email_code' })
@@ -144,7 +146,9 @@ export default function Connect360AuthPage() {
         const result = await signIn.attemptSecondFactor({ strategy: 'email_code', code })
         if (result.status === 'complete') {
           await setActiveSignIn({ session: result.createdSessionId })
-          await setC360Session(email, result.createdUserId ?? '')
+          await new Promise(r => setTimeout(r, 300))
+          const verifyUid = clerkInstance?.client?.activeSessions?.[0]?.user?.id ?? result.createdUserId ?? ''
+          await setC360Session(email, verifyUid)
           window.location.href = '/home'
         }
       }
