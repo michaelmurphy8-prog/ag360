@@ -516,8 +516,7 @@ setSubmitted(true)
                       const num = form.phone.replace(/^\+\d+\s?/, '')
                       set('phone', `${e.target.value} ${num}`)
                     }}>
-                    <option value="+1">🇨🇦 +1</option>
-                    <option value="+1">🇺🇸 +1</option>
+                    <option value="+1">🇨🇦🇺🇸 +1</option>
                     <option value="+44">🇬🇧 +44</option>
                     <option value="+61">🇦🇺 +61</option>
                     <option value="+64">🇳🇿 +64</option>

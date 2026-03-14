@@ -38,6 +38,18 @@ interface Profile {
   farmer_sub_types?: string[]
   crops_experienced?: string[]
   professional_sub_type?: string
+  services_offered?: string[]
+  languages_spoken?: string[]
+  remote_service?: boolean
+  countries_served?: string[]
+  worker_origin_countries?: string[]
+  licence_number?: string
+  licence_verified?: boolean
+  seeking_tfw_sponsorship?: boolean
+  seeking_h2a_sponsorship?: boolean
+  insurance_confirmed?: boolean
+  equipment_owned?: string
+  work_countries?: string[]
   sponsorship_offered?: string[]
   website_url?: string
   avg_rating?: number
@@ -513,7 +525,107 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+{/* Professional — Services Offered */}
+        {profile.type === 'professional' && profile.services_offered && profile.services_offered.length > 0 && (
+          <div className="p-4 rounded-2xl"
+            style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <h3 className="text-xs font-bold uppercase tracking-wide mb-3"
+              style={{ color: '#8A9BB0' }}>Services Offered</h3>
+            <div className="flex flex-wrap gap-2">
+              {profile.services_offered.map(s => (
+                <span key={s} className="px-3 py-1.5 rounded-full text-xs font-semibold"
+                  style={{ backgroundColor: 'rgba(168,85,247,0.08)', color: '#A855F7' }}>
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
+        {/* Professional — Languages */}
+        {profile.type === 'professional' && profile.languages_spoken && profile.languages_spoken.length > 0 && (
+          <div className="p-4 rounded-2xl"
+            style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <h3 className="text-xs font-bold uppercase tracking-wide mb-3"
+              style={{ color: '#8A9BB0' }}>Languages</h3>
+            <div className="flex flex-wrap gap-2">
+              {profile.languages_spoken.map(l => (
+                <span key={l} className="px-3 py-1.5 rounded-full text-xs font-semibold"
+                  style={{ backgroundColor: '#F7F5F0', color: '#4A5568' }}>
+                  {l}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Professional — Countries Served */}
+        {profile.type === 'professional' && profile.countries_served && profile.countries_served.length > 0 && (
+          <div className="p-4 rounded-2xl"
+            style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <h3 className="text-xs font-bold uppercase tracking-wide mb-3"
+              style={{ color: '#8A9BB0' }}>Countries Served</h3>
+            <div className="flex flex-wrap gap-2">
+              {profile.countries_served.map(c => (
+                <span key={c} className="px-3 py-1.5 rounded-full text-xs font-semibold"
+                  style={{ backgroundColor: '#F7F5F0', color: '#4A5568' }}>
+                  {c}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Professional — Remote Service */}
+        {profile.type === 'professional' && profile.remote_service && (
+          <div className="p-4 rounded-2xl"
+            style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <div className="flex items-center gap-3">
+              <Globe size={16} style={{ color: '#A855F7' }} />
+              <span className="text-sm font-semibold" style={{ color: '#0D1520' }}>Available for Remote Consultations</span>
+            </div>
+          </div>
+        )}
+
+        {/* Worker — Sponsorship Seeking */}
+        {profile.type === 'worker' && (profile.seeking_tfw_sponsorship || profile.seeking_h2a_sponsorship) && (
+          <div className="p-4 rounded-2xl"
+            style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <h3 className="text-xs font-bold uppercase tracking-wide mb-3"
+              style={{ color: '#8A9BB0' }}>Work Authorization</h3>
+            <div className="flex flex-wrap gap-2">
+              {profile.seeking_tfw_sponsorship && (
+                <span className="px-3 py-1.5 rounded-full text-xs font-semibold"
+                  style={{ backgroundColor: '#EFF6FF', color: '#3B82F6' }}>
+                  Seeking TFW Sponsorship
+                </span>
+              )}
+              {profile.seeking_h2a_sponsorship && (
+                <span className="px-3 py-1.5 rounded-full text-xs font-semibold"
+                  style={{ backgroundColor: '#EFF6FF', color: '#3B82F6' }}>
+                  Seeking H-2A Sponsorship
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Work Countries — non-farmer */}
+        {profile.type !== 'farmer' && profile.work_countries && profile.work_countries.length > 0 && (
+          <div className="p-4 rounded-2xl"
+            style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <h3 className="text-xs font-bold uppercase tracking-wide mb-3"
+              style={{ color: '#8A9BB0' }}>Countries Willing to Work</h3>
+            <div className="flex flex-wrap gap-2">
+              {profile.work_countries.map(c => (
+                <span key={c} className="px-3 py-1.5 rounded-full text-xs font-semibold"
+                  style={{ backgroundColor: '#F7F5F0', color: '#4A5568' }}>
+                  {c}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         {/* Available Jobs */}
         {profileJobs.length > 0 && (
           <div className="px-5 pt-2 pb-4">
