@@ -70,8 +70,11 @@ export default function MorePage() {
 
   async function handleSignOut() {
     setSigningOut(true)
-    // Clear Connect360 cookie session
+    // Clear Connect360 cookie session + localStorage
     await fetch('/api/connect360/session', { method: 'DELETE' })
+    localStorage.removeItem('c360_email')
+    localStorage.removeItem('c360_uid')
+    localStorage.removeItem('c360_first_name')
     // Also sign out of Clerk instance if active
     try { await signOut() } catch {}
     window.location.href = '/auth'
