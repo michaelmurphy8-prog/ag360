@@ -121,3 +121,20 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to update job' }, { status: 500 })
   }
 }
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const id = searchParams.get('id')
+    const c360_uid_param = searchParams.get('c360_uid')
+    const { userId: ag360Id } = await auth()
+    const c360 = await getC360Auth()
+    const userId = ag360Id ?? c360.userId ?? c360_uid_param
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+    await sql`DELETE FROM connect_jobs WHERE id = ${id} AND clerk_user_id = ${userId}`
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    console.error('DELETE /api/connect360/jobs error:', err)
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+  }
+}

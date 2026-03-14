@@ -353,7 +353,8 @@ export default function JobsPage() {
 
   // ── JOB DETAIL VIEW ──────────────────────────────────────────────────────
   if (showDetail) {
-    const isOwn = showDetail.clerk_user_id === user?.id
+    const c360uid = typeof window !== 'undefined' ? localStorage.getItem('c360_uid') : null
+    const isOwn = showDetail.clerk_user_id === (c360uid ?? user?.id)
     const typeConfig = PROVIDER_TYPE_OPTIONS.find(t => t.value === showDetail.provider_type_needed) ?? PROVIDER_TYPE_OPTIONS[0]
     const Icon = typeConfig.icon
 
@@ -446,9 +447,23 @@ export default function JobsPage() {
           {isOwn && (
             <div className="rounded-2xl p-4"
               style={{ backgroundColor: '#FDF8EE', border: '1px solid rgba(201,168,76,0.2)' }}>
-              <div className="text-xs font-bold mb-1" style={{ color: '#C9A84C' }}>Your posting</div>
-              <div className="text-sm" style={{ color: '#8A9BB0' }}>
+              <div className="text-xs font-bold mb-2" style={{ color: '#C9A84C' }}>Your posting</div>
+              <div className="text-sm mb-3" style={{ color: '#8A9BB0' }}>
                 {showDetail.application_count} applicant{showDetail.application_count !== 1 ? 's' : ''} so far
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    if (!confirm('Delete this job posting?')) return
+                    const c360uid = localStorage.getItem('c360_uid') ?? ''
+                    await fetch(`/api/connect360/jobs?id=${showDetail.id}&c360_uid=${c360uid}`, { method: 'DELETE' })
+                    setShowDetail(null)
+                    fetchJobs()
+                  }}
+                  className="flex-1 py-2 rounded-xl text-xs font-bold"
+                  style={{ backgroundColor: '#FEE2E2', color: '#DC2626' }}>
+                  Delete
+                </button>
               </div>
             </div>
           )}
@@ -730,7 +745,8 @@ export default function JobsPage() {
           jobs.map(job => {
             const typeConfig = PROVIDER_TYPE_OPTIONS.find(t => t.value === job.provider_type_needed) ?? PROVIDER_TYPE_OPTIONS[0]
             const Icon = typeConfig.icon
-            const isOwn = job.clerk_user_id === user?.id
+            const c360uid = typeof window !== 'undefined' ? localStorage.getItem('c360_uid') : null
+              const isOwn = job.clerk_user_id === (c360uid ?? user?.id)
 
             return (
               <button key={job.id} onClick={() => setShowDetail(job)}
