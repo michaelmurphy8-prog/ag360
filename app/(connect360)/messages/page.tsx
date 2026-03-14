@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useC360Session } from '@/lib/use-c360-session'
@@ -50,7 +50,7 @@ function timeAgo(dateStr: string) {
   return `${days}d`
 }
 
-export default function MessagesPage() {
+function MessagesPageInner() {
   const router = useRouter()
   const { user } = useUser()
   const c360Session = useC360Session()
@@ -490,5 +490,12 @@ export default function MessagesPage() {
         )}
       </div>
     </div>
+  )
+}
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={null}>
+      <MessagesPageInner />
+    </Suspense>
   )
 }
