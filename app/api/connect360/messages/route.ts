@@ -37,18 +37,24 @@ export async function GET(req: NextRequest) {
           m.recipient_id,
           m.body AS last_message,
           m.created_at AS last_message_at,
-          cp.first_name, cp.last_name, cp.business_name, cp.photo_url, cp.type,
+          other_profile.id AS other_profile_id,
+          other_profile.first_name, other_profile.last_name, 
+          other_profile.business_name, other_profile.photo_url, other_profile.type,
           COUNT(unread.id)::int AS unread_count
         FROM connect_messages m
-        JOIN connect_profiles cp ON cp.id = m.profile_id
+        JOIN connect_profiles other_profile ON other_profile.clerk_user_id = 
+          CASE 
+            WHEN split_part(m.thread_id, '::', 1) = ${senderId} THEN split_part(m.thread_id, '::', 2)
+            ELSE split_part(m.thread_id, '::', 1)
+          END
         LEFT JOIN connect_messages unread
           ON unread.thread_id = m.thread_id
-          AND unread.recipient_id = ${tenantId}
+          AND unread.recipient_id = ${senderId}
           AND unread.read_at IS NULL
         WHERE m.sender_id = ${senderId} OR m.recipient_id = ${senderId}
         GROUP BY m.thread_id, m.profile_id, m.sender_id, m.recipient_id,
-                 m.body, m.created_at, cp.first_name, cp.last_name,
-                 cp.business_name, cp.photo_url, cp.type
+                 m.body, m.created_at, other_profile.id, other_profile.first_name, other_profile.last_name,
+                 other_profile.business_name, other_profile.photo_url, other_profile.type
         ORDER BY m.thread_id, m.created_at DESC
       `
       return NextResponse.json({ threads })

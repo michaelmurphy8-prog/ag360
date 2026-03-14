@@ -480,7 +480,7 @@ export default function MessagesPage() {
                   </div>
                   <p className="text-xs truncate"
                     style={{ color: hasUnread ? '#4A5568' : '#8A9BB0', fontWeight: hasUnread ? 500 : 400 }}>
-                    {thread.last_message || 'Start a conversation'}
+                    {thread.last_message || 'Tap to view conversation'}
                   </p>
                 </div>
               </button>
