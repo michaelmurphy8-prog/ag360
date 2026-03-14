@@ -120,7 +120,9 @@ export default function Connect360AuthPage() {
     } catch (err: any) {
       const msg = err?.errors?.[0]?.code ?? ''
       if (msg === 'session_exists' || err?.errors?.[0]?.message?.toLowerCase().includes('session already exists')) {
-        setC360Session(email, '')
+        await new Promise(r => setTimeout(r, 500))
+        const existingUid = clerkInstance?.client?.activeSessions?.[0]?.user?.id ?? ''
+        await setC360Session(email, existingUid)
         window.location.href = '/home'
         return
       }
