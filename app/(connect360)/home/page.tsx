@@ -144,10 +144,11 @@ export default function Connect360HomePage() {
   const [firstName, setFirstName] = useState('there')
   useEffect(() => {
     const stored = localStorage.getItem('c360_first_name')
+    if (stored) { setFirstName(stored); return }
     const email = localStorage.getItem('c360_email')
     const emailFirst = email ? email.split('@')[0].split('.')[0] : null
     const emailFirstCap = emailFirst ? emailFirst.charAt(0).toUpperCase() + emailFirst.slice(1) : null
-    setFirstName(user?.firstName ?? stored ?? emailFirstCap ?? 'there')
+    setFirstName(stored ?? user?.firstName ?? emailFirstCap ?? 'there')
   }, [user])
 
   return (

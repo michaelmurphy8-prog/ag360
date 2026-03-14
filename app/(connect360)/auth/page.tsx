@@ -99,14 +99,22 @@ export default function Connect360AuthPage() {
 
   async function setC360Session(emailAddr: string, uid: string, first?: string) {
     try {
-      // Wait for clerk-js to settle then get real userId
       await new Promise(r => setTimeout(r, 800))
       const realUid = clerkInstance?.client?.activeSessions?.[0]?.user?.id
         ?? clerkInstance?.user?.id
         ?? uid
       if (emailAddr) localStorage.setItem('c360_email', emailAddr)
       if (realUid) localStorage.setItem('c360_uid', realUid)
-      if (first) localStorage.setItem('c360_first_name', first)
+      if (first) {
+        localStorage.setItem('c360_first_name', first)
+      } else if (emailAddr) {
+        // Fetch name from existing profile on sign-in
+        try {
+          const res = await fetch(`/api/connect360/profiles?my_profile=true&c360_email=${encodeURIComponent(emailAddr)}`)
+          const data = await res.json()
+          if (data.profile?.first_name) localStorage.setItem('c360_first_name', data.profile.first_name)
+        } catch {}
+      }
       await fetch('/api/connect360/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

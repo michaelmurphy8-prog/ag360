@@ -1,6 +1,6 @@
 'use client'
 import { ClerkProvider } from '@clerk/nextjs'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
 import { Compass, Users, MessageCircle, Briefcase, Grid3X3, Home } from 'lucide-react'
@@ -31,6 +31,22 @@ export default function Connect360Layout({ children }: { children: React.ReactNo
       }).catch(() => {})
     }
   }, [])
+const [networkBadge, setNetworkBadge] = useState(0)
+  const [messageBadge, setMessageBadge] = useState(0)
+  useEffect(() => {
+    const uid = localStorage.getItem('c360_uid')
+    if (!uid) return
+    // Pending incoming requests
+    fetch(`/api/connect360/requests?incoming=true&status=pending&c360_uid=${uid}`)
+      .then(r => r.ok ? r.json() : { requests: [] })
+      .then(d => setNetworkBadge(d.requests?.length ?? 0))
+      .catch(() => {})
+    // Unread messages
+    fetch(`/api/connect360/messages?c360_uid=${uid}`)
+      .then(r => r.ok ? r.json() : { unread_count: 0 })
+      .then(d => setMessageBadge(d.unread_count ?? 0))
+      .catch(() => {})
+  }, [pathname])
 
   const showTabs = !NO_TAB_ROUTES.some(r => pathname.includes(r))
   const showHomeButton = !NO_HOME_BUTTON.some(r => pathname.includes(r))
@@ -79,14 +95,25 @@ export default function Connect360Layout({ children }: { children: React.ReactNo
           {TABS.map(tab => {
             const Icon = tab.icon
             const active = isActive(tab.href)
+            const badge = tab.href === '/network' ? networkBadge
+              : tab.href === '/messages' ? messageBadge
+              : 0
             return (
               <button
                 key={tab.href}
                 onClick={() => router.push(tab.href)}
-                className="flex flex-col items-center gap-1 px-3 transition-all"
+                className="flex flex-col items-center gap-1 px-3 transition-all relative"
                 style={{ color: active ? '#C9A84C' : '#B0A898' }}
               >
-                <Icon size={22} strokeWidth={active ? 2.5 : 1.8} />
+                <div className="relative">
+                  <Icon size={22} strokeWidth={active ? 2.5 : 1.8} />
+                  {badge > 0 && (
+                    <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 flex items-center justify-center rounded-full text-[9px] font-bold px-1"
+                      style={{ backgroundColor: '#C9A84C', color: '#FFFFFF' }}>
+                      {badge > 9 ? '9+' : badge}
+                    </span>
+                  )}
+                </div>
                 <span className="text-[10px] font-semibold tracking-wide">
                   {tab.label}
                 </span>

@@ -91,6 +91,7 @@ export default function ProfilePage() {
   const [profileJobs, setProfileJobs] = useState<any[]>([])
   const [saved, setSaved] = useState(false)
   const [connected, setConnected] = useState(false)
+  const [requestPending, setRequestPending] = useState(false)
   const [connecting, setConnecting] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showChat, setShowChat] = useState(false)
@@ -126,6 +127,7 @@ export default function ProfilePage() {
       }
       setSaved((savedData.saved_ids ?? []).includes(id))
       setConnected(requestData.status === 'accepted')
+      setRequestPending(requestData.status === 'pending')
     }).catch(() => {}).finally(() => setLoading(false))
   }, [id])
 
@@ -141,12 +143,19 @@ export default function ProfilePage() {
   async function handleConnect() {
     setConnecting(true)
     try {
-      await fetch('/api/connect360/requests', {
+      const res = await fetch('/api/connect360/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ connect_profile_id: id }),
       })
-      setConnected(true)
+      const data = await res.json()
+      if (res.ok) {
+        if (data.already_connected) {
+          setConnected(true)
+        } else {
+          setRequestPending(true)
+        }
+      }
     } catch {} finally {
       setConnecting(false)
     }
@@ -612,6 +621,15 @@ export default function ProfilePage() {
                 <MessageCircle size={15} /> Message
               </button>
             </div>
+          ) : requestPending ? (
+            <button disabled
+              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-bold"
+              style={{
+                backgroundColor: '#EEE9E0',
+                color: '#8A9BB0',
+              }}>
+              <CheckCircle2 size={15} /> Request Sent
+            </button>
           ) : (
             <button onClick={handleConnect} disabled={connecting}
               className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-bold transition-all"

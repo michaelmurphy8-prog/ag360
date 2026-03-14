@@ -75,14 +75,13 @@ export default function MorePage() {
 
   async function handleSignOut() {
     setSigningOut(true)
-    // Clear Connect360 cookie session + localStorage
     await fetch('/api/connect360/session', { method: 'DELETE' })
     localStorage.removeItem('c360_email')
     localStorage.removeItem('c360_uid')
     localStorage.removeItem('c360_first_name')
-    // Also sign out of Clerk instance if active
     try { await signOut({ redirectUrl: '/auth' }) } catch {}
-    window.location.href = '/auth'
+    // Force redirect in case Clerk doesn't cooperate
+    setTimeout(() => { window.location.href = '/auth' }, 500)
   }
 
   const name = profile ? `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() : (user?.fullName || user?.firstName || 'Your Account')
