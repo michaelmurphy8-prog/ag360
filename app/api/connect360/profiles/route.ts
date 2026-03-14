@@ -273,11 +273,15 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function PATCH(req: Request) {
+export async function PATCH(req: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId: ag360Id } = await auth()
+    const c360 = await getC360Auth()
+    const body = await req.json()
+    const c360_uid_param = body.c360_uid ?? req.nextUrl?.searchParams?.get('c360_uid')
+    const userId = ag360Id ?? c360.userId ?? c360_uid_param
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
+    const { notification_prefs, region } = body
     const body = await req.json()
     const { notification_prefs, region } = body
 

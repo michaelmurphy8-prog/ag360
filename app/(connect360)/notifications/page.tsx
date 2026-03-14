@@ -26,7 +26,7 @@ export default function NotificationsPage() {
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    fetch('/api/connect360/profiles?my_profile=true')
+    fetch(`/api/connect360/profiles?my_profile=true&c360_email=${localStorage.getItem('c360_email') ?? ''}`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.notification_prefs) setPrefs({ ...DEFAULT_PREFS, ...d.notification_prefs }) })
   }, [])
@@ -35,7 +35,7 @@ export default function NotificationsPage() {
     setPrefs(newPrefs)
     setSaving(true)
     setSaved(false)
-    await fetch('/api/connect360/profiles', {
+    await fetch(`/api/connect360/profiles?c360_uid=${localStorage.getItem('c360_uid') ?? ''}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ notification_prefs: newPrefs }),
