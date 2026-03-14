@@ -258,7 +258,7 @@ export default function JobsPage() {
     provider_type_needed: 'any',
     location_city: '',
     location_country: '',
-    provider_sub_type: '',
+    provider_sub_type: [],
     start_date: '',
     end_date: '',
     rate: '',
@@ -354,7 +354,7 @@ export default function JobsPage() {
           setForm({
             title: '', description: '', provider_type_needed: 'any',
             location_city: '', location_country: '',
-              provider_sub_type: '',
+              provider_sub_type: [],
             start_date: '', end_date: '', rate: '',
             rate_type: 'negotiable', farmer_sub_type: '',
           })
@@ -601,12 +601,12 @@ export default function JobsPage() {
               <div className="flex flex-wrap gap-2">
                 {PROVIDER_SUB_TYPES[form.provider_type_needed].map(sub => (
                   <button key={sub} type="button"
-                    onClick={() => setField('provider_sub_type', form.provider_sub_type === sub ? '' : sub)}
+                    onClick={() => { const arr = form.provider_sub_type as string[]; setField('provider_sub_type', arr.includes(sub) ? arr.filter(s => s !== sub) : [...arr, sub]) }}
                     className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
                     style={{
-                      backgroundColor: form.provider_sub_type === sub ? '#FDF8EE' : '#F7F5F0',
-                      color: form.provider_sub_type === sub ? '#C9A84C' : '#8A9BB0',
-                      border: `1px solid ${form.provider_sub_type === sub ? '#C9A84C' : '#EEE9E0'}`,
+                      backgroundColor: (form.provider_sub_type as string[]).includes(sub) ? '#FDF8EE' : '#F7F5F0',
+                      color: (form.provider_sub_type as string[]).includes(sub) ? '#C9A84C' : '#8A9BB0',
+                      border: `1px solid ${(form.provider_sub_type as string[]).includes(sub) ? '#C9A84C' : '#EEE9E0'}`,
                     }}>
                     {sub}
                   </button>
