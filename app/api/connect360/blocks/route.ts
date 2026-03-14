@@ -5,7 +5,7 @@ import { neon } from '@neondatabase/serverless'
 const sql = neon(process.env.DATABASE_URL!)
 
 // GET — fetch my block list
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const { userId: ag360Id } = await auth()
     const c360 = await getC360Auth()
