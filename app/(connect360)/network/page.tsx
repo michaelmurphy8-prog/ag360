@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Truck, Sprout, Users, Briefcase,
+  Truck, Sprout, Users, Briefcase, Tractor,
   MapPin, Star, Phone, Mail, MessageCircle,
   Bookmark, UserCheck, Search, RefreshCw,
   ChevronRight, UserPlus, Check, X, Clock
@@ -40,6 +40,7 @@ interface PendingRequest {
 }
 
 const TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string; bg: string }> = {
+  farmer:       { label: 'Farmer',           icon: Tractor,   color: '#16A34A', bg: '#F0FDF4' },
   trucker:      { label: 'Custom Transport', icon: Truck,     color: '#C9A84C', bg: '#FDF8EE' },
   applicator:   { label: 'Custom Work',      icon: Sprout,    color: '#C9A84C', bg: '#FDF8EE' },
   worker:       { label: 'Farm Worker',      icon: Users,     color: '#C9A84C', bg: '#FDF8EE' },

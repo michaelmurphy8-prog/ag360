@@ -156,6 +156,15 @@ export async function POST(req: NextRequest) {
       farmer_sub_types,
       sponsorship_offered,
       website_url,
+      professional_sub_type,
+      services_offered,
+      languages_spoken,
+      remote_service,
+      countries_served,
+      worker_origin_countries,
+      seeking_tfw_sponsorship,
+      seeking_h2a_sponsorship,
+      citizenship_country,
     } = body
 
     const { userId: authedUserId } = await auth()
@@ -209,7 +218,11 @@ export async function POST(req: NextRequest) {
         crops_experienced, availability, cv_url,
         operations_experience, equipment_brands, worldwide,
         holds_licence, driver_licence_type, driver_licence_province,
-        available_from, available_to, farmer_sub_types, sponsorship_offered, website_url, lat, lng, status
+        available_from, available_to, farmer_sub_types, sponsorship_offered, website_url,
+        professional_sub_type, services_offered, languages_spoken,
+        remote_service, countries_served, worker_origin_countries,
+        seeking_tfw_sponsorship, seeking_h2a_sponsorship, citizenship_country,
+        lat, lng, status
       ) VALUES (
         ${resolvedClerkId}, ${type}, ${first_name}, ${last_name},
         ${email}, ${phone ?? null}, ${photo_url ?? null},
@@ -228,7 +241,13 @@ export async function POST(req: NextRequest) {
         ${driver_licence_province ?? null},
         ${available_from || null}, ${available_to || null},
         ${farmer_sub_types ?? []}, ${sponsorship_offered ?? []},
-        ${website_url ?? null}, ${lat}, ${lng}, 'approved'
+        ${website_url ?? null},
+        ${professional_sub_type ?? null}, ${services_offered ?? []},
+        ${languages_spoken ?? []}, ${remote_service ?? false},
+        ${countries_served ?? []}, ${worker_origin_countries ?? []},
+        ${seeking_tfw_sponsorship ?? false}, ${seeking_h2a_sponsorship ?? false},
+        ${citizenship_country ?? null},
+        ${lat}, ${lng}, 'approved'
       )
       RETURNING id, status, created_at
     `
