@@ -88,6 +88,7 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState<Profile | null>(null)
   const [reviews, setReviews] = useState<Review[]>([])
+  const [profileJobs, setProfileJobs] = useState<any[]>([])
   const [saved, setSaved] = useState(false)
   const [connected, setConnected] = useState(false)
   const [connecting, setConnecting] = useState(false)
@@ -118,6 +119,11 @@ export default function ProfilePage() {
     ]).then(([profileData, reviewData, savedData, requestData]) => {
       setProfile(profileData.profile ?? profileData)
       setReviews(reviewData.reviews ?? [])
+      // Fetch jobs posted by this profile
+      if (profileData?.clerk_user_id) {
+        fetch(`/api/connect360/jobs?poster_clerk_id=${profileData.clerk_user_id}`)
+          .then(r => r.json()).then(d => setProfileJobs(d.jobs ?? [])).catch(() => {})
+      }
       setSaved((savedData.saved_ids ?? []).includes(id))
       setConnected(requestData.status === 'accepted')
     }).catch(() => {}).finally(() => setLoading(false))
@@ -492,6 +498,36 @@ export default function ProfilePage() {
                   style={{ backgroundColor: '#F7F5F0', color: '#4A5568' }}>
                   {e}
                 </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Available Jobs */}
+        {profileJobs.length > 0 && (
+          <div className="px-5 pt-2 pb-4">
+            <h3 className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: '#8A9BB0' }}>Available Jobs</h3>
+            <div className="space-y-2">
+              {profileJobs.map(job => (
+                <button key={job.id}
+                  onClick={() => router.push(`/jobs?open=${job.id}`)}
+                  className="w-full text-left p-4 rounded-2xl transition-all active:scale-95"
+                  style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #F0EBE3' }}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-bold text-sm truncate" style={{ color: '#0D1520' }}>{job.title}</div>
+                      {(job.location_city || job.location_country) && (
+                        <div className="text-xs mt-0.5" style={{ color: '#8A9BB0' }}>
+                          {[job.location_city, job.location_country].filter(Boolean).join(', ')}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      {job.rate && <span className="text-xs font-semibold" style={{ color: '#C9A84C' }}>${job.rate}</span>}
+                      <span className="text-[10px]" style={{ color: '#B0A898' }}>{job.application_count ?? 0} applied</span>
+                    </div>
+                  </div>
+                </button>
               ))}
             </div>
           </div>

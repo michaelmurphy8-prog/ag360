@@ -10,6 +10,7 @@ const sql = neon(process.env.DATABASE_URL!)
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const poster_type = searchParams.get('poster_type') // 'farm' | 'general'
+  const poster_clerk_id = searchParams.get('poster_clerk_id')
   const provider_type = searchParams.get('provider_type')
   const province = searchParams.get('province')
   const my_jobs = searchParams.get('my_jobs') === 'true'
@@ -44,6 +45,7 @@ export async function GET(req: NextRequest) {
       WHERE j.status = 'open'
       ${(my_jobs || my_posts) ? sql`AND j.clerk_user_id = ${userId}` : sql``}
       ${poster_type ? sql`AND j.poster_type = ${poster_type}` : sql``}
+      ${poster_clerk_id ? sql`AND j.clerk_user_id = ${poster_clerk_id}` : sql``}
       ${provider_type ? sql`AND (j.provider_type_needed = ${provider_type} OR j.provider_type_needed = 'any')` : sql``}
       ${province ? sql`AND j.location_province = ${province}` : sql``}
       ${searchParams.get('countries') ? sql`AND j.location_country = ANY(${searchParams.get('countries')!.split(',')})` : sql``}
