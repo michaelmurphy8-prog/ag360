@@ -282,8 +282,6 @@ export async function PATCH(req: NextRequest) {
     const userId = ag360Id ?? c360.userId ?? c360_uid_param
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { notification_prefs, region } = body
-    const body = await req.json()
-    const { notification_prefs, region } = body
 
     const updates: string[] = []
     if (notification_prefs !== undefined) updates.push(`notification_prefs = '${JSON.stringify(notification_prefs)}'`)
