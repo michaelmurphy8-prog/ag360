@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       const threads = await sql`
         SELECT DISTINCT ON (m.thread_id)
           m.thread_id,
-          m.profile_id,
+          other_profile.id AS profile_id,
           m.sender_id,
           m.recipient_id,
           COALESCE(NULLIF(m.body, ''), CASE WHEN m.attachment_name IS NOT NULL THEN '📎 ' || m.attachment_name ELSE NULL END) AS last_message,
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
           AND unread.recipient_id = ${senderId}
           AND unread.read_at IS NULL
         WHERE m.sender_id = ${senderId} OR m.recipient_id = ${senderId}
-        GROUP BY m.thread_id, m.profile_id, m.sender_id, m.recipient_id,
+        GROUP BY m.thread_id, m.sender_id, m.recipient_id,
                  m.body, m.attachment_name, m.created_at, other_profile.id, other_profile.first_name, other_profile.last_name,
                  other_profile.business_name, other_profile.photo_url, other_profile.type
         ORDER BY m.thread_id, m.created_at DESC
