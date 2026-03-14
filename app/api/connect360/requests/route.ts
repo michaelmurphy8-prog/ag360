@@ -18,7 +18,8 @@ export async function GET(req: NextRequest) {
   if (!tenantId) {
     const { userId: ag360Id } = await auth()
     const c360 = await getC360Auth()
-    const userId = ag360Id ?? c360.userId
+    const c360_uid_param = req.nextUrl?.searchParams?.get('c360_uid')
+    const userId = ag360Id ?? c360.userId ?? c360_uid_param
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     try {
       // Check if a specific profile connection exists
