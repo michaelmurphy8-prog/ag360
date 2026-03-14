@@ -36,6 +36,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       availability, available_from, available_to, farmer_sub_types,
       sponsorship_offered, languages_spoken, services_offered,
       provinces_served, countries_served, remote_service, worker_origin_countries,
+      // — Fields that were missing from PATCH (present in POST) —
+      professional_sub_type, seeking_tfw_sponsorship, seeking_h2a_sponsorship,
+      citizenship_country, insurance_confirmed, licence_number, licence_province,
+      business_number, cv_url,
     } = body
 
     // Build dynamic update
@@ -73,8 +77,44 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (countries_served !== undefined) updates.countries_served = countries_served
     if (remote_service !== undefined) updates.remote_service = remote_service
     if (worker_origin_countries !== undefined) updates.worker_origin_countries = worker_origin_countries
+    // — New fields —
+    if (professional_sub_type !== undefined) updates.professional_sub_type = professional_sub_type
+    if (seeking_tfw_sponsorship !== undefined) updates.seeking_tfw_sponsorship = seeking_tfw_sponsorship
+    if (seeking_h2a_sponsorship !== undefined) updates.seeking_h2a_sponsorship = seeking_h2a_sponsorship
+    if (citizenship_country !== undefined) updates.citizenship_country = citizenship_country
+    if (insurance_confirmed !== undefined) updates.insurance_confirmed = insurance_confirmed
+    if (licence_number !== undefined) updates.licence_number = licence_number
+    if (licence_province !== undefined) updates.licence_province = licence_province
+    if (business_number !== undefined) updates.business_number = business_number
+    if (cv_url !== undefined) updates.cv_url = cv_url
 
     if (Object.keys(updates).length === 0) return NextResponse.json({ ok: true })
+
+    // Re-geocode if location fields changed
+    const locationChanged = base_city !== undefined || base_province !== undefined || base_country !== undefined
+    if (locationChanged) {
+      try {
+        // Fetch current values for fields not being updated
+        const current = await sql`SELECT base_city, base_province, base_country FROM connect_profiles WHERE id = ${id}`
+        if (current[0]) {
+          const city = base_city ?? current[0].base_city
+          const prov = base_province ?? current[0].base_province
+          const country = base_country ?? current[0].base_country
+          const geoQuery = [city, prov, country].filter(Boolean).join(', ')
+          const geoRes = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(geoQuery)}.json?limit=1&types=place,region,locality&access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`
+          )
+          const geoData = await geoRes.json()
+          if (geoData.features?.length > 0) {
+            const [geoLng, geoLat] = geoData.features[0].center
+            updates.lat = geoLat
+            updates.lng = geoLng
+          }
+        }
+      } catch {
+        // Geocoding failure is non-fatal
+      }
+    }
 
     const setClauses = Object.keys(updates).map((k, i) => `${k} = $${i + 2}`).join(', ')
     const values = [id, ...Object.values(updates)]
