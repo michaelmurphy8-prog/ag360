@@ -476,12 +476,12 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
-        {/* Crop experience — farmer only */}
-        {profile.type === 'farmer' && profile.crops_experienced && profile.crops_experienced.length > 0 && (
+        {/* Crop experience */}
+        {profile.crops_experienced && profile.crops_experienced.length > 0 && (
           <div className="p-4 rounded-2xl"
             style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
             <h3 className="text-xs font-bold uppercase tracking-wide mb-3"
-              style={{ color: '#8A9BB0' }}>Crop Experience</h3>
+              style={{ color: '#8A9BB0' }}>{profile.type === 'farmer' ? 'Looking For' : 'Crop Experience'}</h3>
             <div className="flex flex-wrap gap-2">
               {profile.crops_experienced.map(c => (
                 <span key={c} className="px-3 py-1.5 rounded-full text-xs font-semibold"
@@ -522,6 +522,42 @@ export default function ProfilePage() {
                   {e}
                 </span>
               ))}
+            </div>
+          </div>
+        )}
+        {/* Equipment Owned — trucker/applicator */}
+        {profile.equipment_owned && (
+          <div className="p-4 rounded-2xl"
+            style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <h3 className="text-xs font-bold uppercase tracking-wide mb-3"
+              style={{ color: '#8A9BB0' }}>Equipment Owned</h3>
+            <p className="text-sm leading-relaxed" style={{ color: '#4A5568' }}>{profile.equipment_owned}</p>
+          </div>
+        )}
+
+        {/* Licence Details — when licence number exists */}
+        {profile.licence_number && (
+          <div className="p-4 rounded-2xl"
+            style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <h3 className="text-xs font-bold uppercase tracking-wide mb-3"
+              style={{ color: '#8A9BB0' }}>Licence</h3>
+            <div className="flex items-center gap-3">
+              <Shield size={16} style={{ color: '#22C55E' }} />
+              <span className="text-sm" style={{ color: '#0D1520' }}>
+                {profile.licence_number}
+                {profile.holds_licence && profile.driver_licence_type ? ` · ${profile.driver_licence_type}` : ''}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Insurance Confirmed */}
+        {profile.insurance_confirmed && (
+          <div className="p-4 rounded-2xl"
+            style={{ backgroundColor: '#FFFFFF', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <div className="flex items-center gap-3">
+              <Shield size={16} style={{ color: '#22C55E' }} />
+              <span className="text-sm font-semibold" style={{ color: '#0D1520' }}>Insurance Confirmed</span>
             </div>
           </div>
         )}
