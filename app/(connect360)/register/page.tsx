@@ -1,6 +1,6 @@
 'use client'
 import { useUser } from '@clerk/nextjs'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import {
@@ -136,7 +136,7 @@ function CheckRow({ checked, onChange, label, sublabel, color = '#C9A84C' }: { c
 }
 
 // ── Main Component ──────────────────────────────────────────────────────────
-export default function RegisterPage() {
+function RegisterPageInner() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
@@ -1198,5 +1198,13 @@ export default function RegisterPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterPageInner />
+    </Suspense>
   )
 }
