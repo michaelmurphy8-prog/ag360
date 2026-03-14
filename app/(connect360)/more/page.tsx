@@ -51,7 +51,11 @@ export default function MorePage() {
     const stored = localStorage.getItem('c360_email')
     if (stored) setC360Email(stored)
     // Only fetch profile if signed into Connect360
-    if (!stored) return
+    if (!stored) {
+      setProfile(null)
+      setLoading(false)
+      return
+    }
     const url = `/api/connect360/profiles?my_profile=true&c360_email=${encodeURIComponent(stored)}`
     fetch(url)
       .then(r => r.ok ? r.json() : null)

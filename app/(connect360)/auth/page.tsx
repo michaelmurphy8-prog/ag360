@@ -18,7 +18,19 @@ export default function Connect360AuthPage() {
         body: JSON.stringify({ email: storedEmail, userId: storedUid }),
       }).catch(() => {})
     }
-  }, [])
+    // If Clerk already has a session, store email from it
+    const interval = setInterval(() => {
+      const user = clerkInstance?.user
+      if (user) {
+        const email = user.primaryEmailAddress?.emailAddress
+        const uid = user.id
+        if (email) localStorage.setItem('c360_email', email)
+        if (uid) localStorage.setItem('c360_uid', uid)
+        clearInterval(interval)
+      }
+    }, 500)
+    return () => clearInterval(interval)
+  }, [clerkInstance])
   const [signInLoaded, setSignInLoaded] = useState(false)
   const [signUpLoaded, setSignUpLoaded] = useState(false)
   const signInLoaded_ref = { current: null as any }
