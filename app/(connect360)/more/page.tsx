@@ -81,7 +81,7 @@ export default function MorePage() {
     localStorage.removeItem('c360_uid')
     localStorage.removeItem('c360_first_name')
     // Also sign out of Clerk instance if active
-    try { await signOut() } catch {}
+    try { await signOut({ redirectUrl: '/auth' }) } catch {}
     window.location.href = '/auth'
   }
 

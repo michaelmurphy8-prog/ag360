@@ -144,7 +144,7 @@ export default function ProfilePage() {
       await fetch('/api/connect360/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile_id: id }),
+        body: JSON.stringify({ connect_profile_id: id }),
       })
       setConnected(true)
     } catch {} finally {

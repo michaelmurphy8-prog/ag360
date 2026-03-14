@@ -30,7 +30,11 @@ export default function Connect360AuthPage() {
   const signInLoaded_ref = { current: null as any }
   useEffect(() => {
     const clerk = new Clerk(process.env.NEXT_PUBLIC_CLERK_CONNECT360_PUBLISHABLE_KEY!)
-    clerk.load().then(() => {
+    clerk.load().then(async () => {
+      // Clear any existing Connect360 Clerk session to prevent stale user contamination
+      if (clerk.user) {
+        await clerk.signOut()
+      }
       setClerkInstance(clerk)
       setSignInLoaded(true)
       setSignUpLoaded(true)

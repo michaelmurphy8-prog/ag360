@@ -49,10 +49,9 @@ export async function GET(req: NextRequest) {
         `
         return NextResponse.json({ requests })
       }
-      // Outgoing — requests the current user has sent
+      // Connections — requests I sent + requests I received
       const connections = await sql`
-        SELECT
-          cr.id, cr.status, cr.created_at,
+        SELECT cr.id, cr.status, cr.created_at,
           cp.id AS profile_id, cp.type, cp.first_name, cp.last_name,
           cp.business_name, cp.phone, cp.email, cp.photo_url,
           cp.base_city, cp.base_province, cp.availability
@@ -60,7 +59,20 @@ export async function GET(req: NextRequest) {
         JOIN connect_profiles cp ON cp.id = cr.connect_profile_id
         WHERE cr.clerk_user_id = ${userId}
         ${statusFilter ? sql`AND cr.status = ${statusFilter}` : sql``}
-        ORDER BY cr.created_at DESC
+        
+        UNION ALL
+        
+        SELECT cr.id, cr.status, cr.created_at,
+          cp2.id AS profile_id, cp2.type, cp2.first_name, cp2.last_name,
+          cp2.business_name, cp2.phone, cp2.email, cp2.photo_url,
+          cp2.base_city, cp2.base_province, cp2.availability
+        FROM connect_requests cr
+        JOIN connect_profiles cp ON cp.id = cr.connect_profile_id
+        JOIN connect_profiles cp2 ON cp2.clerk_user_id = cr.clerk_user_id
+        WHERE cp.clerk_user_id = ${userId}
+        ${statusFilter ? sql`AND cr.status = ${statusFilter}` : sql``}
+        
+        ORDER BY created_at DESC
       `
       return NextResponse.json({ connections })
     } catch (err) {

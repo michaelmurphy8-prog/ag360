@@ -172,9 +172,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid provider type' }, { status: 400 })
     }
 
-    const existing = await sql`SELECT id FROM connect_profiles WHERE email = ${resolvedEmail}`
+    const existing = await sql`
+      SELECT id FROM connect_profiles 
+      WHERE email = ${resolvedEmail} OR clerk_user_id = ${resolvedClerkId}
+    `
     if (existing.length > 0) {
-      return NextResponse.json({ error: 'A profile with this email already exists' }, { status: 409 })
+      return NextResponse.json({ error: 'A profile already exists for this account. Use edit mode to update.' }, { status: 409 })
     }
 
 
