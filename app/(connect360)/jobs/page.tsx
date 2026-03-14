@@ -233,6 +233,9 @@ export default function JobsPage() {
   const [filterType, setFilterType] = useState('any')
   const [filterCountries, setFilterCountries] = useState<string[]>([])
   const [filterLocation, setFilterLocation] = useState('')
+  const [locationQuery, setLocationQuery] = useState('')
+  const [locationSuggestions, setLocationSuggestions] = useState<{place_name: string, city: string, country: string}[]>([])
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false)
 
   // Post form state
   const [posting, setPosting] = useState(false)
