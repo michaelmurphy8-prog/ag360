@@ -123,8 +123,8 @@ function MapView({
       el.textContent = initial
       el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.25)' })
       el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)' })
-      el.addEventListener('click', () => onSelect(p))
-      const marker = new mapboxgl.Marker({ element: el })
+      el.addEventListener('click', (e) => { e.stopPropagation(); onSelect(p) })
+      const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
         .setLngLat([p.lng!, p.lat!])
         .addTo(mapRef.current!)
       markersRef.current.push(marker)
