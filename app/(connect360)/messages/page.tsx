@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useC360Session } from '@/lib/use-c360-session'
@@ -75,36 +75,41 @@ function MessagesPageInner() {
     return () => clearInterval(interval)
   }, [])
   // Auto-open thread from ?open=profileId
+  const autoOpenedRef = useRef(false)
   useEffect(() => {
-    if (!openProfileId || activeThread) return
-    // Try to match an existing thread first
-    if (threads.length > 0) {
-      const match = threads.find(t => t.profile_id === openProfileId)
-      if (match) { setActiveThread(match); return }
+    if (!openProfileId || autoOpenedRef.current) return
+    if (loading) return // wait for threads to load first
+
+    // Try existing thread
+    const match = threads.find(t => t.profile_id === openProfileId)
+    if (match) {
+      autoOpenedRef.current = true
+      setActiveThread(match)
+      return
     }
-    // No existing thread — fetch profile and create synthetic thread
-    if (!loading) {
-      fetch(`/api/connect360/profiles/${openProfileId}`)
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-          if (data?.profile) {
-            const p = data.profile
-            setActiveThread({
-              thread_id: `new-${p.id}`,
-              profile_id: p.id,
-              first_name: p.first_name,
-              last_name: p.last_name,
-              business_name: p.business_name,
-              photo_url: p.photo_url,
-              type: p.type,
-              last_message: '',
-              last_message_at: new Date().toISOString(),
-              unread_count: 0,
-            })
-          }
-        })
-        .catch(() => {})
-    }
+
+    // No thread — fetch profile and open new chat
+    autoOpenedRef.current = true
+    fetch(`/api/connect360/profiles/${openProfileId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.profile) {
+          const p = data.profile
+          setActiveThread({
+            thread_id: `new-${p.id}`,
+            profile_id: p.id,
+            first_name: p.first_name,
+            last_name: p.last_name,
+            business_name: p.business_name,
+            photo_url: p.photo_url,
+            type: p.type,
+            last_message: '',
+            last_message_at: new Date().toISOString(),
+            unread_count: 0,
+          })
+        }
+      })
+      .catch(() => {})
   }, [openProfileId, threads, loading])
 
   async function fetchThreads() {
