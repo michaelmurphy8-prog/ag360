@@ -117,7 +117,7 @@ function MapView({
         'box-shadow:0 3px 10px rgba(0,0,0,0.45)',
         'cursor:pointer', 'display:flex', 'align-items:center', 'justify-content:center',
         'font-size:13px', 'font-weight:800', 'color:#fff',
-        'transition:transform 0.15s',
+        'transition:scale 0.15s',
         'font-family:system-ui,sans-serif',
       ].join(';')
       el.textContent = initial
