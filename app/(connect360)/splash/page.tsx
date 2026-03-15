@@ -16,8 +16,13 @@ export default function SplashPage() {
   }, [])
 
   useEffect(() => {
-    if (phase === 'done' && isLoaded) {
-      router.replace(userId ? '/home' : '/auth')
+    if (phase === 'done') {
+      const hasSession = localStorage.getItem('c360_uid')
+      if (userId || hasSession) {
+        router.replace('/home')
+      } else if (isLoaded) {
+        router.replace('/auth')
+      }
     }
   }, [phase, isLoaded, userId, router])
 
