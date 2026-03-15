@@ -306,7 +306,8 @@ export default function Connect360AuthPage() {
             )}
             <input style={inputBase} type="email" placeholder="Email address"
               value={email} onChange={e => setEmail(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSubmit()} />
+              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+              autoComplete="email" name="email" />
             <div className="relative">
               <input
                 style={{ ...inputBase, paddingRight: 48 }}
@@ -315,6 +316,7 @@ export default function Connect360AuthPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                autoComplete="current-password" name="password"
               />
               <button onClick={() => setShowPassword(s => !s)}
                 className="absolute right-4 top-1/2 -translate-y-1/2"
