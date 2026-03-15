@@ -85,7 +85,10 @@ function MapView({
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
-
+  const onSelectRef = useRef(onSelect)
+  onSelectRef.current = onSelect
+  // Stable ID string — only rebuild markers when actual data changes
+  const providerIds = providers.filter(p => p.lat != null && p.lng != null).map(p => p.id).join(',')
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
     mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
@@ -101,7 +104,6 @@ function MapView({
       mapRef.current = null
     }
   }, [])
-
   useEffect(() => {
     if (!mapRef.current) return
     markersRef.current.forEach(m => m.remove())
@@ -117,21 +119,17 @@ function MapView({
         'box-shadow:0 3px 10px rgba(0,0,0,0.45)',
         'cursor:pointer', 'display:flex', 'align-items:center', 'justify-content:center',
         'font-size:13px', 'font-weight:800', 'color:#fff',
-        'transition:scale 0.15s',
         'font-family:system-ui,sans-serif',
       ].join(';')
       el.textContent = initial
-      el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.25)' })
-      el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)' })
-      el.addEventListener('click', (e) => { e.stopPropagation(); onSelect(p) })
+      el.addEventListener('click', (e) => { e.stopPropagation(); onSelectRef.current(p) })
       const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
         .setLngLat([p.lng!, p.lat!])
         .addTo(mapRef.current!)
       markersRef.current.push(marker)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [providers])
-
+  }, [providerIds])
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 }
 
