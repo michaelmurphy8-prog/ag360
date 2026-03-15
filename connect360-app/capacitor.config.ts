@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Connect360',
   webDir: 'www',
   server: {
-    url: 'https://ag360.farm/auth',
+    url: 'https://ag360.farm/splash',
     cleartext: false,
   },
   ios: {
