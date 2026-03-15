@@ -7,6 +7,13 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://ag360.farm/splash',
     cleartext: false,
+    allowNavigation: [
+      'ag360.farm',
+      '*.ag360.farm',
+      '*.clerk.services',
+      '*.clerk.dev',
+      '*.clerk.com',
+    ],
   },
   ios: {
     scheme: 'Connect360',
