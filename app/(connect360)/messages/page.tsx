@@ -338,13 +338,13 @@ function MessagesPageInner() {
             )}
             <div className="flex items-center gap-2">
               <label className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 cursor-pointer transition-all"
-                style={{ backgroundColor: '#F7F5F0' }}>
+                style={{ backgroundColor: '#EEE9E0' }}>
                 <input type="file" className="hidden"
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                   onChange={handleFileUpload} />
                 {uploading
                   ? <RefreshCw size={14} className="animate-spin" style={{ color: '#C9A84C' }} />
-                  : <Paperclip size={14} style={{ color: '#8A9BB0' }} />}
+                  : <Paperclip size={16} style={{ color: '#6B7280' }} />}
               </label>
               <input
                 className="flex-1 px-4 py-3 rounded-2xl text-sm outline-none"
