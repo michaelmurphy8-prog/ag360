@@ -76,11 +76,36 @@ function MessagesPageInner() {
   }, [])
   // Auto-open thread from ?open=profileId
   useEffect(() => {
-    if (openProfileId && threads.length > 0 && !activeThread) {
+    if (!openProfileId || activeThread) return
+    // Try to match an existing thread first
+    if (threads.length > 0) {
       const match = threads.find(t => t.profile_id === openProfileId)
-      if (match) setActiveThread(match)
+      if (match) { setActiveThread(match); return }
     }
-  }, [openProfileId, threads])
+    // No existing thread — fetch profile and create synthetic thread
+    if (!loading) {
+      fetch(`/api/connect360/profiles/${openProfileId}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data?.profile) {
+            const p = data.profile
+            setActiveThread({
+              thread_id: `new-${p.id}`,
+              profile_id: p.id,
+              first_name: p.first_name,
+              last_name: p.last_name,
+              business_name: p.business_name,
+              photo_url: p.photo_url,
+              type: p.type,
+              last_message: '',
+              last_message_at: new Date().toISOString(),
+              unread_count: 0,
+            })
+          }
+        })
+        .catch(() => {})
+    }
+  }, [openProfileId, threads, loading])
 
   async function fetchThreads() {
     try {
