@@ -231,8 +231,37 @@ export default function Connect360HomePage() {
               <circle cx="18" cy="32" r="0.7" fill="#C9A84C" opacity="0.25" />
             </svg>
           </div>
+          {/* Second satellite — right side */}
+          <div style={{
+            position: 'absolute',
+            top: 'calc(env(safe-area-inset-top, 12px) + 40px)',
+            right: '18%',
+            opacity: 0.2,
+          }}>
+            <style>{`
+              @keyframes satellite-float-2 {
+                0%   { transform: translateY(0px) rotate(0deg); }
+                50%  { transform: translateY(-3px) rotate(-3deg); }
+                100% { transform: translateY(0px) rotate(0deg); }
+              }
+              .satellite-2 {
+                animation: satellite-float-2 8s ease-in-out infinite;
+                transform-origin: center;
+              }
+            `}</style>
+            <svg className="satellite-2" width="24" height="24" viewBox="0 0 36 36" fill="none">
+              <rect x="13" y="13" width="10" height="10" rx="2" fill="#C9A84C" opacity="0.9" />
+              <line x1="18" y1="13" x2="18" y2="7" stroke="#C9A84C" strokeWidth="1.2" />
+              <circle cx="18" cy="6" r="1.5" fill="#C9A84C" />
+              <rect x="3" y="15" width="8" height="6" rx="1" fill="none" stroke="#C9A84C" strokeWidth="1" />
+              <line x1="7" y1="15" x2="7" y2="21" stroke="#C9A84C" strokeWidth="0.6" />
+              <line x1="11" y1="18" x2="13" y2="18" stroke="#C9A84C" strokeWidth="1" />
+              <rect x="25" y="15" width="8" height="6" rx="1" fill="none" stroke="#C9A84C" strokeWidth="1" />
+              <line x1="29" y1="15" x2="29" y2="21" stroke="#C9A84C" strokeWidth="0.6" />
+              <line x1="23" y1="18" x2="25" y2="18" stroke="#C9A84C" strokeWidth="1" />
+            </svg>
+          </div>
         </div>
-
         {/* Hero content */}
         <div style={{ position: 'relative', zIndex: 1 }}>
           {/* Top bar */}

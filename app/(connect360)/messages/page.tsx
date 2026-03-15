@@ -196,8 +196,8 @@ function MessagesPageInner() {
     return (
       <div className="flex flex-col h-screen" style={{ backgroundColor: '#F7F5F0' }}>
         {/* Header */}
-        <div className="flex items-center gap-3 px-5 pt-12 pb-4"
-          style={{ background: 'linear-gradient(160deg, #0A1018 0%, #162030 100%)', flexShrink: 0 }}>
+        <div className="flex items-center gap-3 px-5 pb-4"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 48px)', background: 'linear-gradient(160deg, #0A1018 0%, #162030 100%)', flexShrink: 0 }}>
           <button onClick={() => { setActiveThread(null); setMessages([]) }}
             className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
@@ -336,8 +336,8 @@ function MessagesPageInner() {
                 </button>
               </div>
             )}
-            <div className="flex items-center gap-3">
-              <label className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 cursor-pointer transition-all"
+            <div className="flex items-center gap-2">
+              <label className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 cursor-pointer transition-all"
                 style={{ backgroundColor: '#F7F5F0' }}>
                 <input type="file" className="hidden"
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
@@ -356,7 +356,7 @@ function MessagesPageInner() {
               />
               <button onClick={handleSend}
                 disabled={chatSending || (!chatInput.trim() && !attachment)}
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
+                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
                 style={{
                   backgroundColor: (chatInput.trim() || attachment) ? '#C9A84C' : '#EEE9E0',
                 }}>
