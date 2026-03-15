@@ -10,6 +10,7 @@ import {
 
 interface Provider {
   id: string
+  profile_id?: string
   type: string
   first_name: string
   last_name: string
@@ -398,7 +399,7 @@ export default function NetworkPage() {
                           <Mail size={13} /> Email
                         </a>
                       )}
-                      <button onClick={() => router.push(`/messages?open=${p.id}`)}
+                      <button onClick={() => router.push(`/messages?open=${p.profile_id ?? p.id}`)}
                         className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold"
                         style={{ backgroundColor: '#0D1520', color: '#FFFFFF' }}>
                         <MessageCircle size={13} /> Message
