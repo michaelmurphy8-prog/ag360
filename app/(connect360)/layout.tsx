@@ -84,13 +84,15 @@ const [networkBadge, setNetworkBadge] = useState(0)
 
       {showTabs && (
         <nav
-          className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 flex items-center justify-around px-4"
+          className="fixed bottom-0 left-1/2 w-full max-w-md z-50 flex items-center justify-around px-4"
           style={{
             backgroundColor: '#FFFFFF',
             borderTop: '1px solid #EEE9E0',
             paddingTop: 10,
             paddingBottom: 'max(env(safe-area-inset-bottom), 14px)',
             boxShadow: '0 -4px 24px rgba(0,0,0,0.06)',
+            WebkitTransform: 'translate(-50%, 0) translateZ(0)',
+            transform: 'translate(-50%, 0) translateZ(0)',
           }}
         >
           {TABS.map(tab => {

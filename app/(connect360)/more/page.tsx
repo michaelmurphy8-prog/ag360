@@ -179,7 +179,7 @@ export default function MorePage() {
   ]
 
   return (
-    <div className="min-h-screen pb-10" style={{ backgroundColor: '#F7F5F0' }}>
+    <div className="min-h-screen pb-28" style={{ backgroundColor: '#F7F5F0' }}>
 
       {/* Sign-out overlay — covers AG360 flash */}
       {signingOut && (
