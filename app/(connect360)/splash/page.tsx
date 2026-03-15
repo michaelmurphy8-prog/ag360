@@ -9,9 +9,9 @@ export default function SplashPage() {
   const [phase, setPhase] = useState<'nodes' | 'wordmark' | 'tagline' | 'done'>('nodes')
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase('wordmark'), 600)
-    const t2 = setTimeout(() => setPhase('tagline'), 1200)
-    const t3 = setTimeout(() => setPhase('done'), 2400)
+    const t1 = setTimeout(() => setPhase('wordmark'), 800)
+    const t2 = setTimeout(() => setPhase('tagline'), 1600)
+    const t3 = setTimeout(() => setPhase('done'), 3200)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
   }, [])
 
