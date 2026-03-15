@@ -241,8 +241,9 @@ export default function Connect360AuthPage() {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F7F5F0' }}>
 
       {/* Top hero — dark contrast entry matching splash */}
-      <div className="px-6 pt-14 pb-10 text-center"
+      <div className="px-6 pb-10 text-center"
         style={{
+          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 56px)',
           background: 'linear-gradient(160deg, #0D1520 0%, #1A2535 100%)',
           borderBottomLeftRadius: 32,
           borderBottomRightRadius: 32,

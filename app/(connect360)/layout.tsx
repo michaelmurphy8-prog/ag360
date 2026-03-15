@@ -66,10 +66,11 @@ const [networkBadge, setNetworkBadge] = useState(0)
       </main>
       {showHomeButton && (
         <button
-          onClick={() => router.push('/home')}
-          className="fixed top-4 right-4 z-50 flex items-center gap-1.5 px-3 py-2 rounded-full"
-          style={{
-            backgroundColor: 'rgba(255,255,255,0.12)',
+  onClick={() => router.push('/home')}
+  className="fixed right-4 z-50 flex items-center gap-1.5 px-3 py-2 rounded-full"
+  style={{
+    top: 'calc(env(safe-area-inset-top, 16px) + 4px)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
             color: '#FFFFFF',

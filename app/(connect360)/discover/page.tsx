@@ -129,7 +129,8 @@ function MapView({
         .addTo(mapRef.current!)
       markersRef.current.push(marker)
     })
-  }, [providers, onSelect])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [providers])
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 }
