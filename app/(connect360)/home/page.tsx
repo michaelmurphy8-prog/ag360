@@ -234,9 +234,9 @@ export default function Connect360HomePage() {
           {/* Second satellite — right side */}
           <div style={{
             position: 'absolute',
-            top: 'calc(env(safe-area-inset-top, 12px) + 40px)',
-            right: '18%',
-            opacity: 0.2,
+            top: 'calc(env(safe-area-inset-top, 12px) + 70px)',
+            right: '12%',
+            opacity: 0.35,
           }}>
             <style>{`
               @keyframes satellite-float-2 {
@@ -249,7 +249,7 @@ export default function Connect360HomePage() {
                 transform-origin: center;
               }
             `}</style>
-            <svg className="satellite-2" width="24" height="24" viewBox="0 0 36 36" fill="none">
+            <svg className="satellite-2" width="36" height="36" viewBox="0 0 36 36" fill="none">
               <rect x="13" y="13" width="10" height="10" rx="2" fill="#C9A84C" opacity="0.9" />
               <line x1="18" y1="13" x2="18" y2="7" stroke="#C9A84C" strokeWidth="1.2" />
               <circle cx="18" cy="6" r="1.5" fill="#C9A84C" />
