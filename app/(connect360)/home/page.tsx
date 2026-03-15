@@ -201,7 +201,7 @@ export default function Connect360HomePage() {
         {/* Orbiting satellite */}
           <div style={{
             position: 'absolute',
-            top: 12,
+            top: 'calc(env(safe-area-inset-top, 12px) + 12px)',
             left: '50%',
             transform: 'translateX(-50%)',
             opacity: 0.35,
@@ -236,7 +236,7 @@ export default function Connect360HomePage() {
         {/* Hero content */}
         <div style={{ position: 'relative', zIndex: 1 }}>
           {/* Top bar */}
-          <div className="flex items-center justify-between px-5 pt-14 pb-5">
+          <div className="flex items-center justify-between px-5 pb-5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}>
             <div>
               <p className="text-[11px] mb-1 flex items-center gap-1.5 font-semibold uppercase tracking-widest"
                 style={{ color: 'rgba(255,255,255,0.5)', letterSpacing: '0.08em' }}>
