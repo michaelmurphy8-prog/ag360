@@ -6,7 +6,7 @@ import {
   User, Bell, Shield, HelpCircle, LogOut,
   ChevronRight, Star, Bookmark, FileText,
   Globe, Info, MessageSquare, Briefcase,
-  Home, Tractor, Truck, Users, Sprout, CheckCircle, Clock, XCircle, Fingerprint, UserX
+  Home, Tractor, Truck, Users, Sprout, CheckCircle, Clock, XCircle, Fingerprint, UserX, Trash2
 } from 'lucide-react'
 
 interface ConnectProfile {
@@ -84,7 +84,26 @@ export default function MorePage() {
     // Force redirect in case Clerk doesn't cooperate
     setTimeout(() => { window.location.href = '/auth' }, 500)
   }
-
+async function handleDeleteAccount() {
+    const confirmed = window.confirm('Are you sure you want to delete your account? This will permanently remove your profile, connections, messages, and all data. This cannot be undone.')
+    if (!confirmed) return
+    const doubleConfirm = window.confirm('This is permanent. Delete your Connect360 account?')
+    if (!doubleConfirm) return
+    try {
+      const profileId = profile?.id
+      if (profileId) {
+        await fetch(`/api/connect360/profiles/${profileId}`, { method: 'DELETE' })
+      }
+      await fetch('/api/connect360/session', { method: 'DELETE' })
+      localStorage.removeItem('c360_email')
+      localStorage.removeItem('c360_uid')
+      localStorage.removeItem('c360_first_name')
+      try { await signOut({ redirectUrl: '/auth' }) } catch {}
+      window.location.href = '/auth'
+    } catch {
+      alert('Failed to delete account. Please contact hello@ag360.farm')
+    }
+  }
   const name = profile ? `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() : (user?.fullName || user?.firstName || 'Your Account')
   const email = c360Email ?? user?.primaryEmailAddress?.emailAddress ?? ''
   const initials = name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -175,6 +194,7 @@ export default function MorePage() {
       title: '',
       rows: [
         { icon: LogOut, label: 'Sign out', action: handleSignOut, danger: true },
+        { icon: Trash2, label: 'Delete account', sublabel: 'Permanently remove your account', action: handleDeleteAccount, danger: true },
       ],
     },
   ]

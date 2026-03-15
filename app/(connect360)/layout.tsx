@@ -13,7 +13,7 @@ const TABS = [
 ]
 
 const NO_TAB_ROUTES = ['/splash', '/auth', '/register']
-const NO_HOME_BUTTON = ['/splash', '/auth', '/register', '/home', '/discover', '/jobs', '/more', '/notifications', '/privacy-safety', '/language-region', '/terms-privacy', '/about']
+const NO_HOME_BUTTON = ['/splash', '/auth', '/register', '/home', '/discover', '/jobs', '/more', '/notifications', '/privacy-safety', '/language-region', '/terms-privacy', '/about', '/profile']
 
 export default function Connect360Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()

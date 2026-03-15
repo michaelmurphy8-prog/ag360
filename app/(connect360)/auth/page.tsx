@@ -327,6 +327,17 @@ export default function Connect360AuthPage() {
           </div>
 
           {error && <p className="text-sm mt-3" style={{ color: '#EF4444' }}>{error}</p>}
+          {mode === 'signin' && (
+            <button
+              onClick={() => {
+                if (!email) { setError('Enter your email address first'); return }
+                window.open(`https://accounts.connect360.ag360.farm/sign-in/reset-password?email=${encodeURIComponent(email)}`, '_blank')
+              }}
+              className="mt-3 text-xs font-semibold"
+              style={{ color: '#C9A84C' }}>
+              Forgot password?
+            </button>
+          )}
 
           {mode === 'signin' && passkeySupported && (
             <>
